@@ -1,0 +1,4 @@
+[submodule "waypoint"]
+	path = waypoint
+	url = git@github.com:bingoring/waypoint.git
+	branch = master
