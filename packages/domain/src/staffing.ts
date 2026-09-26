@@ -1,5 +1,5 @@
 import type { TraineeKind } from './allowed-sets'
-import { addDays, isEmployed, type IsoDate } from './dates'
+import { addDays, daysInMonth, isEmployed, isoOf, type IsoDate } from './dates'
 import type { Grid } from './grid'
 import type { RuleParams } from './rules-defaults'
 import type { DutyCode, NurseProfile, ScheduleInput, TrainingSpan } from './types'
@@ -25,6 +25,15 @@ export type Staffing = {
 export function defaultTripleStaffUntil(start: IsoDate, kind: TraineeKind, params: RuleParams): IsoDate {
   const weeks = kind === 'new_grad' ? params.newbieTripleWeeks : params.experiencedTripleWeeks
   return addDays(start, 7 * weeks - 1)
+}
+
+// 응급실 지침 §6: 트레이닝 기본 종료일 = 시작일 + trainingMonths개월 − 1일 (없는 날짜는 말일로)
+export function defaultTrainingEnd(start: IsoDate, params: RuleParams): IsoDate {
+  const [y, m, d] = start.split('-').map(Number) as [number, number, number]
+  const total = m - 1 + params.trainingMonths
+  const year = y + Math.floor(total / 12)
+  const month = (total % 12) + 1
+  return addDays(isoOf(year, month, Math.min(d, daysInMonth(year, month))), -1)
 }
 
 export function createStaffing(input: ScheduleInput, grid: Grid): Staffing {
