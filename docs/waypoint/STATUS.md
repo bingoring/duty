@@ -8,7 +8,7 @@
 
 > 🔒 **개인정보:** 공개 저장소다. 간호사 이름·사번은 모두 가명이며, 실명 자료는 커밋하지 않는다([DECISIONS](DECISIONS.md) 2026-09-26).
 
-> 🏗️ **2-2 Domain Core 구현 완료 → 승인 대기 (2026-09-27).** `@duty/domain`에 규칙 검사기(하드 12·소프트 7)·인원 집계(신규 3인 근무·
+> ✅ **2-2 Domain Core 승인 (2026-09-27).** `@duty/domain`에 규칙 검사기(하드 12·소프트 7)·인원 집계(신규 3인 근무·
 > 수간호사 보충)·월 정산·특휴·셀 출처·근무표 상태 전이·위반 문구. 종이 10월: 누적 OFF 10명 일치, 하드 위반 0.
 > 다음 달 검사도 전월 말 15일을 이어서 본다(10/31 N → 11월 초 N 최대 2개). 달을 걸친 주말은 토요일이 속한 달로 세고,
 > 한 사람의 D·E·N 차이가 2를 넘으면 경고한다. 이월 확장: 다음 달이 있을 때 앞 달 수정의 경계 검사, 주말 미배정 연속 개월 수,
@@ -59,7 +59,7 @@
 | 스테이지 | 문서 | 상태 |
 |---------|------|------|
 | 2-1 Foundation | [01-foundation.md](02-construction/01-foundation.md) · [Build Spec](02-construction/foundation/build-spec-index.md) (IMPLEMENTED) | HUMAN_APPROVED |
-| 2-2 Domain Core | [02-domain-core.md](02-construction/02-domain-core.md) · [Build Spec](02-construction/domain-core/build-spec-index.md) (IMPLEMENTED) | AI_PROPOSED |
+| 2-2 Domain Core | [02-domain-core.md](02-construction/02-domain-core.md) · [Build Spec](02-construction/domain-core/build-spec-index.md) (IMPLEMENTED) | HUMAN_APPROVED |
 | 2-3 근무표 조회 (S3) | 02-construction/03-schedule-view.md | PENDING |
 | 2-4 관리자 설정 (S10·S11) | 02-construction/04-admin-settings.md | PENDING |
 | 2-5 근무 신청 (S4) | 02-construction/05-shift-requests.md | PENDING |
