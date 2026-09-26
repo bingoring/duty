@@ -1,0 +1,923 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<meta name="design_doc_mode" content="canvas">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/variable/pretendardvariable-dynamic-subset.min.css">
+<style>
+body{margin:0;background:#E9E6DF;font-family:"Pretendard Variable",Pretendard,-apple-system,sans-serif;color:#1B1F1E;-webkit-font-smoothing:antialiased}
+a{color:#0F6E63}a:hover{color:#0B564D}
+*{box-sizing:border-box}
+input::placeholder{color:#9AA09D}
+</style>
+</helmet>
+
+<section id="turn-3" style="padding:48px 56px 0;display:flex;flex-direction:column;gap:20px">
+  <div style="display:flex;flex-direction:column;gap:6px">
+    <div style="font-size:13px;color:#6B7270;letter-spacing:.04em">3차 · 간호사 간 근무 조정 · 신청 + 휴가 통합</div>
+    <p style="margin:0;color:#6B7270;font-size:14px;max-width:860px;line-height:1.6"><a href="#3a">3a</a> 근무 조정은 모든 간호사가 접근. 배포된 다음 달 격자에서 사람(행)과 날짜(열)를 골라 서로의 근무를 재배정 → 당사자에게 요청 → 우측 패널에서 받은/보낸 요청과 수락 여부 확인. 관리자는 같은 화면에서 셀을 직접 편집하고 「저장 · 재배포」「되돌리기」 버튼만 추가로 활성화됩니다. <a href="#3b">3b</a> 근무 신청 팝오버에 「휴가」를 통합(연차·경조사·병가·공가·특별휴가·검진, 하위 분류 드롭다운, 증빙 첨부 없음 — 공문 별도) · 내 휴가 잔여는 사이드바에 표시. 별도 휴가 신청 페이지(1g)는 제거.</p>
+  </div>
+
+  <div style="display:flex;flex-wrap:wrap;gap:40px;align-items:flex-start">
+  <!-- 3a 근무 조정 (간호사) -->
+  <div id="3a" data-screen-label="3a 근무 조정 · 간호사 간 교환 요청" style="display:flex;flex-direction:column;gap:10px">
+    <div style="display:flex;align-items:center;gap:10px"><span style="background:#1B1F1E;color:#fff;font-size:12px;font-weight:700;padding:3px 8px;border-radius:6px">3a</span><span style="font-size:14px;font-weight:600">근무 조정 · 간호사 화면 (로그인: 박서연)</span><span style="font-size:13px;color:#6B7270">행 체크로 사람 선택 → 날짜 열 클릭 → 팝업에서 재배정 → 요청 · 우측 받은/보낸 요청</span></div>
+    <div style="width:1280px;height:820px;background:#F6F4EF;border-radius:14px;box-shadow:0 1px 2px rgba(0,0,0,.06),0 12px 32px rgba(0,0,0,.08);display:grid;grid-template-columns:184px 1fr;overflow:hidden">
+      <nav style="background:#fff;border-right:1px solid #E4E1DA;padding:20px 12px;display:flex;flex-direction:column;gap:2px">
+        <div style="padding:4px 10px 16px;font-size:15px;font-weight:800;letter-spacing:-.02em;line-height:1.3">벌써 근무표<br>짤 때가 됐어?</div>
+        <sc-for list="{{ navAdjustNurse }}" as="m" hint-placeholder-count="9"><div style="{{ m.style }}">{{ m.label }}</div></sc-for>
+        <div style="margin-top:auto;padding:12px 10px;border-top:1px solid #E4E1DA;display:flex;flex-direction:column;gap:2px"><div style="font-size:13px;font-weight:600">박서연</div><div style="font-size:12px;color:#6B7270">응급실 · 사번 20130417</div></div>
+      </nav>
+      <main style="padding:18px 16px;display:grid;grid-template-columns:1fr 262px;gap:12px;min-width:0;min-height:0;position:relative">
+        <div style="display:flex;flex-direction:column;gap:10px;min-width:0">
+          <div style="display:flex;align-items:center;gap:10px">
+            <div style="display:flex;align-items:center;gap:6px"><button style="width:28px;height:28px;border:1px solid #D9D5CC;background:#fff;border-radius:7px;font-size:14px;cursor:pointer">‹</button><div style="font-size:20px;font-weight:700;letter-spacing:-.02em">2026년 11월 · 근무 조정</div><button style="width:28px;height:28px;border:1px solid #D9D5CC;background:#fff;border-radius:7px;font-size:14px;cursor:pointer">›</button></div>
+            <span style="font-size:12px;color:#6B4300;background:#FBE7B5;padding:3px 8px;border-radius:999px;font-weight:600">협의 기간 10/16 – 10/20 · 3일 남음</span>
+            <span style="margin-left:auto;font-size:12px;color:#6B7270;white-space:nowrap">선택 <b style="color:#1B1F1E">3명</b> · <b style="color:#1B1F1E">11/1</b></span>
+            <button style="height:32px;padding:0 12px;border:1px solid #D9D5CC;background:#fff;border-radius:8px;font-size:13px;cursor:pointer;font-family:inherit">선택 해제</button>
+            <button style="height:32px;padding:0 14px;background:#1B1F1E;color:#fff;border:0;border-radius:8px;font-size:13px;font-weight:700;cursor:pointer;font-family:inherit">근무 조정</button>
+          </div>
+          <div style="display:flex;gap:6px;font-size:12px;color:#6B7270;align-items:center"><span style="width:14px;height:14px;border-radius:4px;background:#FFF9E8;border:1px solid #D9D5CC"></span>선택한 사람<span style="width:14px;height:14px;border-radius:4px;background:#FBE7B5;margin-left:8px"></span>선택한 날짜<span style="margin-left:8px;display:inline-flex;align-items:center;gap:4px"><span style="width:14px;height:14px;border-radius:4px;box-shadow:inset 0 0 0 1.5px #C8321E"></span>신청 반영</span><span style="margin-left:auto">관리자에게만 「저장 · 재배포」「되돌리기」 버튼이 표시됩니다</span></div>
+          <div style="background:#fff;border:1px solid #D9D5CC;border-radius:10px;overflow:hidden">
+            <div style="display:grid;grid-template-columns:24px 62px repeat(30,23px);font-size:11px">
+              <div style="grid-row:span 2;border-right:1px solid #EEECE6;border-bottom:1px solid #D9D5CC;background:#FAF9F6"></div>
+              <div style="grid-row:span 2;border-right:1px solid #D9D5CC;border-bottom:1px solid #D9D5CC;display:flex;align-items:center;justify-content:center;color:#6B7270;background:#FAF9F6">성명</div>
+              <sc-for list="{{ novDays }}" as="d" hint-placeholder-count="30"><div style="{{ d.hd }}">{{ d.n }}</div></sc-for>
+              <sc-for list="{{ novDays }}" as="d" hint-placeholder-count="30"><div style="{{ d.wdS }}">{{ d.wd }}</div></sc-for>
+              <sc-for list="{{ rowsSwap }}" as="r" hint-placeholder-count="10">
+                <div style="border-right:1px solid #EEECE6;border-bottom:1px solid #EEECE6;height:32px;display:flex;align-items:center;justify-content:center;cursor:pointer"><span style="{{ r.checkStyle }}">{{ r.check }}</span></div>
+                <div style="{{ r.nameStyle }}">{{ r.name }}</div>
+                <sc-for list="{{ r.cells }}" as="c" hint-placeholder-count="30"><div style="{{ c.wrap }}"><span style="{{ c.style }}">{{ c.t }}</span></div></sc-for>
+              </sc-for>
+            </div>
+          </div>
+          <div style="font-size:12px;color:#6B7270">협의 기간이 끝나면 요청을 보낼 수 없습니다. 모든 당사자가 수락하면 즉시 근무표에 반영되고, 규칙 위반(금지 패턴·휴식·최소 인원)이 생기는 조합은 요청 단계에서 차단됩니다.</div>
+        </div>
+        <aside style="display:flex;flex-direction:column;gap:10px;min-height:0;font-size:13px">
+          <div style="display:flex;gap:4px;font-size:12px"><span style="padding:6px 10px;border-radius:8px;background:#1B1F1E;color:#fff;font-weight:600">받은 요청 <span style="background:#C8321E;color:#fff;padding:0 5px;border-radius:999px;font-size:10px;margin-left:2px">1</span></span><span style="padding:6px 10px;border-radius:8px;border:1px solid #D9D5CC;background:#fff;color:#6B7270">보낸 요청 3</span></div>
+          <sc-for list="{{ recvReqs }}" as="q" hint-placeholder-count="1">
+            <div style="background:#fff;border:1px solid #1B1F1E;border-radius:12px;padding:12px;display:flex;flex-direction:column;gap:6px">
+              <div style="display:flex;justify-content:space-between;align-items:center"><span style="font-weight:700">{{ q.from }} 님의 요청</span><span style="font-size:11px;color:#9AA09D">{{ q.when }}</span></div>
+              <div style="font-weight:600">{{ q.title }}</div>
+              <div style="font-size:12px;color:#6B7270">{{ q.detail }}</div>
+              <div style="font-size:12px;color:#3A403E;background:#FAF9F6;border-radius:6px;padding:6px 8px">{{ q.note }}</div>
+              <div style="display:flex;gap:6px"><button style="flex:1;height:34px;border:1px solid #D9D5CC;background:#fff;border-radius:8px;font-size:12px;font-family:inherit;cursor:pointer">거절</button><button style="flex:1;height:34px;background:#0F6E63;color:#fff;border:0;border-radius:8px;font-size:12px;font-weight:700;font-family:inherit;cursor:pointer">수락</button></div>
+            </div>
+          </sc-for>
+          <div style="font-size:11px;color:#9AA09D;letter-spacing:.06em;font-weight:600;padding:6px 2px 0">보낸 요청</div>
+          <sc-for list="{{ sentReqs }}" as="q" hint-placeholder-count="3">
+            <div style="background:#fff;border:1px solid #D9D5CC;border-radius:12px;padding:12px;display:flex;flex-direction:column;gap:6px">
+              <div style="display:flex;justify-content:space-between;align-items:center"><span style="font-weight:700">{{ q.title }}</span><span style="font-size:11px;color:#9AA09D">{{ q.when }}</span></div>
+              <div style="font-size:12px;color:#6B7270">{{ q.detail }}</div>
+              <div style="display:flex;gap:10px;flex-wrap:wrap;align-items:center"><sc-for list="{{ q.people }}" as="p" hint-placeholder-count="2"><span style="display:inline-flex;gap:4px;align-items:center;font-size:12px">{{ p.n }} <span style="{{ p.sStyle }}">{{ p.s }}</span></span></sc-for><span style="{{ q.doneStyle }}">{{ q.done }}</span></div>
+            </div>
+          </sc-for>
+        </aside>
+        <!-- 재배정 팝업 -->
+        <div style="position:absolute;left:300px;top:160px;width:400px;background:#fff;border:1px solid #1B1F1E;border-radius:12px;box-shadow:0 16px 40px rgba(0,0,0,.18);padding:16px;display:flex;flex-direction:column;gap:12px;font-size:13px">
+          <div style="display:flex;justify-content:space-between;align-items:center"><span style="font-weight:700;font-size:14px">11/1 (일) · 3인 근무 재배정</span><span style="font-size:12px;color:#6B7270">칩을 드래그하거나 클릭해 바꾸기</span></div>
+          <div style="display:grid;grid-template-columns:72px 1fr 20px 1fr;gap:8px 10px;align-items:center;font-size:12px;color:#6B7270"><span></span><span>현재</span><span></span><span style="color:#1B1F1E;font-weight:600">변경 후</span></div>
+          <div style="display:flex;flex-direction:column;gap:8px">
+            <div style="display:grid;grid-template-columns:72px 1fr 20px 1fr;gap:8px 10px;align-items:center"><span style="font-weight:700;color:#0F6E63">박서연 (나)</span><span style="width:34px;height:30px;border-radius:7px;display:flex;align-items:center;justify-content:center;font-weight:700;font-size:12px;background:#FBE7B5">D</span><span style="color:#9AA09D">→</span><span style="width:34px;height:30px;border-radius:7px;display:flex;align-items:center;justify-content:center;font-weight:700;font-size:12px;background:#CFE8E3;box-shadow:inset 0 0 0 2px #1B1F1E">E</span></div>
+            <div style="display:grid;grid-template-columns:72px 1fr 20px 1fr;gap:8px 10px;align-items:center"><span style="font-weight:600">오민지</span><span style="width:34px;height:30px;border-radius:7px;display:flex;align-items:center;justify-content:center;font-weight:700;font-size:12px;background:#CFE8E3">E</span><span style="color:#9AA09D">→</span><span style="width:34px;height:30px;border-radius:7px;display:flex;align-items:center;justify-content:center;font-weight:700;font-size:12px;background:#D9D6F2;box-shadow:inset 0 0 0 2px #1B1F1E">N</span></div>
+            <div style="display:grid;grid-template-columns:72px 1fr 20px 1fr;gap:8px 10px;align-items:center"><span style="font-weight:600">강도윤</span><span style="width:34px;height:30px;border-radius:7px;display:flex;align-items:center;justify-content:center;font-weight:700;font-size:12px;background:#D9D6F2">N</span><span style="color:#9AA09D">→</span><span style="width:34px;height:30px;border-radius:7px;display:flex;align-items:center;justify-content:center;font-weight:700;font-size:12px;background:#FBE7B5;box-shadow:inset 0 0 0 2px #1B1F1E">D</span></div>
+          </div>
+          <div style="background:#DDEFEB;color:#0B564D;border-radius:8px;padding:8px 10px;font-size:12px;line-height:1.5"><b>규칙 검사 통과</b> · 인원 D2/E2/N2 유지 · K-tass 각 듀티 1명 이상 · 금지 패턴 없음 · 휴식 16시간 이상</div>
+          <textarea rows="2" style="border:1px solid #D9D5CC;border-radius:8px;padding:8px 10px;font-size:12.5px;font-family:inherit;resize:none;color:#1B1F1E;line-height:1.5">1일 오전에 일이 있어서 E로 바꾸고 싶어요. 나희 선생님 N 가능하다고 하셨죠?</textarea>
+          <div style="display:flex;gap:6px;justify-content:flex-end;align-items:center"><span style="font-size:12px;color:#6B7270;margin-right:auto">오민지 · 강도윤에게 요청됩니다</span><button style="height:34px;padding:0 12px;border:1px solid #D9D5CC;background:#fff;border-radius:8px;font-size:12px;font-family:inherit;cursor:pointer">취소</button><button style="height:34px;padding:0 16px;background:#0F6E63;color:#fff;border:0;border-radius:8px;font-size:12px;font-weight:700;font-family:inherit;cursor:pointer">요청 보내기</button></div>
+        </div>
+      </main>
+    </div>
+  </div>
+
+  <!-- 3b 근무 신청 + 휴가 -->
+  <div id="3b" data-screen-label="3b 근무 신청 · 휴가 통합 팝오버" style="display:flex;flex-direction:column;gap:10px">
+    <div style="display:flex;align-items:center;gap:10px"><span style="background:#1B1F1E;color:#fff;font-size:12px;font-weight:700;padding:3px 8px;border-radius:6px">3b</span><span style="font-size:14px;font-weight:600">근무 신청 · 「휴가」 통합 팝오버</span><span style="font-size:13px;color:#6B7270">OFF·D·E·N / 휴가 / 교육 → 휴가 하위(연차·경조사·병가·공가·특별휴가·검진) → 경조사 사유 드롭다운 · 종료일 자동 · 사이드바에 내 휴가 잔여</span></div>
+    <div style="width:1280px;height:760px;background:#F6F4EF;border-radius:14px;box-shadow:0 1px 2px rgba(0,0,0,.06),0 12px 32px rgba(0,0,0,.08);display:grid;grid-template-columns:184px 1fr;overflow:hidden">
+      <nav style="background:#fff;border-right:1px solid #E4E1DA;padding:20px 12px;display:flex;flex-direction:column;gap:2px">
+        <div style="padding:4px 10px 16px;font-size:15px;font-weight:800;letter-spacing:-.02em;line-height:1.3">벌써 근무표<br>짤 때가 됐어?</div>
+        <sc-for list="{{ navOff }}" as="m" hint-placeholder-count="9"><div style="{{ m.style }}">{{ m.label }}</div></sc-for>
+        <div style="margin-top:auto;display:flex;flex-direction:column;gap:8px">
+          <div style="background:#FAF9F6;border:1px solid #EEECE6;border-radius:10px;padding:10px 12px;display:flex;flex-direction:column;gap:5px;font-size:12px">
+            <div style="font-size:11px;color:#9AA09D;letter-spacing:.06em;font-weight:600">내 휴가 잔여</div>
+            <div style="display:flex;justify-content:space-between"><span style="color:#6B7270">연차</span><b>9 / 15</b></div>
+            <div style="display:flex;justify-content:space-between"><span style="color:#6B7270">특별휴가</span><b>2 / 2</b></div>
+            <div style="display:flex;justify-content:space-between"><span style="color:#6B7270">검진 반차</span><b>0.5</b></div>
+            <div style="display:flex;justify-content:space-between"><span style="color:#6B7270">병가</span><b>60</b></div>
+            <div style="display:flex;justify-content:space-between"><span style="color:#6B7270">누적 OFF</span><b style="color:#0F6E63">+4</b></div>
+            <div style="display:flex;justify-content:space-between"><span style="color:#6B7270">잔여 N</span><b>3</b></div>
+          </div>
+          <div style="padding:10px 10px 0;border-top:1px solid #E4E1DA;display:flex;flex-direction:column;gap:2px"><div style="font-size:13px;font-weight:600">정하늘</div><div style="font-size:12px;color:#6B7270">응급실 · 사번 20190412</div></div>
+        </div>
+      </nav>
+      <main style="padding:18px 16px;display:flex;flex-direction:column;gap:12px;min-width:0;position:relative">
+        <div style="display:flex;align-items:center;gap:12px">
+          <div style="display:flex;align-items:center;gap:6px"><button style="width:28px;height:28px;border:1px solid #D9D5CC;background:#fff;border-radius:7px;font-size:14px;cursor:pointer">‹</button><div style="font-size:20px;font-weight:700;letter-spacing:-.02em">2026년 11월 · 근무 신청</div><button style="width:28px;height:28px;border:1px solid #D9D5CC;background:#fff;border-radius:7px;font-size:14px;cursor:pointer">›</button></div>
+          <span style="font-size:12px;color:#6B4300;background:#FBE7B5;padding:3px 8px;border-radius:999px;font-weight:600">신청 중 · 마감 10/15 (14일 남음)</span>
+          <div style="margin-left:auto;display:flex;gap:6px;font-size:12px;align-items:center">
+            <span style="background:#EEECE6;color:#1B1F1E;padding:3px 8px;border-radius:5px;font-weight:700;box-shadow:inset 0 0 0 1.5px #C8321E">O</span><span style="background:#fff;color:#1B1F1E;padding:3px 8px;border-radius:5px;font-weight:700;box-shadow:inset 0 0 0 1.5px #C8321E">O/D</span><span style="color:#6B7270">신청</span><span style="background:#D8E6C3;color:#1B1F1E;padding:3px 8px;border-radius:5px;font-weight:700;margin-left:6px">휴</span><span style="color:#6B7270">휴가 (연차·경조·병가·공가·특휴)</span><span style="color:#6B7270;margin-left:6px;text-decoration:underline dotted #6B7270;text-underline-offset:3px">밑줄</span><span style="color:#6B7270">코멘트</span>
+          </div>
+        </div>
+        <div style="background:#fff;border:1px solid #D9D5CC;border-radius:10px;overflow:hidden">
+          <div style="display:grid;grid-template-columns:96px repeat(30,30px) 56px;font-size:11px">
+            <div style="grid-row:span 2;border-right:1px solid #D9D5CC;border-bottom:1px solid #D9D5CC;display:flex;align-items:center;justify-content:center;color:#6B7270;background:#FAF9F6">성명</div>
+            <sc-for list="{{ novDays }}" as="d" hint-placeholder-count="30"><div style="{{ d.hd }}">{{ d.n }}</div></sc-for>
+            <div style="grid-row:span 2;border-left:1px solid #D9D5CC;border-bottom:1px solid #D9D5CC;display:flex;align-items:center;justify-content:center;color:#6B7270;background:#FAF9F6">신청</div>
+            <sc-for list="{{ novDays }}" as="d" hint-placeholder-count="30"><div style="{{ d.wdS }}">{{ d.wd }}</div></sc-for>
+            <sc-for list="{{ reqRows }}" as="r" hint-placeholder-count="10">
+              <div style="{{ r.nameStyle }}">{{ r.name }}<span style="{{ r.tagStyle }}">{{ r.tag }}</span></div>
+              <sc-for list="{{ r.cells }}" as="c" hint-placeholder-count="30"><div style="{{ c.wrap }}"><span style="{{ c.style }}">{{ c.t }}</span></div></sc-for>
+              <div style="{{ r.cntStyle }}">{{ r.cnt }}</div>
+            </sc-for>
+            <div style="border-right:1px solid #D9D5CC;border-top:1px solid #D9D5CC;background:#FAF9F6;padding:0 8px;display:flex;align-items:center;color:#6B7270;height:30px;font-size:10.5px">OFF 신청 인원</div>
+            <sc-for list="{{ novDays }}" as="d" hint-placeholder-count="30"><div style="{{ d.sum }}">{{ d.offs }}</div></sc-for>
+            <div style="border-left:1px solid #D9D5CC;border-top:1px solid #D9D5CC;background:#FAF9F6;display:flex;align-items:center;justify-content:center;color:#C8321E;font-size:10px;font-weight:600;height:30px">3+ 주의</div>
+          </div>
+        </div>
+        <div style="font-size:12px;color:#6B7270;display:flex;gap:16px;align-items:center"><span>휴가는 관리자 승인 후 근무표에 반영됩니다. 증빙 서류는 병원 공문으로 별도 제출.</span><span style="margin-left:auto">마감 후 <b style="color:#1B1F1E">10/16–10/20</b> 협의 수정</span><button style="height:34px;padding:0 16px;background:#0F6E63;color:#fff;border:0;border-radius:8px;font-size:13px;font-weight:700;font-family:inherit;cursor:pointer">신청 제출</button></div>
+        <!-- 팝오버: 휴가 선택 상태 -->
+        <div style="position:absolute;left:560px;top:140px;width:340px;background:#fff;border:1px solid #1B1F1E;border-radius:12px;box-shadow:0 16px 40px rgba(0,0,0,.18);padding:14px;display:flex;flex-direction:column;gap:10px;font-size:13px">
+          <div style="display:flex;justify-content:space-between;align-items:center"><span style="font-weight:700">11/19 (목) · 신청</span><span style="color:#6B7270;font-size:12px">근무는 복수 선택 · or</span></div>
+          <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:6px">
+            <span style="height:36px;display:flex;align-items:center;justify-content:center;border-radius:8px;background:#EEECE6;color:#1B1F1E;font-weight:700;border:2px solid transparent;opacity:.5">OFF</span>
+            <span style="height:36px;display:flex;align-items:center;justify-content:center;border-radius:8px;background:#FBE7B5;color:#1B1F1E;font-weight:700;border:2px solid transparent;opacity:.5">D</span>
+            <span style="height:36px;display:flex;align-items:center;justify-content:center;border-radius:8px;background:#CFE8E3;color:#1B1F1E;font-weight:700;border:2px solid transparent;opacity:.5">E</span>
+            <span style="height:36px;display:flex;align-items:center;justify-content:center;border-radius:8px;background:#D9D6F2;color:#1B1F1E;font-weight:700;border:2px solid transparent;opacity:.5">N</span>
+          </div>
+          <div style="display:flex;gap:6px;font-size:12px"><span style="padding:6px 12px;border-radius:6px;background:#D8E6C3;color:#1B1F1E;font-weight:700;border:2px solid #1B1F1E">휴가</span><span style="padding:6px 12px;border-radius:6px;border:1px solid #D9D5CC;background:#fff;color:#6B7270">교육 (보수·노조)</span></div>
+          <div style="border-top:1px solid #EEECE6;padding-top:10px;display:flex;flex-direction:column;gap:8px">
+            <div style="font-size:12px;color:#6B7270">휴가 종류</div>
+            <div style="display:flex;flex-wrap:wrap;gap:5px"><sc-for list="{{ leaveOpts }}" as="o" hint-placeholder-count="5"><span style="{{ o.style }}">{{ o.l }}</span></sc-for></div>
+            <div style="display:flex;flex-direction:column;gap:5px"><span style="font-size:12px;color:#6B7270">경조사 사유</span><div style="height:38px;border:1px solid #1B1F1E;border-radius:8px;padding:0 12px;display:flex;align-items:center;justify-content:space-between"><span>본인·배우자 부모 사망 <span style="color:#0F6E63;font-weight:700">· 7일</span></span><span style="color:#6B7270">▾</span></div></div>
+            <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px">
+              <label style="display:flex;flex-direction:column;gap:4px;font-size:12px;color:#6B7270">시작일<input value="11/19 (목)" style="height:36px;border:1px solid #D9D5CC;border-radius:8px;padding:0 10px;font-size:13px;font-family:inherit;color:#1B1F1E"></label>
+              <label style="display:flex;flex-direction:column;gap:4px;font-size:12px;color:#6B7270">종료일 (자동)<div style="height:36px;border:1px solid #EEECE6;background:#FAF9F6;border-radius:8px;padding:0 10px;display:flex;align-items:center;color:#1B1F1E">11/25 (수)</div></label>
+            </div>
+          </div>
+          <textarea rows="2" style="border:1px solid #D9D5CC;border-radius:8px;padding:8px 10px;font-size:12.5px;font-family:inherit;resize:none;color:#9AA09D;line-height:1.5">코멘트 (수간호사에게만 보입니다)</textarea>
+          <div style="display:flex;gap:6px;justify-content:flex-end;align-items:center"><span style="font-size:11.5px;color:#6B7270;margin-right:auto">11/19–25 · 7일 · 유급</span><button style="height:32px;padding:0 12px;border:1px solid #D9D5CC;background:#fff;border-radius:8px;font-size:12px;font-family:inherit;cursor:pointer">취소</button><button style="height:32px;padding:0 14px;background:#1B1F1E;color:#fff;border:0;border-radius:8px;font-size:12px;font-weight:600;font-family:inherit;cursor:pointer">저장</button></div>
+        </div>
+      </main>
+    </div>
+  </div>
+  </div>
+</section>
+
+<section id="turn-2" style="padding:48px 56px 0;display:flex;flex-direction:column;gap:20px">
+  <div style="display:flex;flex-direction:column;gap:6px">
+    <div style="font-size:13px;color:#6B7270;letter-spacing:.04em">2차 · 근무 신청을 근무표 위에서</div>
+    <p style="margin:0;color:#6B7270;font-size:14px;max-width:820px;line-height:1.6"><a href="#2a">2a</a> 다음 달(11월) 근무표 격자 위에 모든 간호사의 신청이 그대로 보이고, 내 줄의 빈 칸을 눌러 OFF·D·E·N을 or 조건으로 신청합니다. 확정 방향 — 기존 별도 캘린더 화면(1f)은 제거했습니다. <a href="#2b">2b</a> 관리자가 규칙의 수치(휴식 시간, 최대 연속 오프 등)를 직접 수정하는 규칙 설정 화면 — 저장하면 <a href="#1l">규칙 안내</a>와 듀티 생성 조건에 자동 반영됩니다.</p>
+  </div>
+  <div id="2b" data-screen-label="2b 관리자 · 규칙 설정" style="display:flex;flex-direction:column;gap:10px">
+    <div style="display:flex;align-items:center;gap:10px"><span style="background:#1B1F1E;color:#fff;font-size:12px;font-weight:700;padding:3px 8px;border-radius:6px">2b</span><span style="font-size:14px;font-weight:600">관리자 · 규칙 설정</span><span style="font-size:13px;color:#6B7270">수치형 규칙은 직접 수정 · 변경 이력 기록 · 저장 시 규칙 안내·듀티 생성에 반영</span></div>
+    <div style="width:1280px;height:820px;background:#F6F4EF;border-radius:14px;box-shadow:0 1px 2px rgba(0,0,0,.06),0 12px 32px rgba(0,0,0,.08);display:grid;grid-template-columns:184px 1fr;overflow:hidden">
+      <nav style="background:#fff;border-right:1px solid #E4E1DA;padding:20px 12px;display:flex;flex-direction:column;gap:2px">
+        <div style="padding:4px 10px 16px;font-size:15px;font-weight:800;letter-spacing:-.02em;line-height:1.3">벌써 근무표<br>짤 때가 됐어?</div>
+        <sc-for list="{{ navRuleset }}" as="m" hint-placeholder-count="10"><div style="{{ m.style }}">{{ m.label }}</div></sc-for>
+        <div style="margin-top:auto;padding:12px 10px;border-top:1px solid #E4E1DA;display:flex;flex-direction:column;gap:2px"><div style="font-size:13px;font-weight:600">한수정 <span style="font-size:11px;color:#1F5AA6;font-weight:700">관리자</span></div><div style="font-size:12px;color:#6B7270">응급실 수간호사</div></div>
+      </nav>
+      <main style="padding:24px 28px;display:grid;grid-template-columns:1fr 340px;gap:20px;min-width:0;min-height:0">
+        <div style="display:flex;flex-direction:column;gap:12px;min-height:0">
+          <div style="display:flex;align-items:center;gap:12px"><div style="font-size:22px;font-weight:700;letter-spacing:-.02em">규칙 설정 · 응급실</div><span style="font-size:12px;color:#1F5AA6;background:#EEF3FB;padding:3px 8px;border-radius:999px;font-weight:600">변경 1건 저장 전</span><span style="margin-left:auto;font-size:12px;color:#6B7270">다음 듀티 생성(11월)부터 적용</span></div>
+          <div style="background:#fff;border:1px solid #D9D5CC;border-radius:12px;overflow:hidden;font-size:13px">
+            <sc-for list="{{ ruleParams }}" as="p" hint-placeholder-count="12">
+              <div style="{{ p.rowStyle }}">
+                <div style="display:flex;flex-direction:column;gap:2px;min-width:0"><div style="display:flex;align-items:center;gap:8px"><span style="font-weight:600">{{ p.label }}</span><span style="{{ p.kindStyle }}">{{ p.kind }}</span><span style="{{ p.noteStyle }}">{{ p.note }}</span></div><span style="font-size:12px;color:#6B7270">{{ p.desc }}</span></div>
+                <div style="display:flex;align-items:center;gap:6px"><button style="width:30px;height:34px;border:1px solid #D9D5CC;background:#fff;border-radius:8px;font-size:14px;cursor:pointer;font-family:inherit">−</button><input value="{{ p.val }}" style="{{ p.inputStyle }}"><button style="width:30px;height:34px;border:1px solid #D9D5CC;background:#fff;border-radius:8px;font-size:14px;cursor:pointer;font-family:inherit">+</button><span style="width:44px;font-size:12px;color:#6B7270">{{ p.unit }}</span></div>
+              </div>
+            </sc-for>
+          </div>
+        </div>
+        <aside style="display:flex;flex-direction:column;gap:12px;min-height:0">
+          <div style="background:#fff;border:1px solid #D9D5CC;border-radius:12px;padding:16px;display:flex;flex-direction:column;gap:10px;font-size:13px">
+            <div style="font-weight:700">켜고 끄는 규칙</div>
+            <label style="display:flex;gap:10px;align-items:flex-start"><input type="checkbox" checked style="accent-color:#0F6E63;margin-top:3px"><span><b>모든 간호사 월 1회 주말 이틀 통 OFF</b><br><span style="color:#6B7270;font-size:12px">토·일 연속 OFF. 불가능한 사람은 다음 달 최우선</span></span></label>
+            <label style="display:flex;gap:10px;align-items:flex-start"><input type="checkbox" checked style="accent-color:#0F6E63;margin-top:3px"><span><b>저연차만 배정 방지</b><br><span style="color:#6B7270;font-size:12px">듀티마다 3년차 이상 1명 이상</span></span></label>
+            <label style="display:flex;gap:10px;align-items:flex-start"><input type="checkbox" checked style="accent-color:#0F6E63;margin-top:3px"><span><b>특정 근무자 반복 겹침 최소화</b><br><span style="color:#6B7270;font-size:12px">트레이닝 기간 제외</span></span></label>
+            <label style="display:flex;gap:10px;align-items:flex-start"><input type="checkbox" style="accent-color:#0F6E63;margin-top:3px"><span><b>야간 전담 운영</b><br><span style="color:#6B7270;font-size:12px">응급실은 사용 안 함 · 켜면 월 15일(31일 달 16일) 상한</span></span></label>
+          </div>
+          <div style="background:#fff;border:1px solid #D9D5CC;border-radius:12px;padding:16px;display:flex;flex-direction:column;gap:10px;font-size:13px">
+            <div style="font-weight:700">금지 근무 패턴</div>
+            <div style="display:flex;flex-wrap:wrap;gap:6px"><sc-for list="{{ rulePatterns }}" as="x" hint-placeholder-count="4"><span style="padding:5px 10px;border-radius:6px;background:#FDECEA;color:#8A1F12;font-weight:700;font-size:12px">{{ x.p }} ×</span></sc-for><span style="padding:5px 10px;border-radius:6px;border:1px dashed #C9C5BC;color:#6B7270;font-size:12px">+ 패턴 추가</span></div>
+          </div>
+          <div style="background:#FAF9F6;border:1px dashed #D9D5CC;border-radius:12px;padding:14px;font-size:12px;color:#6B7270;line-height:1.6"><b style="color:#1B1F1E">변경 이력</b><br>09/26 한수정 · 최대 연속 오프 10 → 11 (저장 전)<br>08/12 한수정 · 월 나이트 상한 6 → 7<br>07/01 한수정 · 초기 설정</div>
+          <div style="display:flex;gap:8px;margin-top:auto"><button style="flex:1;height:44px;border:1px solid #D9D5CC;background:#fff;border-radius:10px;font-size:14px;font-family:inherit;cursor:pointer">되돌리기</button><button style="flex:1.4;height:44px;background:#0F6E63;color:#fff;border:0;border-radius:10px;font-size:14px;font-weight:700;font-family:inherit;cursor:pointer">저장 · 규칙 안내 반영</button></div>
+        </aside>
+      </main>
+    </div>
+  </div>
+  <div id="2a" data-screen-label="2a 근무 신청 · 근무표 위에서" style="display:flex;flex-direction:column;gap:10px">
+    <div style="display:flex;align-items:center;gap:10px"><span style="background:#1B1F1E;color:#fff;font-size:12px;font-weight:700;padding:3px 8px;border-radius:6px">2a</span><span style="font-size:14px;font-weight:600">근무 신청 · 11월 근무표 위에서</span><span style="font-size:13px;color:#6B7270">내 줄 빈 칸 클릭 → 팝오버에서 복수 선택 + 코멘트 · 다른 사람 신청은 그대로 노출 · 하단에 일자별 OFF 신청 인원</span></div>
+    <div style="width:1280px;height:760px;background:#F6F4EF;border-radius:14px;box-shadow:0 1px 2px rgba(0,0,0,.06),0 12px 32px rgba(0,0,0,.08);display:grid;grid-template-columns:184px 1fr;overflow:hidden">
+      <nav style="background:#fff;border-right:1px solid #E4E1DA;padding:20px 12px;display:flex;flex-direction:column;gap:2px">
+        <div style="padding:4px 10px 16px;font-size:15px;font-weight:800;letter-spacing:-.02em;line-height:1.3">벌써 근무표<br>짤 때가 됐어?</div>
+        <sc-for list="{{ navOff }}" as="m" hint-placeholder-count="9"><div style="{{ m.style }}">{{ m.label }}</div></sc-for>
+        <div style="margin-top:auto;padding:12px 10px;border-top:1px solid #E4E1DA;display:flex;flex-direction:column;gap:2px"><div style="font-size:13px;font-weight:600">정하늘</div><div style="font-size:12px;color:#6B7270">응급실 · 사번 20190412</div></div>
+      </nav>
+      <main style="padding:18px 16px;display:flex;flex-direction:column;gap:12px;min-width:0;position:relative">
+        <div style="display:flex;align-items:center;gap:12px">
+          <div style="display:flex;align-items:center;gap:6px"><button style="width:28px;height:28px;border:1px solid #D9D5CC;background:#fff;border-radius:7px;font-size:14px;cursor:pointer">‹</button><div style="font-size:20px;font-weight:700;letter-spacing:-.02em">2026년 11월 · 근무 신청</div><button style="width:28px;height:28px;border:1px solid #D9D5CC;background:#fff;border-radius:7px;font-size:14px;cursor:pointer">›</button></div>
+          <span style="font-size:12px;color:#6B4300;background:#FBE7B5;padding:3px 8px;border-radius:999px;font-weight:600">신청 중 · 마감 10/15 (14일 남음)</span>
+          <div style="margin-left:auto;display:flex;gap:6px;font-size:12px;align-items:center">
+            <span style="background:#EEECE6;color:#1B1F1E;padding:3px 8px;border-radius:5px;font-weight:700;box-shadow:inset 0 0 0 1.5px #C8321E">O</span><span style="background:#FBE7B5;color:#1B1F1E;padding:3px 8px;border-radius:5px;font-weight:700;box-shadow:inset 0 0 0 1.5px #C8321E">D</span><span style="background:#fff;color:#1B1F1E;padding:3px 8px;border-radius:5px;font-weight:700;box-shadow:inset 0 0 0 1.5px #C8321E">O/D</span><span style="color:#6B7270">= OFF 또는 D</span><span style="background:#DDEFEB;color:#1B1F1E;padding:3px 8px;border-radius:5px;font-weight:700;margin-left:6px">연</span><span style="color:#6B7270">연차</span><span style="color:#6B7270;margin-left:6px;text-decoration:underline dotted #6B7270;text-underline-offset:3px">밑줄</span><span style="color:#6B7270">코멘트 있음</span>
+          </div>
+        </div>
+        <div style="display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:8px">
+          <div style="background:#1B1F1E;color:#fff;border-radius:10px;padding:10px 14px;display:flex;flex-direction:column;gap:2px"><span style="font-size:11px;opacity:.7">내 신청</span><span style="font-size:20px;font-weight:700">5건 <span style="font-size:12px;font-weight:500;opacity:.75">OFF 2 · OFF/D 1 · E/N 1 · 연차 1</span></span></div>
+          <div style="background:#fff;border:1px solid #D9D5CC;border-radius:10px;padding:10px 14px;display:flex;flex-direction:column;gap:2px"><span style="font-size:11px;color:#6B7270">11월 기준 OFF</span><span style="font-size:20px;font-weight:700">9 <span style="font-size:12px;font-weight:500;color:#6B7270">+ 이월 4 = 최대 13</span></span></div>
+          <div style="background:#fff;border:1px solid #D9D5CC;border-radius:10px;padding:10px 14px;display:flex;flex-direction:column;gap:2px"><span style="font-size:11px;color:#6B7270">주말 연휴 통 OFF</span><span style="font-size:20px;font-weight:700;color:#0F6E63">우선 대상 <span style="font-size:12px;font-weight:500;color:#6B7270">10월 미배정</span></span></div>
+          <div style="background:#fff;border:1px solid #D9D5CC;border-radius:10px;padding:10px 14px;display:flex;flex-direction:column;gap:2px"><span style="font-size:11px;color:#6B7270">병동 신청</span><span style="font-size:20px;font-weight:700">21건 <span style="font-size:12px;font-weight:500;color:#C8321E">11/7 · 11/21 OFF 3명 겹침</span></span></div>
+        </div>
+        <div style="background:#fff;border:1px solid #D9D5CC;border-radius:10px;overflow:hidden">
+          <div style="display:grid;grid-template-columns:96px repeat(30,30px) 56px;font-size:11px">
+            <div style="grid-row:span 2;border-right:1px solid #D9D5CC;border-bottom:1px solid #D9D5CC;display:flex;align-items:center;justify-content:center;color:#6B7270;background:#FAF9F6">성명</div>
+            <sc-for list="{{ novDays }}" as="d" hint-placeholder-count="30"><div style="{{ d.hd }}">{{ d.n }}</div></sc-for>
+            <div style="grid-row:span 2;border-left:1px solid #D9D5CC;border-bottom:1px solid #D9D5CC;display:flex;align-items:center;justify-content:center;color:#6B7270;background:#FAF9F6">신청</div>
+            <sc-for list="{{ novDays }}" as="d" hint-placeholder-count="30"><div style="{{ d.wdS }}">{{ d.wd }}</div></sc-for>
+            <sc-for list="{{ reqRows }}" as="r" hint-placeholder-count="10">
+              <div style="{{ r.nameStyle }}">{{ r.name }}<span style="{{ r.tagStyle }}">{{ r.tag }}</span></div>
+              <sc-for list="{{ r.cells }}" as="c" hint-placeholder-count="30"><div style="{{ c.wrap }}"><span style="{{ c.style }}">{{ c.t }}</span></div></sc-for>
+              <div style="{{ r.cntStyle }}">{{ r.cnt }}</div>
+            </sc-for>
+            <div style="border-right:1px solid #D9D5CC;border-top:1px solid #D9D5CC;background:#FAF9F6;padding:0 8px;display:flex;align-items:center;color:#6B7270;height:30px;font-size:10.5px">OFF 신청 인원</div>
+            <sc-for list="{{ novDays }}" as="d" hint-placeholder-count="30"><div style="{{ d.sum }}">{{ d.offs }}</div></sc-for>
+            <div style="border-left:1px solid #D9D5CC;border-top:1px solid #D9D5CC;background:#FAF9F6;display:flex;align-items:center;justify-content:center;color:#C8321E;font-size:10px;font-weight:600;height:30px">3+ 주의</div>
+          </div>
+        </div>
+        <div style="font-size:12px;color:#6B7270;display:flex;gap:16px;align-items:center"><span>여러 개를 고르면 <b style="color:#1B1F1E">그중 하나</b>로 배정됩니다.</span><span>코멘트는 수간호사만 봅니다.</span><span style="margin-left:auto">마감 후 <b style="color:#1B1F1E">10/16–10/20</b> 협의 수정</span><button style="height:34px;padding:0 16px;background:#0F6E63;color:#fff;border:0;border-radius:8px;font-size:13px;font-weight:700;font-family:inherit;cursor:pointer">신청 제출</button></div>
+        <!-- 셀 팝오버 (정하늘 · 11/13) -->
+        <div style="position:absolute;left:520px;top:238px;width:320px;background:#fff;border:1px solid #1B1F1E;border-radius:12px;box-shadow:0 16px 40px rgba(0,0,0,.18);padding:14px;display:flex;flex-direction:column;gap:10px;font-size:13px">
+          <div style="display:flex;justify-content:space-between;align-items:center"><span style="font-weight:700">11/13 (금) · 가능한 근무</span><span style="color:#6B7270;font-size:12px">복수 선택 · or</span></div>
+          <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:6px">
+            <span style="height:38px;display:flex;align-items:center;justify-content:center;border-radius:8px;background:#EEECE6;color:#1B1F1E;font-weight:700;border:2px solid #1B1F1E">OFF</span>
+            <span style="height:38px;display:flex;align-items:center;justify-content:center;border-radius:8px;background:#FBE7B5;color:#1B1F1E;font-weight:700;border:2px solid #1B1F1E">D</span>
+            <span style="height:38px;display:flex;align-items:center;justify-content:center;border-radius:8px;background:#CFE8E3;color:#1B1F1E;font-weight:700;border:2px solid transparent;opacity:.5">E</span>
+            <span style="height:38px;display:flex;align-items:center;justify-content:center;border-radius:8px;background:#D9D6F2;color:#1B1F1E;font-weight:700;border:2px solid transparent;opacity:.5">N</span>
+          </div>
+          <div style="display:flex;gap:6px;font-size:12px"><span style="padding:5px 10px;border-radius:6px;border:1px solid #D9D5CC;background:#fff;color:#6B7270">연차</span><span style="padding:5px 10px;border-radius:6px;border:1px solid #D9D5CC;background:#fff;color:#6B7270">교육 (보수·노조)</span></div>
+          <textarea rows="2" style="border:1px solid #D9D5CC;border-radius:8px;padding:8px 10px;font-size:12.5px;font-family:inherit;resize:none;color:#1B1F1E;line-height:1.5">오후 3시 병원 진료 예약. D 마치고 가도 되고, OFF면 더 좋습니다.</textarea>
+          <div style="font-size:11.5px;color:#6B7270">같은 날 신청: 서예린 D/E</div>
+          <div style="display:flex;gap:6px;justify-content:flex-end"><button style="height:32px;padding:0 12px;border:1px solid #D9D5CC;background:#fff;border-radius:8px;font-size:12px;font-family:inherit;cursor:pointer">취소</button><button style="height:32px;padding:0 14px;background:#1B1F1E;color:#fff;border:0;border-radius:8px;font-size:12px;font-weight:600;font-family:inherit;cursor:pointer">저장</button></div>
+        </div>
+      </main>
+    </div>
+  </div>
+</section>
+
+<section id="turn-1" style="padding:48px 56px;display:flex;flex-direction:column;gap:28px">
+  <div style="display:flex;flex-direction:column;gap:6px">
+    <div style="font-size:13px;color:#6B7270;letter-spacing:.04em">1차 · 페이지별 디자인 · 데스크톱 1280 · 응급실 병동 2026년 10월</div>
+    <h1 style="margin:0;font-size:30px;font-weight:700;letter-spacing:-.02em">벌써 근무표짤 때가 됐어?</h1>
+    <p style="margin:0;color:#6B7270;font-size:14px;max-width:820px;line-height:1.6">로그인 직후 첫 화면은 첨부 근무표 양식(이월 off·이월 N → 1~31일 → 누적 off·ⓝN·특휴/개원·검진·보)을 그대로 따릅니다. 세 시안 <a href="#1a">1a</a> 원본형 · <a href="#1b">색상형</a> · <a href="#1c">내 줄 강조형</a>은 같은 데이터, 다른 표기입니다. 나머지 페이지: <a href="#1d">1d</a> 로그인 · <a href="#1e">1e</a> 초기 설정 · <a href="#1h">1h</a> 동료 현황 · <a href="#1i">1i</a> 듀티 생성 · <a href="#1j">1j</a> 근무 조정 · <a href="#1k">1k</a> 간호사 관리 · <a href="#1l">1l</a> 규칙 안내.</p>
+  </div>
+
+  <div style="display:flex;flex-wrap:wrap;gap:40px;align-items:flex-start">
+
+    <!-- 1a -->
+    <div id="1a" data-screen-label="1a 근무표 · 원본형" style="display:flex;flex-direction:column;gap:10px">
+      <div style="display:flex;align-items:center;gap:10px"><span style="background:#1B1F1E;color:#fff;font-size:12px;font-weight:700;padding:3px 8px;border-radius:6px">1a</span><span style="font-size:14px;font-weight:600">근무표 (홈) · 원본형</span><span style="font-size:13px;color:#6B7270">종이 근무표와 같은 표기 · 신청 오프 빨강, 수간호사 파랑</span></div>
+      <div style="width:1280px;height:760px;background:#F6F4EF;border-radius:14px;box-shadow:0 1px 2px rgba(0,0,0,.06),0 12px 32px rgba(0,0,0,.08);display:grid;grid-template-columns:184px 1fr;overflow:hidden">
+        <nav style="background:#fff;border-right:1px solid #E4E1DA;padding:20px 12px;display:flex;flex-direction:column;gap:2px">
+          <div style="padding:4px 10px 16px;font-size:15px;font-weight:800;letter-spacing:-.02em;line-height:1.3">벌써 근무표<br>짤 때가 됐어?</div>
+          <sc-for list="{{ navHome }}" as="m" hint-placeholder-count="9"><div style="{{ m.style }}">{{ m.label }}</div></sc-for>
+          <div style="margin-top:auto;padding:12px 10px;border-top:1px solid #E4E1DA;display:flex;flex-direction:column;gap:2px"><div style="font-size:13px;font-weight:600">정하늘</div><div style="font-size:12px;color:#6B7270">응급실 · 사번 20190412</div></div>
+        </nav>
+        <main style="padding:18px 16px;display:flex;flex-direction:column;gap:12px;min-width:0">
+          <div style="display:flex;align-items:center;gap:12px">
+            <div style="display:flex;align-items:center;gap:6px"><button style="width:28px;height:28px;border:1px solid #D9D5CC;background:#fff;border-radius:7px;font-size:14px;cursor:pointer">‹</button><div style="font-size:20px;font-weight:700;letter-spacing:-.02em">2026년 10월 (응급실) 병동 간호사 근무표</div><button style="width:28px;height:28px;border:1px solid #D9D5CC;background:#fff;border-radius:7px;font-size:14px;cursor:pointer">›</button></div>
+            <span style="font-size:12px;color:#0F6E63;background:#DDEFEB;padding:3px 8px;border-radius:999px;font-weight:600">확정 · 9/28</span>
+            <div style="margin-left:auto;display:flex;border:1px solid #D9D5CC;border-radius:8px;overflow:hidden;background:#fff;font-size:12px">
+              <div style="padding:6px 10px;border-right:1px solid #D9D5CC;display:flex;flex-direction:column;gap:2px;align-items:center"><span style="color:#6B7270">결재</span><span style="font-weight:600;color:#9AA09D">—</span></div>
+              <div style="padding:6px 10px;border-right:1px solid #D9D5CC;display:flex;flex-direction:column;gap:2px;align-items:center"><span style="color:#6B7270">담당</span><span style="font-weight:600">한수정</span></div>
+              <div style="padding:6px 10px;display:flex;flex-direction:column;gap:2px;align-items:center"><span style="color:#6B7270">팀장</span><span style="font-weight:600;color:#9AA09D">—</span></div>
+            </div>
+            <button style="height:32px;padding:0 12px;border:1px solid #D9D5CC;background:#fff;border-radius:8px;font-size:13px;cursor:pointer">인쇄</button>
+          </div>
+          <div style="display:flex;gap:14px;font-size:12px;color:#6B7270;align-items:center">
+            <span><b style="color:#1B1F1E">D</b> 07:00–15:30</span><span><b style="color:#1B1F1E">E</b> 14:30–23:00</span><span><b style="color:#1B1F1E">N</b> 22:30–07:30</span><span><b style="color:#1B1F1E">S</b> 09:00–18:00 (K-tass 교육)</span>
+            <span style="margin-left:auto;display:flex;gap:10px"><span style="color:#C8321E;font-weight:600">OFF</span> 신청 오프 <span style="color:#1F5AA6;font-weight:600">OFF</span> 수간호사 지정</span>
+          </div>
+          <div style="background:#fff;border:1px solid #1B1F1E;border-radius:4px;overflow:hidden">
+            <div style="display:grid;grid-template-columns:68px 36px 36px repeat(31,24px) 34px 34px 34px 34px 34px;font-size:11px">
+              <div style="grid-row:span 2;border-right:1px solid #1B1F1E;border-bottom:1px solid #1B1F1E;display:flex;align-items:center;justify-content:center;color:#6B7270">성명 ＼ 일자</div>
+              <div style="grid-row:span 2;border-right:1px solid #1B1F1E;border-bottom:1px solid #1B1F1E;display:flex;flex-direction:column;align-items:center;justify-content:center;line-height:1.2">이월<br>off</div>
+              <div style="grid-row:span 2;border-right:1px solid #1B1F1E;border-bottom:1px solid #1B1F1E;display:flex;flex-direction:column;align-items:center;justify-content:center;line-height:1.2">이월<br>N</div>
+              <sc-for list="{{ days }}" as="d" hint-placeholder-count="31"><div style="{{ d.hdStyle }}">{{ d.n }}</div></sc-for>
+              <div style="grid-row:span 2;border-right:1px solid #1B1F1E;border-bottom:1px solid #1B1F1E;display:flex;flex-direction:column;align-items:center;justify-content:center;line-height:1.2">누적<br>off</div>
+              <div style="grid-row:span 2;border-right:1px solid #1B1F1E;border-bottom:1px solid #1B1F1E;display:flex;align-items:center;justify-content:center">ⓝN</div>
+              <div style="grid-row:span 2;border-right:1px solid #1B1F1E;border-bottom:1px solid #1B1F1E;display:flex;flex-direction:column;align-items:center;justify-content:center;line-height:1.2">특휴<br>개원</div>
+              <div style="grid-row:span 2;border-right:1px solid #1B1F1E;border-bottom:1px solid #1B1F1E;display:flex;align-items:center;justify-content:center">검진</div>
+              <div style="grid-row:span 2;border-bottom:1px solid #1B1F1E;display:flex;align-items:center;justify-content:center">보</div>
+              <sc-for list="{{ days }}" as="d" hint-placeholder-count="31"><div style="{{ d.wdStyle }}">{{ d.wd }}</div></sc-for>
+              <sc-for list="{{ rowsA }}" as="r" hint-placeholder-count="11">
+                <div style="{{ r.nameStyle }}">{{ r.name }}</div>
+                <div style="border-right:1px solid #1B1F1E;border-bottom:1px solid #C9C5BC;height:34px;display:flex;align-items:center;justify-content:center">{{ r.carryOff }}</div>
+                <div style="border-right:1px solid #1B1F1E;border-bottom:1px solid #C9C5BC;height:34px;display:flex;align-items:center;justify-content:center">{{ r.carryN }}</div>
+                <sc-for list="{{ r.cells }}" as="c" hint-placeholder-count="31"><div style="{{ c.style }}">{{ c.t }}</div></sc-for>
+                <div style="border-right:1px solid #1B1F1E;border-left:1px solid #1B1F1E;border-bottom:1px solid #C9C5BC;height:34px;display:flex;align-items:center;justify-content:center;font-weight:600">{{ r.accOff }}</div>
+                <div style="border-right:1px solid #1B1F1E;border-bottom:1px solid #C9C5BC;height:34px;display:flex;align-items:center;justify-content:center">{{ r.nLeft }}</div>
+                <div style="border-right:1px solid #1B1F1E;border-bottom:1px solid #C9C5BC;height:34px;display:flex;align-items:center;justify-content:center">{{ r.special }}</div>
+                <div style="border-right:1px solid #1B1F1E;border-bottom:1px solid #C9C5BC;height:34px;display:flex;align-items:center;justify-content:center">{{ r.checkup }}</div>
+                <div style="border-bottom:1px solid #C9C5BC;height:34px;display:flex;align-items:center;justify-content:center">{{ r.bo }}</div>
+              </sc-for>
+            </div>
+          </div>
+          <div style="font-size:12px;color:#6B7270;display:flex;gap:16px"><span>근무 신청 마감 <b style="color:#1B1F1E">매월 15일</b></span><span>협의 수정 기간 <b style="color:#1B1F1E">10/16 – 10/20</b> (관리자 설정)</span><span>누적 off·잔여 N은 연말 정산 없이 계속 이월</span></div>
+        </main>
+      </div>
+    </div>
+
+    <!-- 1b -->
+    <div id="1b" data-screen-label="1b 근무표 · 색상형" style="display:flex;flex-direction:column;gap:10px">
+      <div style="display:flex;align-items:center;gap:10px"><span style="background:#1B1F1E;color:#fff;font-size:12px;font-weight:700;padding:3px 8px;border-radius:6px">1b</span><span style="font-size:14px;font-weight:600">근무표 (홈) · 색상형</span><span style="font-size:13px;color:#6B7270">D/E/N/OFF 배경색 구분 · 글자 검정 · 신청 빨간 외곽선 · 관리자 수정 파란 외곽선 · 일자별 인원 합계</span></div>
+      <div style="width:1280px;height:760px;background:#F6F4EF;border-radius:14px;box-shadow:0 1px 2px rgba(0,0,0,.06),0 12px 32px rgba(0,0,0,.08);display:grid;grid-template-columns:184px 1fr;overflow:hidden">
+        <nav style="background:#fff;border-right:1px solid #E4E1DA;padding:20px 12px;display:flex;flex-direction:column;gap:2px">
+          <div style="padding:4px 10px 16px;font-size:15px;font-weight:800;letter-spacing:-.02em;line-height:1.3">벌써 근무표<br>짤 때가 됐어?</div>
+          <sc-for list="{{ navHome }}" as="m" hint-placeholder-count="9"><div style="{{ m.style }}">{{ m.label }}</div></sc-for>
+          <div style="margin-top:auto;padding:12px 10px;border-top:1px solid #E4E1DA;display:flex;flex-direction:column;gap:2px"><div style="font-size:13px;font-weight:600">정하늘</div><div style="font-size:12px;color:#6B7270">응급실 · 사번 20190412</div></div>
+        </nav>
+        <main style="padding:18px 16px;display:flex;flex-direction:column;gap:12px;min-width:0">
+          <div style="display:flex;align-items:center;gap:12px">
+            <div style="display:flex;align-items:center;gap:6px"><button style="width:28px;height:28px;border:1px solid #D9D5CC;background:#fff;border-radius:7px;font-size:14px;cursor:pointer">‹</button><div style="font-size:20px;font-weight:700;letter-spacing:-.02em">2026년 10월 · 응급실 근무표</div><button style="width:28px;height:28px;border:1px solid #D9D5CC;background:#fff;border-radius:7px;font-size:14px;cursor:pointer">›</button></div>
+            <span style="font-size:12px;color:#0F6E63;background:#DDEFEB;padding:3px 8px;border-radius:999px;font-weight:600">확정 · 담당 한수정</span>
+            <div style="margin-left:auto;display:flex;gap:6px;font-size:12px;align-items:center">
+              <span style="background:#FBE7B5;color:#1B1F1E;padding:3px 8px;border-radius:5px;font-weight:700">D</span><span style="background:#CFE8E3;color:#1B1F1E;padding:3px 8px;border-radius:5px;font-weight:700">E</span><span style="background:#D9D6F2;color:#1B1F1E;padding:3px 8px;border-radius:5px;font-weight:700">N</span><span style="background:#EEECE6;color:#1B1F1E;padding:3px 8px;border-radius:5px;font-weight:700">OFF</span><span style="background:#F7D9E3;color:#1B1F1E;padding:3px 8px;border-radius:5px;font-weight:700">S</span>
+              <span style="color:#6B7270;margin-left:6px;display:flex;gap:8px;align-items:center"><span style="display:inline-flex;align-items:center;gap:4px"><span style="width:14px;height:14px;border-radius:4px;box-shadow:inset 0 0 0 1.5px #C8321E"></span>신청</span><span style="display:inline-flex;align-items:center;gap:4px"><span style="width:14px;height:14px;border-radius:4px;box-shadow:inset 0 0 0 1.5px #1F5AA6"></span>관리자 수정</span></span>
+            </div>
+            <button style="height:32px;padding:0 12px;border:1px solid #D9D5CC;background:#fff;border-radius:8px;font-size:13px;cursor:pointer">인쇄</button>
+          </div>
+          <div style="background:#fff;border:1px solid #D9D5CC;border-radius:10px;overflow:hidden">
+            <div style="display:grid;grid-template-columns:68px 36px 36px repeat(31,24px) 34px 34px 34px 34px 34px;font-size:11px">
+              <div style="grid-row:span 2;border-right:1px solid #D9D5CC;border-bottom:1px solid #D9D5CC;display:flex;align-items:center;justify-content:center;color:#6B7270;background:#FAF9F6">성명</div>
+              <div style="grid-row:span 2;border-right:1px solid #D9D5CC;border-bottom:1px solid #D9D5CC;display:flex;flex-direction:column;align-items:center;justify-content:center;line-height:1.2;color:#6B7270;background:#FAF9F6">이월<br>off</div>
+              <div style="grid-row:span 2;border-right:1px solid #D9D5CC;border-bottom:1px solid #D9D5CC;display:flex;flex-direction:column;align-items:center;justify-content:center;line-height:1.2;color:#6B7270;background:#FAF9F6">이월<br>N</div>
+              <sc-for list="{{ days }}" as="d" hint-placeholder-count="31"><div style="{{ d.hdStyleB }}">{{ d.n }}</div></sc-for>
+              <div style="grid-row:span 2;border-right:1px solid #D9D5CC;border-bottom:1px solid #D9D5CC;display:flex;flex-direction:column;align-items:center;justify-content:center;line-height:1.2;color:#6B7270;background:#FAF9F6">누적<br>off</div>
+              <div style="grid-row:span 2;border-right:1px solid #D9D5CC;border-bottom:1px solid #D9D5CC;display:flex;align-items:center;justify-content:center;color:#6B7270;background:#FAF9F6">ⓝN</div>
+              <div style="grid-row:span 2;border-right:1px solid #D9D5CC;border-bottom:1px solid #D9D5CC;display:flex;flex-direction:column;align-items:center;justify-content:center;line-height:1.2;color:#6B7270;background:#FAF9F6">특휴<br>개원</div>
+              <div style="grid-row:span 2;border-right:1px solid #D9D5CC;border-bottom:1px solid #D9D5CC;display:flex;align-items:center;justify-content:center;color:#6B7270;background:#FAF9F6">검진</div>
+              <div style="grid-row:span 2;border-bottom:1px solid #D9D5CC;display:flex;align-items:center;justify-content:center;color:#6B7270;background:#FAF9F6">보</div>
+              <sc-for list="{{ days }}" as="d" hint-placeholder-count="31"><div style="{{ d.wdStyleB }}">{{ d.wd }}</div></sc-for>
+              <sc-for list="{{ rowsB }}" as="r" hint-placeholder-count="11">
+                <div style="{{ r.nameStyle }}">{{ r.name }}</div>
+                <div style="border-right:1px solid #D9D5CC;border-bottom:1px solid #EEECE6;height:32px;display:flex;align-items:center;justify-content:center;color:#6B7270">{{ r.carryOff }}</div>
+                <div style="border-right:1px solid #D9D5CC;border-bottom:1px solid #EEECE6;height:32px;display:flex;align-items:center;justify-content:center;color:#6B7270">{{ r.carryN }}</div>
+                <sc-for list="{{ r.cells }}" as="c" hint-placeholder-count="31"><div style="{{ c.wrap }}"><span style="{{ c.style }}">{{ c.t }}</span></div></sc-for>
+                <div style="border-left:1px solid #D9D5CC;border-right:1px solid #D9D5CC;border-bottom:1px solid #EEECE6;height:32px;display:flex;align-items:center;justify-content:center;font-weight:700">{{ r.accOff }}</div>
+                <div style="border-right:1px solid #D9D5CC;border-bottom:1px solid #EEECE6;height:32px;display:flex;align-items:center;justify-content:center">{{ r.nLeft }}</div>
+                <div style="border-right:1px solid #D9D5CC;border-bottom:1px solid #EEECE6;height:32px;display:flex;align-items:center;justify-content:center;color:#6B7270">{{ r.special }}</div>
+                <div style="border-right:1px solid #D9D5CC;border-bottom:1px solid #EEECE6;height:32px;display:flex;align-items:center;justify-content:center;color:#6B7270">{{ r.checkup }}</div>
+                <div style="border-bottom:1px solid #EEECE6;height:32px;display:flex;align-items:center;justify-content:center;color:#6B7270">{{ r.bo }}</div>
+              </sc-for>
+              <div style="grid-column:span 3;border-right:1px solid #D9D5CC;border-top:1px solid #D9D5CC;background:#FAF9F6;padding:0 10px;display:flex;align-items:center;color:#6B7270;height:44px;line-height:1.3">일자별 인원<br>D / E / N</div>
+              <sc-for list="{{ days }}" as="d" hint-placeholder-count="31"><div style="{{ d.sumStyle }}"><span style="color:#6B4300">{{ d.cd }}</span><span style="color:#0B564D">{{ d.ce }}</span><span style="color:#2E2F5B">{{ d.cn }}</span></div></sc-for>
+              <div style="grid-column:span 5;border-top:1px solid #D9D5CC;background:#FAF9F6;border-left:1px solid #D9D5CC;display:flex;align-items:center;justify-content:center;color:#6B7270;font-size:10.5px;text-align:center;line-height:1.3">최소 2명 ·<br>K-tass 1명</div>
+            </div>
+          </div>
+        </main>
+      </div>
+    </div>
+
+    <!-- 1c -->
+    <div id="1c" data-screen-label="1c 근무표 · 내 줄 강조형" style="display:flex;flex-direction:column;gap:10px">
+      <div style="display:flex;align-items:center;gap:10px"><span style="background:#1B1F1E;color:#fff;font-size:12px;font-weight:700;padding:3px 8px;border-radius:6px">1c</span><span style="font-size:14px;font-weight:600">근무표 (홈) · 내 줄 강조형</span><span style="font-size:13px;color:#6B7270">내 줄 상단 고정 + 요약 카드 · 신청 빨간 외곽선 · 관리자 수정 파란 외곽선</span><span style="font-size:12px;color:#0F6E63;background:#DDEFEB;padding:2px 8px;border-radius:999px;font-weight:700">선택</span></div>
+      <div style="width:1280px;height:760px;background:#F6F4EF;border-radius:14px;box-shadow:0 1px 2px rgba(0,0,0,.06),0 12px 32px rgba(0,0,0,.08);display:grid;grid-template-columns:184px 1fr;overflow:hidden">
+        <nav style="background:#fff;border-right:1px solid #E4E1DA;padding:20px 12px;display:flex;flex-direction:column;gap:2px">
+          <div style="padding:4px 10px 16px;font-size:15px;font-weight:800;letter-spacing:-.02em;line-height:1.3">벌써 근무표<br>짤 때가 됐어?</div>
+          <sc-for list="{{ navHome }}" as="m" hint-placeholder-count="9"><div style="{{ m.style }}">{{ m.label }}</div></sc-for>
+          <div style="margin-top:auto;padding:12px 10px;border-top:1px solid #E4E1DA;display:flex;flex-direction:column;gap:2px"><div style="font-size:13px;font-weight:600">정하늘</div><div style="font-size:12px;color:#6B7270">응급실 · 사번 20190412</div></div>
+        </nav>
+        <main style="padding:18px 16px;display:flex;flex-direction:column;gap:12px;min-width:0">
+          <div style="display:flex;align-items:center;gap:12px">
+            <div style="display:flex;align-items:center;gap:6px"><button style="width:28px;height:28px;border:1px solid #D9D5CC;background:#fff;border-radius:7px;font-size:14px;cursor:pointer">‹</button><div style="font-size:20px;font-weight:700;letter-spacing:-.02em">2026년 10월 · 응급실 근무표</div><button style="width:28px;height:28px;border:1px solid #D9D5CC;background:#fff;border-radius:7px;font-size:14px;cursor:pointer">›</button></div>
+            <span style="font-size:12px;color:#0F6E63;background:#DDEFEB;padding:3px 8px;border-radius:999px;font-weight:600">확정 · 담당 한수정</span>
+            <div style="margin-left:auto;display:flex;gap:6px;font-size:12px;align-items:center">
+              <span style="background:#FBE7B5;color:#1B1F1E;padding:3px 8px;border-radius:5px;font-weight:700">D</span><span style="background:#CFE8E3;color:#1B1F1E;padding:3px 8px;border-radius:5px;font-weight:700">E</span><span style="background:#D9D6F2;color:#1B1F1E;padding:3px 8px;border-radius:5px;font-weight:700">N</span><span style="background:#EEECE6;color:#1B1F1E;padding:3px 8px;border-radius:5px;font-weight:700">OFF</span><span style="background:#F7D9E3;color:#1B1F1E;padding:3px 8px;border-radius:5px;font-weight:700">S</span>
+              <span style="color:#6B7270;margin-left:6px;display:flex;gap:8px;align-items:center"><span style="display:inline-flex;align-items:center;gap:4px"><span style="width:14px;height:14px;border-radius:4px;box-shadow:inset 0 0 0 1.5px #C8321E"></span>신청</span><span style="display:inline-flex;align-items:center;gap:4px"><span style="width:14px;height:14px;border-radius:4px;box-shadow:inset 0 0 0 2px #1F5AA6"></span>관리자 수정</span></span>
+            </div>
+            <button style="height:32px;padding:0 12px;border:1px solid #D9D5CC;background:#fff;border-radius:8px;font-size:13px;cursor:pointer">인쇄</button>
+          </div>
+          <div style="display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:8px">
+            <div style="background:#1B1F1E;color:#fff;border-radius:10px;padding:10px 14px;display:flex;flex-direction:column;gap:2px"><span style="font-size:11px;opacity:.7">오늘 10/1 (목)</span><span style="font-size:22px;font-weight:700">N <span style="font-size:12px;font-weight:500;opacity:.75">22:30–07:30</span></span></div>
+            <div style="background:#fff;border:1px solid #D9D5CC;border-radius:10px;padding:10px 14px;display:flex;flex-direction:column;gap:2px"><span style="font-size:11px;color:#6B7270">이번달 OFF</span><span style="font-size:22px;font-weight:700">10<span style="font-size:12px;font-weight:500;color:#6B7270"> / 기준 10</span></span></div>
+            <div style="background:#fff;border:1px solid #D9D5CC;border-radius:10px;padding:10px 14px;display:flex;flex-direction:column;gap:2px"><span style="font-size:11px;color:#6B7270">누적 OFF (이월 포함)</span><span style="font-size:22px;font-weight:700;color:#0F6E63">+4</span></div>
+            <div style="background:#fff;border:1px solid #D9D5CC;border-radius:10px;padding:10px 14px;display:flex;flex-direction:column;gap:2px"><span style="font-size:11px;color:#6B7270">잔여 나이트</span><span style="font-size:22px;font-weight:700">3 <span style="font-size:12px;font-weight:500;color:#6B7270">+ 이번달 8 → 슬리핑오프 1</span></span></div>
+            <div style="background:#fff;border:1px solid #D9D5CC;border-radius:10px;padding:10px 14px;display:flex;flex-direction:column;gap:2px"><span style="font-size:11px;color:#6B7270">연차 / 특휴</span><span style="font-size:22px;font-weight:700">9 <span style="font-size:12px;font-weight:500;color:#6B7270">/ 2</span></span></div>
+          </div>
+          <div style="background:#fff;border:1px solid #D9D5CC;border-radius:10px;overflow:hidden">
+            <div style="display:grid;grid-template-columns:68px 36px 36px repeat(31,24px) 34px 34px 34px 34px 34px;font-size:11px">
+              <div style="grid-row:span 2;border-right:1px solid #D9D5CC;border-bottom:1px solid #D9D5CC;display:flex;align-items:center;justify-content:center;color:#6B7270;background:#FAF9F6">성명</div>
+              <div style="grid-row:span 2;border-right:1px solid #D9D5CC;border-bottom:1px solid #D9D5CC;display:flex;flex-direction:column;align-items:center;justify-content:center;line-height:1.2;color:#6B7270;background:#FAF9F6">이월<br>off</div>
+              <div style="grid-row:span 2;border-right:1px solid #D9D5CC;border-bottom:1px solid #D9D5CC;display:flex;flex-direction:column;align-items:center;justify-content:center;line-height:1.2;color:#6B7270;background:#FAF9F6">이월<br>N</div>
+              <sc-for list="{{ days }}" as="d" hint-placeholder-count="31"><div style="{{ d.hdStyleB }}">{{ d.n }}</div></sc-for>
+              <div style="grid-row:span 2;border-right:1px solid #D9D5CC;border-bottom:1px solid #D9D5CC;display:flex;flex-direction:column;align-items:center;justify-content:center;line-height:1.2;color:#6B7270;background:#FAF9F6">누적<br>off</div>
+              <div style="grid-row:span 2;border-right:1px solid #D9D5CC;border-bottom:1px solid #D9D5CC;display:flex;align-items:center;justify-content:center;color:#6B7270;background:#FAF9F6">ⓝN</div>
+              <div style="grid-row:span 2;border-right:1px solid #D9D5CC;border-bottom:1px solid #D9D5CC;display:flex;flex-direction:column;align-items:center;justify-content:center;line-height:1.2;color:#6B7270;background:#FAF9F6">특휴<br>개원</div>
+              <div style="grid-row:span 2;border-right:1px solid #D9D5CC;border-bottom:1px solid #D9D5CC;display:flex;align-items:center;justify-content:center;color:#6B7270;background:#FAF9F6">검진</div>
+              <div style="grid-row:span 2;border-bottom:1px solid #D9D5CC;display:flex;align-items:center;justify-content:center;color:#6B7270;background:#FAF9F6">보</div>
+              <sc-for list="{{ days }}" as="d" hint-placeholder-count="31"><div style="{{ d.wdStyleB }}">{{ d.wd }}</div></sc-for>
+              <sc-for list="{{ rowsC }}" as="r" hint-placeholder-count="11">
+                <div style="{{ r.nameStyle }}">{{ r.name }}</div>
+                <div style="{{ r.numStyle }}">{{ r.carryOff }}</div>
+                <div style="{{ r.numStyle }}">{{ r.carryN }}</div>
+                <sc-for list="{{ r.cells }}" as="c" hint-placeholder-count="31"><div style="{{ c.wrap }}"><span style="{{ c.style }}">{{ c.t }}</span></div></sc-for>
+                <div style="{{ r.accStyle }}">{{ r.accOff }}</div>
+                <div style="{{ r.numStyle }}">{{ r.nLeft }}</div>
+                <div style="{{ r.numStyle }}">{{ r.special }}</div>
+                <div style="{{ r.numStyle }}">{{ r.checkup }}</div>
+                <div style="{{ r.numStyleLast }}">{{ r.bo }}</div>
+              </sc-for>
+            </div>
+          </div>
+        </main>
+      </div>
+    </div>
+
+    <!-- 1d 로그인 -->
+    <div id="1d" data-screen-label="1d 로그인" style="display:flex;flex-direction:column;gap:10px">
+      <div style="display:flex;align-items:center;gap:10px"><span style="background:#1B1F1E;color:#fff;font-size:12px;font-weight:700;padding:3px 8px;border-radius:6px">1d</span><span style="font-size:14px;font-weight:600">로그인</span></div>
+      <div style="width:1280px;height:720px;background:#F6F4EF;border-radius:14px;box-shadow:0 1px 2px rgba(0,0,0,.06),0 12px 32px rgba(0,0,0,.08);display:grid;grid-template-columns:1fr 480px;overflow:hidden">
+        <div style="background:#1B1F1E;color:#fff;padding:56px;display:flex;flex-direction:column;justify-content:space-between">
+          <div style="font-size:14px;color:#9AA09D">동부시립병원 · 간호부</div>
+          <div style="display:flex;flex-direction:column;gap:18px">
+            <div style="font-size:56px;font-weight:800;letter-spacing:-.03em;line-height:1.1">벌써 근무표<br>짤 때가 됐어?</div>
+            <p style="margin:0;font-size:16px;color:#C9C5BC;line-height:1.6;max-width:460px">오프 신청부터 듀티 생성, 누적 오프·잔여 나이트 정산까지. 규칙은 시스템이 지키고, 간호사는 근무만 확인하시면 됩니다.</p>
+          </div>
+          <div style="display:flex;gap:24px;font-size:13px;color:#9AA09D"><span>오프 신청 마감 매월 15일</span><span>협의 수정 ~20일</span></div>
+        </div>
+        <div style="padding:56px 48px;display:flex;flex-direction:column;justify-content:center;gap:22px">
+          <div style="display:flex;flex-direction:column;gap:4px"><div style="font-size:22px;font-weight:700;letter-spacing:-.02em">로그인</div><div style="font-size:14px;color:#6B7270">사번과 비밀번호를 입력해 주세요.</div></div>
+          <label style="display:flex;flex-direction:column;gap:6px;font-size:13px;font-weight:600">사번<input value="20190412" style="height:46px;border:1px solid #D9D5CC;border-radius:10px;padding:0 14px;font-size:15px;font-family:inherit;background:#fff;color:#1B1F1E"></label>
+          <label style="display:flex;flex-direction:column;gap:6px;font-size:13px;font-weight:600">비밀번호<input type="password" value="••••••••" style="height:46px;border:1px solid #D9D5CC;border-radius:10px;padding:0 14px;font-size:15px;font-family:inherit;background:#fff;color:#1B1F1E"></label>
+          <label style="display:flex;align-items:center;gap:8px;font-size:13px;color:#6B7270"><input type="checkbox" checked style="width:16px;height:16px;accent-color:#0F6E63">이 기기에서 로그인 유지</label>
+          <button style="height:48px;background:#0F6E63;color:#fff;border:0;border-radius:10px;font-size:15px;font-weight:700;font-family:inherit;cursor:pointer">로그인</button>
+          <div style="display:flex;justify-content:space-between;font-size:13px"><a href="#1d" style="text-decoration:none">비밀번호를 잊으셨나요?</a><span style="color:#6B7270">계정은 관리자가 발급합니다</span></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- 1e 초기 설정 -->
+    <div id="1e" data-screen-label="1e 초기 설정" style="display:flex;flex-direction:column;gap:10px">
+      <div style="display:flex;align-items:center;gap:10px"><span style="background:#1B1F1E;color:#fff;font-size:12px;font-weight:700;padding:3px 8px;border-radius:6px">1e</span><span style="font-size:14px;font-weight:600">초기 설정</span><span style="font-size:13px;color:#6B7270">첫 로그인 시 1회 · 연차는 매년 1월 1일 재입력</span></div>
+      <div style="width:1280px;height:720px;background:#F6F4EF;border-radius:14px;box-shadow:0 1px 2px rgba(0,0,0,.06),0 12px 32px rgba(0,0,0,.08);display:flex;align-items:center;justify-content:center">
+        <div style="width:640px;background:#fff;border:1px solid #D9D5CC;border-radius:16px;padding:36px 40px;display:flex;flex-direction:column;gap:24px">
+          <div style="display:flex;flex-direction:column;gap:6px">
+            <div style="font-size:12px;color:#0F6E63;font-weight:700;letter-spacing:.04em">처음 오셨군요 · 정하늘 님</div>
+            <div style="font-size:24px;font-weight:700;letter-spacing:-.02em">현재 잔여 수치를 알려 주세요</div>
+            <div style="font-size:14px;color:#6B7270;line-height:1.5">이 값에서부터 시스템이 매달 자동으로 정산합니다. 잘못 입력해도 관리자가 수정할 수 있습니다.</div>
+          </div>
+          <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:14px">
+            <label style="display:flex;flex-direction:column;gap:6px;font-size:13px;font-weight:600">연차 (2026년)<input value="9" style="height:52px;border:1px solid #D9D5CC;border-radius:10px;padding:0 14px;font-size:22px;font-weight:700;font-family:inherit;color:#1B1F1E"><span style="font-size:12px;color:#6B7270;font-weight:400">매년 1월 1일 초기화</span></label>
+            <label style="display:flex;flex-direction:column;gap:6px;font-size:13px;font-weight:600">잔여 나이트<input value="3" style="height:52px;border:1px solid #D9D5CC;border-radius:10px;padding:0 14px;font-size:22px;font-weight:700;font-family:inherit;color:#1B1F1E"><span style="font-size:12px;color:#6B7270;font-weight:400">6개마다 슬리핑오프 1</span></label>
+            <label style="display:flex;flex-direction:column;gap:6px;font-size:13px;font-weight:600">이월 오프<input value="+4" style="height:52px;border:1px solid #D9D5CC;border-radius:10px;padding:0 14px;font-size:22px;font-weight:700;font-family:inherit;color:#1B1F1E"><span style="font-size:12px;color:#6B7270;font-weight:400">음수면 반납해야 할 오프</span></label>
+          </div>
+          <div style="border-top:1px solid #EEECE6;padding-top:20px;display:grid;grid-template-columns:1fr 1fr;gap:14px">
+            <label style="display:flex;flex-direction:column;gap:6px;font-size:13px;font-weight:600">특별휴가 (근무일수 기준 자동)<div style="height:44px;border:1px solid #EEECE6;background:#FAF9F6;border-radius:10px;padding:0 14px;display:flex;align-items:center;justify-content:space-between;font-size:14px"><span>2일</span><span style="font-size:12px;color:#6B7270;font-weight:400">근무일수 172일 · 5×172/365</span></div></label>
+            <label style="display:flex;flex-direction:column;gap:6px;font-size:13px;font-weight:600">검진 반차<div style="height:44px;border:1px solid #EEECE6;background:#FAF9F6;border-radius:10px;padding:0 14px;display:flex;align-items:center;justify-content:space-between;font-size:14px"><span>0.5일</span><span style="font-size:12px;color:#6B7270;font-weight:400">미사용</span></div></label>
+          </div>
+          <div style="display:flex;justify-content:flex-end;gap:10px"><button style="height:44px;padding:0 18px;border:1px solid #D9D5CC;background:#fff;border-radius:10px;font-size:14px;font-family:inherit;cursor:pointer">나중에</button><button style="height:44px;padding:0 22px;background:#0F6E63;color:#fff;border:0;border-radius:10px;font-size:14px;font-weight:700;font-family:inherit;cursor:pointer">저장하고 근무표 보기</button></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- 1h 동료 현황 -->
+    <div id="1h" data-screen-label="1h 동료 현황" style="display:flex;flex-direction:column;gap:10px">
+      <div style="display:flex;align-items:center;gap:10px"><span style="background:#1B1F1E;color:#fff;font-size:12px;font-weight:700;padding:3px 8px;border-radius:6px">1h</span><span style="font-size:14px;font-weight:600">동료 오프·나이트 현황</span><span style="font-size:13px;color:#6B7270">모든 간호사가 서로의 누적 off·잔여 N을 확인</span></div>
+      <div style="width:1280px;height:720px;background:#F6F4EF;border-radius:14px;box-shadow:0 1px 2px rgba(0,0,0,.06),0 12px 32px rgba(0,0,0,.08);display:grid;grid-template-columns:184px 1fr;overflow:hidden">
+        <nav style="background:#fff;border-right:1px solid #E4E1DA;padding:20px 12px;display:flex;flex-direction:column;gap:2px">
+          <div style="padding:4px 10px 16px;font-size:15px;font-weight:800;letter-spacing:-.02em;line-height:1.3">벌써 근무표<br>짤 때가 됐어?</div>
+          <sc-for list="{{ navPeers }}" as="m" hint-placeholder-count="9"><div style="{{ m.style }}">{{ m.label }}</div></sc-for>
+          <div style="margin-top:auto;padding:12px 10px;border-top:1px solid #E4E1DA;display:flex;flex-direction:column;gap:2px"><div style="font-size:13px;font-weight:600">정하늘</div><div style="font-size:12px;color:#6B7270">응급실 · 사번 20190412</div></div>
+        </nav>
+        <main style="padding:24px 28px;display:flex;flex-direction:column;gap:16px;min-width:0">
+          <div style="display:flex;align-items:flex-end;gap:12px"><div style="display:flex;flex-direction:column;gap:2px"><div style="font-size:22px;font-weight:700;letter-spacing:-.02em">동료 현황 · 2026년 10월</div><div style="font-size:13px;color:#6B7270">누적 OFF가 낮을수록, 잔여 N이 높을수록 다음 달 오프 배정 우선순위가 높습니다.</div></div><span style="margin-left:auto;font-size:13px;color:#6B7270">정렬: 누적 OFF ↑</span></div>
+          <div style="background:#fff;border:1px solid #D9D5CC;border-radius:12px;overflow:hidden;font-size:13px">
+            <div style="display:grid;grid-template-columns:1.4fr 1fr 1fr 1fr 1fr 1fr 1.4fr;padding:10px 16px;background:#FAF9F6;border-bottom:1px solid #D9D5CC;color:#6B7270;font-size:12px"><span>성명</span><span>이번달 OFF</span><span>누적 OFF</span><span>이번달 N</span><span>잔여 N</span><span>슬리핑오프</span><span>주말 연휴 OFF</span></div>
+            <sc-for list="{{ peers }}" as="p" hint-placeholder-count="11">
+              <div style="{{ p.style }}"><span style="font-weight:600;display:flex;align-items:center;gap:6px">{{ p.name }}<span style="{{ p.tagStyle }}">{{ p.tag }}</span></span><span>{{ p.off }}</span><span style="{{ p.accStyle }}">{{ p.acc }}</span><span>{{ p.n }}</span><span>{{ p.nLeft }}</span><span>{{ p.sleep }}</span><span style="color:#6B7270">{{ p.weekend }}</span></div>
+            </sc-for>
+          </div>
+        </main>
+      </div>
+    </div>
+
+    <!-- 1i 관리자 듀티 생성 -->
+    <div id="1i" data-screen-label="1i 관리자 · 듀티 생성" style="display:flex;flex-direction:column;gap:10px">
+      <div style="display:flex;align-items:center;gap:10px"><span style="background:#1B1F1E;color:#fff;font-size:12px;font-weight:700;padding:3px 8px;border-radius:6px">1i</span><span style="font-size:14px;font-weight:600">관리자 · 듀티 생성 · 리롤</span><span style="font-size:13px;color:#6B7270">조건 설정 → 생성 → 규칙 검사 결과 → 리롤/확정</span></div>
+      <div style="width:1280px;height:810px;background:#F6F4EF;border-radius:14px;box-shadow:0 1px 2px rgba(0,0,0,.06),0 12px 32px rgba(0,0,0,.08);display:grid;grid-template-columns:184px 1fr;overflow:hidden">
+        <nav style="background:#fff;border-right:1px solid #E4E1DA;padding:20px 12px;display:flex;flex-direction:column;gap:2px">
+          <div style="padding:4px 10px 16px;font-size:15px;font-weight:800;letter-spacing:-.02em;line-height:1.3">벌써 근무표<br>짤 때가 됐어?</div>
+          <sc-for list="{{ navGen }}" as="m" hint-placeholder-count="9"><div style="{{ m.style }}">{{ m.label }}</div></sc-for>
+          <div style="margin-top:auto;padding:12px 10px;border-top:1px solid #E4E1DA;display:flex;flex-direction:column;gap:2px"><div style="font-size:13px;font-weight:600">한수정 <span style="font-size:11px;color:#1F5AA6;font-weight:700">관리자</span></div><div style="font-size:12px;color:#6B7270">응급실 수간호사</div></div>
+        </nav>
+        <main style="padding:24px 28px;display:grid;grid-template-columns:320px 1fr;gap:20px;min-width:0">
+          <aside style="display:flex;flex-direction:column;gap:12px">
+            <div style="font-size:22px;font-weight:700;letter-spacing:-.02em">11월 듀티 생성</div>
+            <div style="background:#fff;border:1px solid #D9D5CC;border-radius:12px;padding:16px;display:flex;flex-direction:column;gap:12px;font-size:13px">
+              <div style="font-weight:700">필수 조건</div>
+              <div style="display:flex;justify-content:space-between;align-items:center"><span>듀티당 최소 인원</span><span style="border:1px solid #D9D5CC;border-radius:6px;padding:4px 10px;font-weight:600">2명</span></div>
+              <div style="display:flex;justify-content:space-between;align-items:center"><span>K-tass 권한자 포함</span><span style="border:1px solid #D9D5CC;border-radius:6px;padding:4px 10px;font-weight:600">1명 이상</span></div>
+              <div style="display:flex;justify-content:space-between;align-items:center"><span>월 나이트 상한</span><span style="border:1px solid #D9D5CC;border-radius:6px;padding:4px 10px;font-weight:600">7개</span></div>
+              <div style="display:flex;justify-content:space-between;align-items:center"><span>연속 나이트</span><span style="border:1px solid #D9D5CC;border-radius:6px;padding:4px 10px;font-weight:600">≤ 3일</span></div>
+              <div style="display:flex;justify-content:space-between;align-items:center"><span>근무 간 휴식</span><span style="border:1px solid #D9D5CC;border-radius:6px;padding:4px 10px;font-weight:600">≥ 16시간</span></div>
+              <div style="font-size:12px;color:#6B7270">금지 패턴 E-D · N-E · N-off-D · E-S 자동 차단</div>
+            </div>
+            <div style="background:#fff;border:1px solid #D9D5CC;border-radius:12px;padding:16px;display:flex;flex-direction:column;gap:10px;font-size:13px">
+              <div style="font-weight:700">우선 반영</div>
+              <label style="display:flex;gap:8px;align-items:center"><input type="checkbox" checked style="accent-color:#0F6E63">근무 신청 · 연차 (27건, 코멘트 9)</label>
+              <label style="display:flex;gap:8px;align-items:center"><input type="checkbox" checked style="accent-color:#0F6E63">N 후 OFF 2개 (불가피 시 N-OFF-E)</label>
+              <label style="display:flex;gap:8px;align-items:center"><input type="checkbox" checked style="accent-color:#0F6E63">모든 간호사 월 1회 주말 이틀 통 OFF</label>
+              <label style="display:flex;gap:8px;align-items:center"><input type="checkbox" checked style="accent-color:#0F6E63">저연차만 배정 방지</label>
+              <label style="display:flex;gap:8px;align-items:center"><input type="checkbox" checked style="accent-color:#0F6E63">특정 근무자 반복 겹침 최소화</label>
+              <label style="display:flex;gap:8px;align-items:center"><input type="checkbox" checked style="accent-color:#0F6E63">프리셉터–신규 동일 근무 (문가을·서예린)</label>
+            </div>
+            <div style="display:flex;gap:8px"><button style="flex:1;height:46px;border:1px solid #D9D5CC;background:#fff;border-radius:10px;font-size:14px;font-weight:600;font-family:inherit;cursor:pointer">↻ 리롤</button><button style="flex:1.4;height:46px;background:#0F6E63;color:#fff;border:0;border-radius:10px;font-size:14px;font-weight:700;font-family:inherit;cursor:pointer">이 안으로 확정</button></div>
+          </aside>
+          <div style="display:flex;flex-direction:column;gap:12px;min-width:0">
+            <div style="display:flex;align-items:center;gap:10px;font-size:13px"><span style="font-weight:700;font-size:15px">생성 결과 · 3번째 안</span><span style="color:#6B7270">10:42 생성</span><span style="margin-left:auto;background:#DDEFEB;color:#0F6E63;padding:4px 10px;border-radius:999px;font-weight:600">필수 규칙 위반 0</span><span style="background:#FBE7B5;color:#6B4300;padding:4px 10px;border-radius:999px;font-weight:600">권고 미충족 2</span></div>
+            <div style="background:#fff;border:1px solid #D9D5CC;border-radius:12px;padding:14px;display:flex;flex-direction:column;gap:8px;font-size:13px">
+              <div style="display:flex;gap:10px;align-items:flex-start;padding:8px 0;border-bottom:1px solid #EEECE6"><span style="width:8px;height:8px;border-radius:50%;background:#0F6E63;margin-top:6px;flex:none"></span><div><b>모든 듀티 인원 2명 이상 · K-tass 1명 포함</b><div style="color:#6B7270">11/1~30 D·E·N 90개 듀티 전부 충족</div></div></div>
+              <div style="display:flex;gap:10px;align-items:flex-start;padding:8px 0;border-bottom:1px solid #EEECE6"><span style="width:8px;height:8px;border-radius:50%;background:#0F6E63;margin-top:6px;flex:none"></span><div><b>신청 오프 18건 전부 반영</b><div style="color:#6B7270">OFF or D 3건 중 2건은 D로 배정</div></div></div>
+              <div style="display:flex;gap:10px;align-items:flex-start;padding:8px 0;border-bottom:1px solid #EEECE6"><span style="width:8px;height:8px;border-radius:50%;background:#D99A1E;margin-top:6px;flex:none"></span><div><b>배지현 · 주말 연휴 OFF 미배정</b><div style="color:#6B7270">10월도 미배정 → 12월 최우선. 또는 <a href="#1j">근무 조정</a>에서 11/21–22 수동 배정</div></div></div>
+              <div style="display:flex;gap:10px;align-items:flex-start;padding:8px 0"><span style="width:8px;height:8px;border-radius:50%;background:#D99A1E;margin-top:6px;flex:none"></span><div><b>홍다은 · N-OFF-E 1회 (11/9~11)</b><div style="color:#6B7270">N 후 OFF 2개 불가. 허용 패턴이나 권고 미충족</div></div></div>
+            </div>
+            <div style="background:#fff;border:1px solid #D9D5CC;border-radius:12px;padding:14px;display:flex;flex-direction:column;gap:10px">
+              <div style="font-size:13px;font-weight:700">간호사별 배정 요약</div>
+              <div style="display:grid;grid-template-columns:1.2fr repeat(6,1fr);font-size:12px;color:#6B7270;padding:0 4px"><span>성명</span><span>D</span><span>E</span><span>N</span><span>OFF</span><span>누적 OFF 후</span><span>잔여 N 후</span></div>
+              <sc-for list="{{ genSummary }}" as="g" hint-placeholder-count="10"><div style="display:grid;grid-template-columns:1.2fr repeat(6,1fr);font-size:13px;padding:6px 4px;border-top:1px solid #EEECE6"><span style="font-weight:600">{{ g.name }}</span><span>{{ g.d }}</span><span>{{ g.e }}</span><span>{{ g.n }}</span><span>{{ g.off }}</span><span style="{{ g.accStyle }}">{{ g.acc }}</span><span>{{ g.nLeft }}</span></div></sc-for>
+            </div>
+          </div>
+        </main>
+      </div>
+    </div>
+
+    <!-- 1j 근무 조정 -->
+    <div id="1j" data-screen-label="1j 관리자 · 근무 조정" style="display:flex;flex-direction:column;gap:10px">
+      <div style="display:flex;align-items:center;gap:10px"><span style="background:#1B1F1E;color:#fff;font-size:12px;font-weight:700;padding:3px 8px;border-radius:6px">1j</span><span style="font-size:14px;font-weight:600">근무 조정 · 관리자 시점</span><span style="font-size:13px;color:#6B7270">같은 페이지(<a href="#3a">3a</a>)를 관리자로 열면: 셀 직접 편집 · 「저장 · 재배포」「되돌리기」 활성 · 협의 기간 설정 · 수정 셀 파란 외곽선</span></div>
+      <div style="width:1280px;height:760px;background:#F6F4EF;border-radius:14px;box-shadow:0 1px 2px rgba(0,0,0,.06),0 12px 32px rgba(0,0,0,.08);display:grid;grid-template-columns:184px 1fr;overflow:hidden">
+        <nav style="background:#fff;border-right:1px solid #E4E1DA;padding:20px 12px;display:flex;flex-direction:column;gap:2px">
+          <div style="padding:4px 10px 16px;font-size:15px;font-weight:800;letter-spacing:-.02em;line-height:1.3">벌써 근무표<br>짤 때가 됐어?</div>
+          <sc-for list="{{ navAdjust }}" as="m" hint-placeholder-count="9"><div style="{{ m.style }}">{{ m.label }}</div></sc-for>
+          <div style="margin-top:auto;padding:12px 10px;border-top:1px solid #E4E1DA;display:flex;flex-direction:column;gap:2px"><div style="font-size:13px;font-weight:600">한수정 <span style="font-size:11px;color:#1F5AA6;font-weight:700">관리자</span></div><div style="font-size:12px;color:#6B7270">응급실 수간호사</div></div>
+        </nav>
+        <main style="padding:18px 16px;display:flex;flex-direction:column;gap:12px;min-width:0;position:relative">
+          <div style="display:flex;align-items:center;gap:12px">
+            <div style="font-size:20px;font-weight:700;letter-spacing:-.02em">2026년 10월 · 근무 조정</div>
+            <div style="display:flex;align-items:center;gap:6px;font-size:12px;border:1px solid #D9D5CC;background:#fff;border-radius:8px;padding:3px 4px 3px 10px"><span style="color:#6B7270">협의 수정 기간</span><input value="10/16" style="width:46px;height:24px;border:1px solid #D9D5CC;border-radius:6px;text-align:center;font-size:12px;font-family:inherit;color:#1B1F1E"><span style="color:#6B7270">–</span><input value="10/20" style="width:46px;height:24px;border:1px solid #1F5AA6;border-radius:6px;text-align:center;font-size:12px;font-family:inherit;color:#1B1F1E"><button style="height:24px;padding:0 8px;border:0;background:#1B1F1E;color:#fff;border-radius:6px;font-size:11px;font-weight:600;font-family:inherit;cursor:pointer">변경</button></div>
+            <span style="font-size:12px;color:#6B7270">신청 마감 <b style="color:#1B1F1E">매월 15일</b> · <a href="#1j" style="text-decoration:none">설정</a></span>
+            <span style="margin-left:auto;display:flex;gap:8px;align-items:center;font-size:12px;color:#6B7270"><span style="display:inline-flex;align-items:center;gap:4px"><span style="width:14px;height:14px;border-radius:4px;box-shadow:inset 0 0 0 1.5px #C8321E"></span>신청 (OFF·D·E·N 모두)</span><span style="display:inline-flex;align-items:center;gap:4px"><span style="width:14px;height:14px;border-radius:4px;box-shadow:inset 0 0 0 2px #1F5AA6"></span>관리자 수정</span></span>
+            <span style="font-size:13px;color:#6B7270">변경 2건 미저장</span>
+            <button style="height:32px;padding:0 12px;border:1px solid #D9D5CC;background:#fff;border-radius:8px;font-size:13px;cursor:pointer;font-family:inherit">되돌리기</button>
+            <button style="height:32px;padding:0 14px;background:#0F6E63;color:#fff;border:0;border-radius:8px;font-size:13px;font-weight:700;cursor:pointer;font-family:inherit">저장 · 재배포</button>
+          </div>
+          <div style="background:#fff;border:1px solid #D9D5CC;border-radius:10px;overflow:hidden">
+            <div style="display:grid;grid-template-columns:68px 36px 36px repeat(31,24px) 34px 34px 34px 34px 34px;font-size:11px">
+              <div style="grid-row:span 2;border-right:1px solid #D9D5CC;border-bottom:1px solid #D9D5CC;display:flex;align-items:center;justify-content:center;color:#6B7270;background:#FAF9F6">성명</div>
+              <div style="grid-row:span 2;border-right:1px solid #D9D5CC;border-bottom:1px solid #D9D5CC;display:flex;flex-direction:column;align-items:center;justify-content:center;line-height:1.2;color:#6B7270;background:#FAF9F6">이월<br>off</div>
+              <div style="grid-row:span 2;border-right:1px solid #D9D5CC;border-bottom:1px solid #D9D5CC;display:flex;flex-direction:column;align-items:center;justify-content:center;line-height:1.2;color:#6B7270;background:#FAF9F6">이월<br>N</div>
+              <sc-for list="{{ days }}" as="d" hint-placeholder-count="31"><div style="{{ d.hdStyleB }}">{{ d.n }}</div></sc-for>
+              <div style="grid-row:span 2;border-right:1px solid #D9D5CC;border-bottom:1px solid #D9D5CC;display:flex;flex-direction:column;align-items:center;justify-content:center;line-height:1.2;color:#6B7270;background:#FAF9F6">누적<br>off</div>
+              <div style="grid-row:span 2;border-right:1px solid #D9D5CC;border-bottom:1px solid #D9D5CC;display:flex;align-items:center;justify-content:center;color:#6B7270;background:#FAF9F6">ⓝN</div>
+              <div style="grid-row:span 2;border-right:1px solid #D9D5CC;border-bottom:1px solid #D9D5CC;display:flex;flex-direction:column;align-items:center;justify-content:center;line-height:1.2;color:#6B7270;background:#FAF9F6">특휴<br>개원</div>
+              <div style="grid-row:span 2;border-right:1px solid #D9D5CC;border-bottom:1px solid #D9D5CC;display:flex;align-items:center;justify-content:center;color:#6B7270;background:#FAF9F6">검진</div>
+              <div style="grid-row:span 2;border-bottom:1px solid #D9D5CC;display:flex;align-items:center;justify-content:center;color:#6B7270;background:#FAF9F6">보</div>
+              <sc-for list="{{ days }}" as="d" hint-placeholder-count="31"><div style="{{ d.wdStyleB }}">{{ d.wd }}</div></sc-for>
+              <sc-for list="{{ rowsJ }}" as="r" hint-placeholder-count="11">
+                <div style="{{ r.nameStyle }}">{{ r.name }}</div>
+                <div style="border-right:1px solid #D9D5CC;border-bottom:1px solid #EEECE6;height:32px;display:flex;align-items:center;justify-content:center;color:#6B7270">{{ r.carryOff }}</div>
+                <div style="border-right:1px solid #D9D5CC;border-bottom:1px solid #EEECE6;height:32px;display:flex;align-items:center;justify-content:center;color:#6B7270">{{ r.carryN }}</div>
+                <sc-for list="{{ r.cells }}" as="c" hint-placeholder-count="31"><div style="{{ c.wrap }}"><span style="{{ c.style }}">{{ c.t }}</span></div></sc-for>
+                <div style="border-left:1px solid #D9D5CC;border-right:1px solid #D9D5CC;border-bottom:1px solid #EEECE6;height:32px;display:flex;align-items:center;justify-content:center;font-weight:700">{{ r.accOff }}</div>
+                <div style="border-right:1px solid #D9D5CC;border-bottom:1px solid #EEECE6;height:32px;display:flex;align-items:center;justify-content:center">{{ r.nLeft }}</div>
+                <div style="border-right:1px solid #D9D5CC;border-bottom:1px solid #EEECE6;height:32px;display:flex;align-items:center;justify-content:center;color:#6B7270">{{ r.special }}</div>
+                <div style="border-right:1px solid #D9D5CC;border-bottom:1px solid #EEECE6;height:32px;display:flex;align-items:center;justify-content:center;color:#6B7270">{{ r.checkup }}</div>
+                <div style="border-bottom:1px solid #EEECE6;height:32px;display:flex;align-items:center;justify-content:center;color:#6B7270">{{ r.bo }}</div>
+              </sc-for>
+            </div>
+          </div>
+          <!-- 셀 편집 팝오버 -->
+          <div style="position:absolute;left:470px;top:262px;width:300px;background:#fff;border:1px solid #1B1F1E;border-radius:12px;box-shadow:0 16px 40px rgba(0,0,0,.18);padding:14px;display:flex;flex-direction:column;gap:10px;font-size:13px">
+            <div style="display:flex;justify-content:space-between;align-items:center"><span style="font-weight:700">정하늘 · 10/13 (화)</span><span style="color:#6B7270">현재 <b style="color:#1B1F1E">E</b></span></div>
+            <div style="display:grid;grid-template-columns:repeat(5,1fr);gap:6px">
+              <span style="height:36px;display:flex;align-items:center;justify-content:center;border-radius:8px;background:#FBE7B5;color:#1B1F1E;font-weight:700;border:2px solid transparent">D</span>
+              <span style="height:36px;display:flex;align-items:center;justify-content:center;border-radius:8px;background:#CFE8E3;color:#1B1F1E;font-weight:700;border:2px solid #1F5AA6">E</span>
+              <span style="height:36px;display:flex;align-items:center;justify-content:center;border-radius:8px;background:#D9D6F2;color:#1B1F1E;font-weight:700;border:2px solid transparent">N</span>
+              <span style="height:36px;display:flex;align-items:center;justify-content:center;border-radius:8px;background:#EEECE6;color:#1B1F1E;font-weight:700;border:2px solid transparent">OFF</span>
+              <span style="height:36px;display:flex;align-items:center;justify-content:center;border-radius:8px;background:#F7D9E3;color:#1B1F1E;font-weight:700;border:2px solid transparent">S</span>
+            </div>
+            <div style="font-size:12px;color:#6B7270;display:flex;align-items:center;gap:6px;flex-wrap:wrap">신청: <span style="font-weight:700;color:#1B1F1E">OFF or D</span> · 코멘트 <span style="color:#1B1F1E">"오후 3시 병원 진료 예약, D 마치고 가도 됨"</span></div>
+            <div style="background:#FDECEA;color:#8A1F12;border-radius:8px;padding:8px 10px;font-size:12px;line-height:1.5"><b>D로 변경 불가</b> · 전일 10/12 E → E-D 금지 패턴, 휴식 8시간 (16시간 미만)</div>
+            <div style="background:#FAF9F6;border-radius:8px;padding:8px 10px;font-size:12px;color:#6B7270;line-height:1.5">OFF로 변경 시 10/13 E 인원 2 → 1명. <b style="color:#1B1F1E">최소 인원 미달</b>, 대체자 필요: 강도윤 (OFF, K-tass)</div>
+            <div style="display:flex;gap:6px;justify-content:flex-end"><button style="height:32px;padding:0 12px;border:1px solid #D9D5CC;background:#fff;border-radius:8px;font-size:12px;font-family:inherit;cursor:pointer">강도윤과 맞바꾸기</button><button style="height:32px;padding:0 12px;background:#1B1F1E;color:#fff;border:0;border-radius:8px;font-size:12px;font-weight:600;font-family:inherit;cursor:pointer">적용</button></div>
+          </div>
+        </main>
+      </div>
+    </div>
+
+    <!-- 1k 간호사 관리 -->
+    <div id="1k" data-screen-label="1k 관리자 · 간호사 관리" style="display:flex;flex-direction:column;gap:10px">
+      <div style="display:flex;align-items:center;gap:10px"><span style="background:#1B1F1E;color:#fff;font-size:12px;font-weight:700;padding:3px 8px;border-radius:6px">1k</span><span style="font-size:14px;font-weight:600">관리자 · 간호사 관리</span><span style="font-size:13px;color:#6B7270">추가 시 사번 필수 · K-tass · 프리셉터 · 트레이닝 기간</span></div>
+      <div style="width:1280px;height:760px;background:#F6F4EF;border-radius:14px;box-shadow:0 1px 2px rgba(0,0,0,.06),0 12px 32px rgba(0,0,0,.08);display:grid;grid-template-columns:184px 1fr;overflow:hidden">
+        <nav style="background:#fff;border-right:1px solid #E4E1DA;padding:20px 12px;display:flex;flex-direction:column;gap:2px">
+          <div style="padding:4px 10px 16px;font-size:15px;font-weight:800;letter-spacing:-.02em;line-height:1.3">벌써 근무표<br>짤 때가 됐어?</div>
+          <sc-for list="{{ navStaff }}" as="m" hint-placeholder-count="9"><div style="{{ m.style }}">{{ m.label }}</div></sc-for>
+          <div style="margin-top:auto;padding:12px 10px;border-top:1px solid #E4E1DA;display:flex;flex-direction:column;gap:2px"><div style="font-size:13px;font-weight:600">한수정 <span style="font-size:11px;color:#1F5AA6;font-weight:700">관리자</span></div><div style="font-size:12px;color:#6B7270">응급실 수간호사</div></div>
+        </nav>
+        <main style="padding:24px 28px;display:grid;grid-template-columns:1fr 380px;gap:20px;min-width:0">
+          <div style="display:flex;flex-direction:column;gap:14px">
+            <div style="display:flex;align-items:center;gap:12px"><div style="font-size:22px;font-weight:700;letter-spacing:-.02em">간호사 관리 · 응급실 11명</div><input placeholder="이름 · 사번 검색" style="margin-left:auto;height:36px;width:220px;border:1px solid #D9D5CC;border-radius:8px;padding:0 12px;font-size:13px;font-family:inherit"><button style="height:36px;padding:0 14px;background:#0F6E63;color:#fff;border:0;border-radius:8px;font-size:13px;font-weight:700;font-family:inherit;cursor:pointer">+ 간호사 추가</button></div>
+            <div style="background:#fff;border:1px solid #D9D5CC;border-radius:12px;overflow:hidden;font-size:13px">
+              <div style="display:grid;grid-template-columns:1.2fr 1.2fr .8fr .8fr 1fr 1.4fr .6fr;padding:10px 16px;background:#FAF9F6;border-bottom:1px solid #D9D5CC;color:#6B7270;font-size:12px"><span>성명</span><span>사번</span><span>연차(년)</span><span>K-tass</span><span>역할</span><span>트레이닝</span><span></span></div>
+              <sc-for list="{{ staff }}" as="s" hint-placeholder-count="11">
+                <div style="display:grid;grid-template-columns:1.2fr 1.2fr .8fr .8fr 1fr 1.4fr .6fr;padding:11px 16px;border-bottom:1px solid #EEECE6;align-items:center"><span style="font-weight:600">{{ s.name }}</span><span style="color:#6B7270">{{ s.id }}</span><span>{{ s.years }}</span><span style="{{ s.kStyle }}">{{ s.k }}</span><span style="{{ s.roleStyle }}">{{ s.role }}</span><span style="color:#6B7270">{{ s.train }}</span><span style="color:#6B7270;text-align:right">···</span></div>
+              </sc-for>
+            </div>
+          </div>
+          <aside style="background:#fff;border:1px solid #1B1F1E;border-radius:14px;padding:22px;display:flex;flex-direction:column;gap:14px;font-size:13px">
+            <div style="font-size:16px;font-weight:700">간호사 추가</div>
+            <label style="display:flex;flex-direction:column;gap:6px;font-weight:600">사번 <span style="color:#C8321E">*필수</span><input value="20261001" style="height:42px;border:1px solid #1B1F1E;border-radius:8px;padding:0 12px;font-size:14px;font-family:inherit"></label>
+            <label style="display:flex;flex-direction:column;gap:6px;font-weight:600">성명<input value="박서연" style="height:42px;border:1px solid #D9D5CC;border-radius:8px;padding:0 12px;font-size:14px;font-family:inherit"></label>
+            <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px">
+              <label style="display:flex;flex-direction:column;gap:6px;font-weight:600">입사일<input value="2026-11-02" style="height:42px;border:1px solid #D9D5CC;border-radius:8px;padding:0 12px;font-size:14px;font-family:inherit"></label>
+              <label style="display:flex;flex-direction:column;gap:6px;font-weight:600">K-tass 권한<div style="height:42px;border:1px solid #D9D5CC;border-radius:8px;padding:0 12px;display:flex;align-items:center;color:#6B7270">없음 ▾</div></label>
+            </div>
+            <div style="border-top:1px solid #EEECE6;padding-top:12px;display:flex;flex-direction:column;gap:10px">
+              <label style="display:flex;gap:8px;align-items:center;font-weight:600"><input type="checkbox" checked style="accent-color:#0F6E63">신규 간호사 · 트레이닝 3개월</label>
+              <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px">
+                <label style="display:flex;flex-direction:column;gap:6px;font-weight:600">프리셉터<div style="height:42px;border:1px solid #D9D5CC;border-radius:8px;padding:0 12px;display:flex;align-items:center">정하늘 ▾</div></label>
+                <label style="display:flex;flex-direction:column;gap:6px;font-weight:600">3인 배정 기간<input value="3주" style="height:42px;border:1px solid #D9D5CC;border-radius:8px;padding:0 12px;font-size:14px;font-family:inherit"></label>
+              </div>
+              <div style="font-size:12px;color:#6B7270;line-height:1.5">트레이닝 중 프리셉터와 동일 근무로 배정되며, 첫 3주(변경 가능)는 해당 듀티 인원을 3인으로 계산합니다.</div>
+            </div>
+            <div style="display:flex;gap:8px;justify-content:flex-end;margin-top:auto"><button style="height:42px;padding:0 16px;border:1px solid #D9D5CC;background:#fff;border-radius:8px;font-family:inherit;cursor:pointer">취소</button><button style="height:42px;padding:0 18px;background:#0F6E63;color:#fff;border:0;border-radius:8px;font-weight:700;font-family:inherit;cursor:pointer">추가 · 초기 비밀번호 발급</button></div>
+          </aside>
+        </main>
+      </div>
+    </div>
+
+    <!-- 1l 규칙 안내 -->
+    <div id="1l" data-screen-label="1l 규칙 안내" style="display:flex;flex-direction:column;gap:10px">
+      <div style="display:flex;align-items:center;gap:10px"><span style="background:#1B1F1E;color:#fff;font-size:12px;font-weight:700;padding:3px 8px;border-radius:6px">1l</span><span style="font-size:14px;font-weight:600">규칙 안내</span><span style="font-size:13px;color:#6B7270">지침 원문을 항목별로 · 시스템이 자동 처리하는 항목 표시</span></div>
+      <div style="width:1280px;height:760px;background:#F6F4EF;border-radius:14px;box-shadow:0 1px 2px rgba(0,0,0,.06),0 12px 32px rgba(0,0,0,.08);display:grid;grid-template-columns:184px 1fr;overflow:hidden">
+        <nav style="background:#fff;border-right:1px solid #E4E1DA;padding:20px 12px;display:flex;flex-direction:column;gap:2px">
+          <div style="padding:4px 10px 16px;font-size:15px;font-weight:800;letter-spacing:-.02em;line-height:1.3">벌써 근무표<br>짤 때가 됐어?</div>
+          <sc-for list="{{ navRules }}" as="m" hint-placeholder-count="9"><div style="{{ m.style }}">{{ m.label }}</div></sc-for>
+          <div style="margin-top:auto;padding:12px 10px;border-top:1px solid #E4E1DA;display:flex;flex-direction:column;gap:2px"><div style="font-size:13px;font-weight:600">정하늘</div><div style="font-size:12px;color:#6B7270">응급실 · 사번 20190412</div></div>
+        </nav>
+        <main style="padding:24px 28px;display:grid;grid-template-columns:200px 1fr;gap:24px;min-width:0">
+          <div style="display:flex;flex-direction:column;gap:2px;font-size:13px">
+            <div style="padding:8px 10px;border-radius:8px;background:#DDEFEB;color:#0F6E63;font-weight:600">근무 형태 · 순환</div>
+            <div style="padding:8px 10px;color:#6B7270">휴식 · 금지 패턴</div>
+            <div style="padding:8px 10px;color:#6B7270">유급휴일 · 특별휴가</div>
+            <div style="padding:8px 10px;color:#6B7270">경조 · 병가 · 공가</div>
+            <div style="padding:8px 10px;color:#6B7270">오프 정산 · 슬리핑오프</div>
+            <div style="padding:8px 10px;color:#6B7270">응급실 야간 운영</div>
+            <div style="padding:8px 10px;color:#6B7270">응급실 지침</div>
+          </div>
+          <div style="display:flex;flex-direction:column;gap:14px;overflow:hidden">
+            <div style="font-size:22px;font-weight:700;letter-spacing:-.02em">근무 형태 · 순환</div>
+            <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:10px">
+              <div style="background:#FBE7B5;color:#1B1F1E;border-radius:12px;padding:16px;display:flex;flex-direction:column;gap:4px"><span style="font-size:26px;font-weight:800">D</span><span style="font-size:13px;font-weight:600">07:00 – 15:30</span><span style="font-size:12px">Day</span></div>
+              <div style="background:#CFE8E3;color:#1B1F1E;border-radius:12px;padding:16px;display:flex;flex-direction:column;gap:4px"><span style="font-size:26px;font-weight:800">E</span><span style="font-size:13px;font-weight:600">14:30 – 23:00</span><span style="font-size:12px">Evening</span></div>
+              <div style="background:#D9D6F2;color:#1B1F1E;border-radius:12px;padding:16px;display:flex;flex-direction:column;gap:4px"><span style="font-size:26px;font-weight:800">N</span><span style="font-size:13px;font-weight:600">22:30 – 익일 07:30</span><span style="font-size:12px">휴게 1시간 포함</span></div>
+              <div style="background:#F7D9E3;color:#1B1F1E;border-radius:12px;padding:16px;display:flex;flex-direction:column;gap:4px"><span style="font-size:26px;font-weight:800">S</span><span style="font-size:13px;font-weight:600">09:00 – 18:00</span><span style="font-size:12px">K-tass 교육</span></div>
+            </div>
+            <div style="background:#fff;border:1px solid #D9D5CC;border-radius:12px;padding:6px 18px;font-size:14px">
+              <sc-for list="{{ rules }}" as="r" hint-placeholder-count="8"><div style="display:flex;gap:14px;padding:12px 0;border-bottom:1px solid #EEECE6;align-items:flex-start"><span style="color:#9AA09D;font-size:12px;width:22px;flex:none;padding-top:3px">{{ r.no }}</span><span style="flex:1;line-height:1.5">{{ r.text }}</span><span style="{{ r.tagStyle }}">{{ r.tag }}</span></div></sc-for>
+            </div>
+          </div>
+        </main>
+      </div>
+    </div>
+
+  </div>
+</section>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props="{&quot;weekendShade&quot;:{&quot;editor&quot;:&quot;boolean&quot;,&quot;default&quot;:true,&quot;tsType&quot;:&quot;boolean&quot;,&quot;section&quot;:&quot;근무표&quot;}}">
+class Component extends DCLogic {
+  renderVals() {
+    const P = this.props;
+    const showCounts = P.showDayCounts ?? true;
+    const shade = P.weekendShade ?? true;
+    const names = ['한수정','박서연','정하늘','오민지','강도윤','윤채원','임소라','배지현','서예린','홍다은','문가을'];
+    const carryOff = [0,-1,4,1,1,-1,0,1,3,2,3];
+    const carryN = [0,2,3,2,3,3,2,2,4,2,5];
+    const special = ['0/0','0/0','0/0','0/0','0/0','1/0','3/0','2/1','0/0','0/0','0/-'];
+    const checkup = ['-','0','0.5','0','0','0','0','0.5','0.5','0.5','-'];
+    const bo = ['1','0','0','0','1','0','0','1','0','0','0'];
+    const wds = ['일','월','화','수','목','금','토'];
+    const holidays = [3,9];
+    const pattern = 'DDEENNOO';
+    let seed = 7; const rnd = () => (seed = (seed * 9301 + 49297) % 233280) / 233280;
+    const sched = names.map((n, i) => {
+      if (i === 0) return Array.from({length:31}, (_, d) => { const wd = (4 + d) % 7; return { t: (wd===0||wd===6||holidays.includes(d+1)) ? '' : 'D', req: false, head: true }; });
+      const off = (i * 3) % 8;
+      return Array.from({length:31}, (_, d) => {
+        let ch = pattern[(d + off + Math.floor(d/9)) % 8];
+        let t = ch === 'O' ? 'OFF' : ch;
+        const req = t === 'OFF' && rnd() < 0.25;
+        return { t, req, head: false };
+      });
+    });
+    const days = Array.from({length:31}, (_, d) => {
+      const wd = (4 + d) % 7, we = wd===0||wd===6||holidays.includes(d+1);
+      const cnt = k => sched.reduce((a, r) => a + (r[d].t===k?1:0), 0);
+      const bgA = we && shade ? 'background:#E4E1DA;' : '';
+      const bgB = we && shade ? 'background:#EEECE6;' : 'background:#FAF9F6;';
+      const wdColor = wd===0||holidays.includes(d+1) ? 'color:#C8321E;' : wd===6 ? 'color:#1F5AA6;' : 'color:#6B7270;';
+      return { n: d+1, wd: wds[wd], cd: cnt('D'), ce: cnt('E'), cn: cnt('N'),
+        hdStyle: `border-right:1px solid #C9C5BC;border-bottom:1px solid #C9C5BC;height:18px;display:flex;align-items:center;justify-content:center;${bgA}${we?'font-weight:700;':''}`,
+        wdStyle: `border-right:1px solid #C9C5BC;border-bottom:1px solid #1B1F1E;height:18px;display:flex;align-items:center;justify-content:center;${bgA}${wdColor}`,
+        hdStyleB: `border-right:1px solid #EEECE6;border-bottom:1px solid #EEECE6;height:18px;display:flex;align-items:center;justify-content:center;${bgB}${we?'font-weight:700;':''}`,
+        wdStyleB: `border-right:1px solid #EEECE6;border-bottom:1px solid #D9D5CC;height:18px;display:flex;align-items:center;justify-content:center;font-size:10px;${bgB}${wdColor}`,
+        sumStyle: `border-right:1px solid #EEECE6;border-top:1px solid #D9D5CC;height:44px;display:flex;flex-direction:column;align-items:center;justify-content:center;font-size:10px;line-height:1.25;font-weight:600;${bgB}`,
+      };
+    });
+    const chip = t => (t==='D' ? 'background:#FBE7B5;' : t==='E' ? 'background:#CFE8E3;' : t==='N' ? 'background:#D9D6F2;' : t==='S' ? 'background:#F7D9E3;' : 'background:#EEECE6;') + 'color:#1B1F1E;';
+    const mkRows = (variant, edits) => names.map((n, i) => {
+      const cells = sched[i].map((c, d) => {
+        const we = days[d].hdStyle.includes('#E4E1DA');
+        let t = c.t, req = c.req, head = c.head, edited = false, sel = false;
+        if (edits && edits[n] && edits[n][d+1]) { const e = edits[n][d+1]; t = e.t; head = e.head; edited = true; sel = e.sel; }
+        if (variant === 'A') {
+          const color = req ? 'color:#C8321E;' : head && t==='OFF' ? 'color:#1F5AA6;' : '';
+          return { t, style: `border-right:1px solid #C9C5BC;border-bottom:1px solid #C9C5BC;height:34px;display:flex;align-items:center;justify-content:center;font-size:${t==='OFF'?'9.5px':'11px'};${we&&shade?'background:#E4E1DA;':''}${color}` };
+        }
+        if (variant === 'J' && !edited && rnd() < 0.12 && t !== 'OFF' && t) req = true; // 신청한 D/E/N도 빨간 외곽선
+        const dot = edited ? 'box-shadow:inset 0 0 0 2px #1F5AA6;' : req ? 'box-shadow:inset 0 0 0 1.5px #C8321E;' : '';
+        const selS = sel ? 'outline:2px solid #1B1F1E;outline-offset:-2px;' : '';
+        return { t: t==='OFF' ? 'off' : t, wrap: `border-right:1px solid #EEECE6;border-bottom:1px solid #EEECE6;height:32px;display:flex;align-items:center;justify-content:center;${we&&shade?'background:#F3F1EC;':''}${selS}`,
+          style: `width:20px;height:20px;border-radius:5px;display:flex;align-items:center;justify-content:center;font-size:${t==='OFF'?'8.5px':'10.5px'};font-weight:700;${t?chip(t):''}${dot}` };
+      });
+      const offN = sched[i].filter(c=>c.t==='OFF').length, nN = sched[i].filter(c=>c.t==='N').length;
+      const acc = i===0 ? 0 : carryOff[i] + (offN - 10);
+      const nTotal = carryN[i] + nN, nLeft = i===0 ? 0 : nTotal % 6;
+      const me = n === '정하늘' && variant === 'C';
+      const meBg = me ? 'background:#DDEFEB;' : '';
+      const baseNum = `border-right:1px solid #D9D5CC;border-bottom:1px solid #EEECE6;height:32px;display:flex;align-items:center;justify-content:center;color:#6B7270;${meBg}`;
+      return { name: n, carryOff: carryOff[i], carryN: carryN[i], cells, accOff: i===0?'0':(acc>0?'+'+acc:String(acc)), nLeft, special: special[i], checkup: checkup[i], bo: bo[i],
+        nameStyle: variant==='A' ? `border-right:1px solid #1B1F1E;border-bottom:1px solid #C9C5BC;height:34px;display:flex;align-items:center;padding-left:8px;font-weight:600;${i===0?'color:#1F5AA6;':''}` : `border-right:1px solid #D9D5CC;border-bottom:1px solid #EEECE6;height:32px;display:flex;align-items:center;padding-left:8px;font-weight:${me?'800':'600'};${i===0?'color:#1F5AA6;':''}${meBg}${me?'box-shadow:inset 3px 0 0 #0F6E63;':''}`,
+        numStyle: baseNum, numStyleLast: baseNum.replace('border-right:1px solid #D9D5CC;',''), accStyle: `border-left:1px solid #D9D5CC;${baseNum}font-weight:700;color:#1B1F1E;` };
+    });
+    const rowsA = mkRows('A');
+    const rowsB = mkRows('B');
+    const adminEdits = { '배지현': { 24: { t: 'OFF' }, 25: { t: 'OFF' } }, '강도윤': { 6: { t: 'D' }, 7: { t: 'E' } }, '정하늘': { 13: { t: 'OFF' } } };
+    let rowsC = mkRows('C', adminEdits); rowsC = [rowsC[0], rowsC[2], ...rowsC.filter((_, i) => i !== 0 && i !== 2)];
+    // 3a: nurse-side swap (Nov, 박서연 logged in) — reuse rowsB cells restyled for selection
+    const swapSel = { rows: ['박서연','오민지','강도윤'], col: 1 };
+    const rowsSwap = names.slice(1).map(n => {
+      const i = names.indexOf(n); const me = n === '박서연'; const inSel = swapSel.rows.includes(n);
+      const cells = sched[i].slice(0, 30).map((c, d) => {
+        const we = d % 7 === 0 || d % 7 === 6;
+        const hit = inSel && d + 1 === swapSel.col;
+        return { t: c.t === 'OFF' ? 'off' : c.t,
+          wrap: `border-right:1px solid #EEECE6;border-bottom:1px solid #EEECE6;height:32px;display:flex;align-items:center;justify-content:center;${we?'background:#F3F1EC;':''}${inSel?'background:#FFF9E8;':''}${d+1===swapSel.col?'background:#FBE7B5;':''}${hit?'outline:2px solid #1B1F1E;outline-offset:-2px;':''}`,
+          style: `width:20px;height:20px;border-radius:5px;display:flex;align-items:center;justify-content:center;font-size:${c.t==='OFF'?'8.5px':'10.5px'};font-weight:700;${chip(c.t)}${c.req?'box-shadow:inset 0 0 0 1.5px #C8321E;':''}` };
+      });
+      return { name: n, cells, check: inSel ? '✓' : '',
+        checkStyle: `width:16px;height:16px;border-radius:4px;border:1.5px solid ${inSel?'#1B1F1E':'#C9C5BC'};display:flex;align-items:center;justify-content:center;font-size:10px;font-weight:800;${inSel?'background:#1B1F1E;color:#fff;':'color:transparent;'}`,
+        nameStyle: `border-right:1px solid #D9D5CC;border-bottom:1px solid #EEECE6;height:32px;display:flex;align-items:center;gap:6px;padding-left:8px;font-weight:${me?'800':'600'};${inSel?'background:#FFF9E8;':''}${me?'box-shadow:inset 3px 0 0 #0F6E63;':''}` };
+    });
+    const swapNow = swapSel.rows.map(n => ({ name: n, cur: sched[names.indexOf(n)][0].t, curStyle: `width:34px;height:30px;border-radius:7px;display:flex;align-items:center;justify-content:center;font-weight:700;font-size:12px;${chip(sched[names.indexOf(n)][0].t)}` }));
+    const swapNew = ['E','N','D'].map((t, k) => ({ name: swapSel.rows[k], t, style: `width:34px;height:30px;border-radius:7px;display:flex;align-items:center;justify-content:center;font-weight:700;font-size:12px;${chip(t)}box-shadow:inset 0 0 0 2px #1B1F1E;` }));
+    const stS = s => s==='수락' ? 'font-size:11px;font-weight:700;color:#0F6E63;' : s==='거절' ? 'font-size:11px;font-weight:700;color:#C8321E;' : 'font-size:11px;font-weight:600;color:#9AA09D;';
+    const sentReqs = [
+      { title: '11/1 (일) · 3인 교환', detail: '박서연 D→E · 오민지 E→N · 강도윤 N→D', when: '방금', people: [['오민지','대기'],['강도윤','대기']] },
+      { title: '11/9 (월) · 2인 교환', detail: '박서연 N→OFF · 윤채원 OFF→N', when: '어제', people: [['윤채원','수락']], done: '완료 · 반영됨' },
+      { title: '11/16 (월) · 2인 교환', detail: '박서연 E→D · 홍다은 D→E', when: '2일 전', people: [['홍다은','거절']], done: '거절됨' },
+    ].map(r => ({ done: '', ...r, doneStyle: r.done ? `font-size:11px;font-weight:700;${r.done.startsWith('완료')?'color:#0F6E63;':'color:#C8321E;'}` : 'display:none;', people: r.people.map(([n, s]) => ({ n, s, sStyle: stS(s) })) }));
+    const recvReqs = [
+      { from: '임소라', title: '11/22 (일) · 2인 교환', detail: '임소라 D→OFF · 박서연 OFF→D', note: '"아이 학교 행사라 이날만 부탁드려요"', when: '3시간 전' },
+    ];
+    const rowsJ = mkRows('J', { '정하늘': { 13: { t: 'E', sel: true } }, '배지현': { 24: { t: 'OFF' }, 25: { t: 'OFF' } }, '강도윤': { 6: { t: 'D' }, 7: { t: 'E' } } });
+
+    const navMk = (active, admin) => {
+      const items = [['home','근무표'],['off','근무 신청'],['adjust','근무 조정'],['peers','동료 현황'],['rules','규칙 안내']];
+      const adm = [['gen','듀티 생성'],['staff','간호사 관리'],['ruleset','규칙 설정']];
+      const st = k => `padding:9px 10px;border-radius:8px;font-size:13.5px;cursor:pointer;${k===active?'background:#DDEFEB;color:#0F6E63;font-weight:700;':'color:#3A403E;'}`;
+      const out = items.map(([k,l]) => ({ label: l, style: st(k) }));
+      out.push({ label: '관리자', style: 'padding:14px 10px 4px;font-size:11px;color:#9AA09D;letter-spacing:.06em;font-weight:600;' });
+      if (admin) adm.forEach(([k,l]) => out.push({ label: l, style: st(k) }));
+      else out.push({ label: '권한 없음', style: 'padding:6px 10px;font-size:12px;color:#B5BAB7;' });
+      out.push({ label: '내 설정', style: 'padding:9px 10px;border-radius:8px;font-size:13.5px;color:#3A403E;' });
+      return out;
+    };
+
+    // Nov 2026: Nov 1 is Sunday, 30 days
+    const req = { 7: 'OFF', 8: 'OFF', 13: 'OFF/D', 25: '연차', 20: 'E/N' };
+    const novCells = Array.from({length:35}, (_, i) => {
+      const n = i + 1; if (n > 30) return { n: '', tag: '', style: 'height:52px;', numStyle: '', tagStyle: '' };
+      const wd = i % 7, we = wd===0||wd===6; const r = req[n]; const sel = n === 13;
+      return { n, tag: r || '', style: `height:52px;border:${sel?'2px solid #1B1F1E':'1px solid '+(r?'#9AA09D':'#EEECE6')};border-radius:8px;padding:5px 7px;display:flex;flex-direction:column;justify-content:space-between;${we?'background:#FAF9F6;':'background:#fff;'}`,
+        numStyle: `font-size:12px;font-weight:600;${wd===0?'color:#C8321E;':wd===6?'color:#1F5AA6;':''}`,
+        tagStyle: r ? `font-size:11px;font-weight:700;padding:2px 6px;border-radius:5px;align-self:flex-start;color:#1B1F1E;${r==='연차'?'background:#DDEFEB;':'background:#F3F1EC;box-shadow:inset 0 0 0 1.5px #C8321E;'}` : 'font-size:11px;' };
+    });
+    const nwd = d => ['일','월','화','수','목','금','토'][(d - 1) % 7];
+    const tagS = 'font-size:12px;font-weight:700;padding:2px 7px;border-radius:5px;color:#1B1F1E;background:#F3F1EC;box-shadow:inset 0 0 0 1.5px #C8321E;white-space:nowrap;flex:none;';
+    const raw = [
+      [1, '홍다은', 'OFF', '가족 행사'], [1, '윤채원', 'OFF/E', ''],
+      [7, '정하늘', 'OFF', '연휴 통으로 쉬고 싶어요 (10월 미배정)'], [7, '박서연', 'OFF', '결혼식 참석'], [7, '임소라', 'OFF/D', ''],
+      [8, '정하늘', 'OFF', ''], [8, '박서연', 'OFF', ''], [8, '오민지', 'N', '주말 N 선호'],
+      [13, '정하늘', 'OFF/D', '오후 3시 병원 진료 예약'], [13, '서예린', 'D/E', ''],
+      [14, '배지현', 'OFF', '아이 학교 행사'], [14, '문가을', 'OFF/D/E', '저녁 약속'],
+      [20, '정하늘', 'E/N', ''], [20, '강도윤', 'OFF', '보수교육 (오프라인)'],
+      [21, '홍다은', 'OFF', '연휴 통 OFF 신청'], [21, '배지현', 'OFF', '연휴 통 OFF 신청 (10월 미배정)'], [21, '오민지', 'OFF', ''],
+      [22, '홍다은', 'OFF', ''], [22, '배지현', 'OFF', ''],
+      [25, '정하늘', '연차', ''], [25, '임소라', 'OFF/N', ''],
+    ];
+    const reqByDate = [...new Set(raw.map(r => r[0]))].map(d => {
+      const items = raw.filter(r => r[0] === d);
+      const offs = items.filter(r => r[2] === 'OFF').length;
+      const warn = offs >= 3 ? `OFF ${offs}명 겹침` : '';
+      return { date: `11/${d} (${nwd(d)})`, dateStyle: `font-size:13px;font-weight:700;${nwd(d)==='일'?'color:#C8321E;':nwd(d)==='토'?'color:#1F5AA6;':''}`, warn, warnStyle: warn ? 'font-size:11px;color:#C8321E;font-weight:600;' : 'display:none;',
+        style: `display:flex;gap:12px;padding:10px 14px;border-bottom:1px solid #EEECE6;${warn?'background:#FFF7F5;':''}`,
+        items: items.map(r => ({ name: r[1], nameStyle: `font-size:13px;font-weight:600;width:52px;flex:none;${r[1]==='정하늘'?'color:#0F6E63;':''}`, tag: r[2], tagStyle: r[2]==='연차' ? tagS.replace('box-shadow:inset 0 0 0 1.5px #C8321E;','').replace('#F3F1EC','#DDEFEB') : tagS, note: r[3] ? '“' + r[3] + '”' : '' })) };
+    });
+
+    const reasons = [['본인 결혼','6일'],['자녀 결혼','2일'],['직계존속 회갑·칠순·팔순 (택1)','2일'],['배우자 출산','10일'],['본인·배우자 부모 사망','7일'],['부모 외 직계존속 사망','3일'],['자녀·자녀 배우자 사망','7일'],['형제자매 사망','3일'],['백숙부모 사망','2일'],['배우자 탈상','2일'],['직계존속 탈상','1일']];
+    const leaveReasons = reasons.map(([l,d], i) => ({ label: l, days: d, style: `display:flex;justify-content:space-between;align-items:center;padding:10px 12px;border-radius:8px;font-size:13px;border:1px solid ${i===4?'#1B1F1E':'#EEECE6'};${i===4?'background:#F6F4EF;font-weight:600;':''}`, dayStyle: `font-weight:700;${i===4?'color:#0F6E63;':'color:#6B7270;'}` }));
+
+    const peers = rowsB.slice(1).map((r, i) => ({ ...r, i })).sort((a, b) => parseInt(a.accOff) - parseInt(b.accOff)).map((r, k) => {
+      const me = r.name === '정하늘'; const acc = parseInt(r.accOff);
+      return { name: r.name, tag: me ? '나' : '', tagStyle: me ? 'font-size:10px;background:#0F6E63;color:#fff;padding:1px 6px;border-radius:999px;' : 'display:none;',
+        off: sched[r.i+1].filter(c=>c.t==='OFF').length, acc: r.accOff, accStyle: `font-weight:700;${acc<0?'color:#C8321E;':acc>0?'color:#0F6E63;':''}`,
+        n: sched[r.i+1].filter(c=>c.t==='N').length, nLeft: r.nLeft, sleep: Math.floor((carryN[r.i+1] + sched[r.i+1].filter(c=>c.t==='N').length)/6),
+        weekend: k % 3 === 1 ? '미배정 → 11월 우선' : '10/24–25',
+        style: `display:grid;grid-template-columns:1.4fr 1fr 1fr 1fr 1fr 1fr 1.4fr;padding:12px 16px;border-bottom:1px solid #EEECE6;align-items:center;${me?'background:#DDEFEB;':''}` };
+    });
+
+    const genSummary = rowsB.slice(1).map((r, i) => { const acc = parseInt(r.accOff); return { name: r.name, d: 7 + (i%3), e: 6 + (i%2), n: 5 + (i%3), off: 9 + (i%2), acc: r.accOff, accStyle: `font-weight:700;${acc<0?'color:#C8321E;':acc>0?'color:#0F6E63;':''}`, nLeft: r.nLeft }; });
+
+    const staff = names.map((n, i) => ({ name: n, id: i===0 ? '20090311' : String(20120000 + i*10417), years: i===0 ? 17 : [9,7,6,6,5,4,3,2,2,1][i-1], k: [0,1,2,4,8].includes(i) ? 'K-tass' : '—', kStyle: [0,1,2,4,8].includes(i) ? 'color:#0F6E63;font-weight:600;' : 'color:#B5BAB7;',
+      role: i===0 ? '수간호사 · 관리자' : i===2 ? '프리셉터' : i===10 ? '신규' : '간호사', roleStyle: i===0 ? 'color:#1F5AA6;font-weight:600;' : i===10 ? 'color:#C8321E;font-weight:600;' : '', train: i===10 ? '~2026-12-31 · 프리셉터 서예린' : '—' }));
+
+    const ruleParams = [
+      ['근무 간 최소 휴식', '16', '시간', '교대 근무 사이에 보장하는 휴식', '필수', false],
+      ['최대 연속 오프', '11', '일', 'OFF·연차·휴가를 합산한 연속 일수 상한', '필수', true],
+      ['주 근무일', '5', '일', '주휴일 2일 기준', '필수', false],
+      ['월 나이트 상한', '7', '개', '목표 6개 이하, 최대값', '필수', false],
+      ['연속 나이트 상한', '3', '일', '', '필수', false],
+      ['N 후 OFF', '2', '개', '불가피 시 N-OFF-E 허용', '권고', false],
+      ['듀티당 최소 인원', '2', '명', 'D·E·N 각각', '필수', false],
+      ['K-tass 권한자', '1', '명 이상', '듀티마다', '필수', false],
+      ['신규 3인 배정 기간', '3', '주', '트레이닝 시작 후', '필수', false],
+      ['슬리핑오프 기준 N', '6', '개', '누적 6개마다 OFF 1', '필수', false],
+      ['근무 신청 마감', '15', '일', '매월', '운영', false],
+      ['협의 수정 기간', '16–20', '일', '마감 다음 날부터', '운영', false],
+    ].map(([label, val, unit, desc, kind, edited]) => ({ label, val, unit, desc, kind,
+      kindStyle: `font-size:10.5px;font-weight:700;padding:2px 7px;border-radius:999px;flex:none;${kind==='필수'?'background:#DDEFEB;color:#0F6E63;':kind==='권고'?'background:#FBE7B5;color:#6B4300;':'background:#EEECE6;color:#6B7270;'}`,
+      inputStyle: `width:64px;height:34px;border:1px solid ${edited?'#1F5AA6':'#D9D5CC'};border-radius:8px;text-align:center;font-size:15px;font-weight:700;font-family:inherit;color:#1B1F1E;${edited?'background:#EEF3FB;':''}`,
+      rowStyle: `display:grid;grid-template-columns:1fr auto;gap:12px;align-items:center;padding:12px 16px;border-bottom:1px solid #EEECE6;${edited?'background:#F7FAFE;':''}`,
+      note: edited ? '10 → 11 변경, 저장 전' : '' , noteStyle: edited ? 'font-size:11px;color:#1F5AA6;font-weight:600;' : 'display:none;' }));
+    const rulePatterns = ['E-D','N-E','N-off-D','E-S'].map(p => ({ p }));
+    const tag = kind => kind==='auto' ? { tag: '자동 적용', tagStyle: 'font-size:11px;font-weight:700;color:#0F6E63;background:#DDEFEB;padding:3px 8px;border-radius:999px;flex:none;' } : { tag: '권고', tagStyle: 'font-size:11px;font-weight:700;color:#6B4300;background:#FBE7B5;padding:3px 8px;border-radius:999px;flex:none;' };
+    const rules = [
+      ['1','근무 형태는 D, E, N 3교대이며 D → E → N 순환으로 편성합니다.','auto'],['2','주 5일 근무를 기준으로 합니다.','auto'],['3','교대 근무 사이에는 최소 16시간의 휴식을 보장합니다.','auto'],['4','E-D, N-E, N-off-D, E-S 패턴은 편성하지 않습니다.','auto'],['5','야간근무는 월 6일 이하를 목표로 하며 최대 7개로 제한합니다. 연속 야간은 3일 이내.','auto'],['6','N 근무 후에는 가능한 한 OFF 2개를 제공합니다. 불가피한 경우 N-OFF-E 허용.','rec'],['7','모든 간호사에게 한 달에 한 번 주말 이틀(토·일)을 통으로 OFF 배정합니다. 불가능하면 다음 달 최우선.','rec'],['8','연속 OFF(연차·휴가 포함)는 최대 10일까지 배정합니다.','auto'],['9','응급실은 야간 전담이 없습니다. 듀티당 최소 2명, K-tass 권한자 1명 필수.','auto'],
+    ].map(([no, text, k]) => ({ no, text, ...tag(k) }));
+
+    // 2a: request-on-grid (Nov 2026, 30 days, Nov 1 = Sun)
+    const novHol = [];
+    const novDays = Array.from({length:30}, (_, d) => {
+      const wd = d % 7, we = wd===0||wd===6;
+      const offs = raw.filter(r => r[0] === d+1 && r[2] === 'OFF').length;
+      const bg = we ? 'background:#EEECE6;' : 'background:#FAF9F6;';
+      const wdColor = wd===0 ? 'color:#C8321E;' : wd===6 ? 'color:#1F5AA6;' : 'color:#6B7270;';
+      return { n: d+1, wd: wds[wd], offs: offs || '', 
+        hd: `border-right:1px solid #EEECE6;border-bottom:1px solid #EEECE6;height:18px;display:flex;align-items:center;justify-content:center;${bg}${we?'font-weight:700;':''}`,
+        wdS: `border-right:1px solid #EEECE6;border-bottom:1px solid #D9D5CC;height:18px;display:flex;align-items:center;justify-content:center;font-size:10px;${bg}${wdColor}`,
+        sum: `border-right:1px solid #EEECE6;border-top:1px solid #D9D5CC;height:30px;display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:700;${bg}${offs>=3?'color:#C8321E;background:#FDECEA;':'color:#6B7270;'}` };
+    });
+    const orderR = ['정하늘', ...names.filter(n => n !== '정하늘' && n !== '한수정')];
+    const reqRows = orderR.map(n => {
+      const me = n === '정하늘'; const meBg = me ? 'background:#DDEFEB;' : '';
+      const cells = novDays.map((dd, d) => {
+        const r = raw.find(x => x[0] === d+1 && x[1] === n);
+        const we = dd.hd.includes('#EEECE6;');
+        const sel = me && d+1 === 13;
+        const wrap = `border-right:1px solid #EEECE6;border-bottom:1px solid #EEECE6;height:36px;display:flex;align-items:center;justify-content:center;${we?'background:#F3F1EC;':''}${me&&!r?'cursor:pointer;':''}${sel?'outline:2px solid #1B1F1E;outline-offset:-2px;':''}`;
+        if (!r) return { t: me ? '+' : '', wrap, style: me ? 'width:26px;height:26px;border-radius:6px;border:1px dashed #C9C5BC;display:flex;align-items:center;justify-content:center;color:#B5BAB7;font-size:12px;' : '' };
+        const t = r[2].replace('OFF','O');
+        const bgc = r[2]==='연차' ? 'background:#D8E6C3;' : r[2].includes('/') ? 'background:#fff;' : chip(r[2]==='O'?'OFF':r[2]);
+        return { t: r[2]==='연차' ? '휴' : t, wrap, style: `min-width:26px;height:26px;padding:0 3px;border-radius:6px;display:flex;align-items:center;justify-content:center;font-size:${t.length>3?'8px':t.length>1?'9.5px':'11px'};font-weight:700;color:#1B1F1E;${bgc}${r[2]==='연차'?'':'box-shadow:inset 0 0 0 1.5px #C8321E;'}${r[3]?'text-decoration:underline dotted #6B7270;text-underline-offset:3px;':''}` };
+      });
+      const cnt = raw.filter(x => x[1] === n).length;
+      return { name: n, cells, cnt: cnt || '', tag: me ? '나' : '',
+        nameStyle: `border-right:1px solid #D9D5CC;border-bottom:1px solid #EEECE6;height:36px;display:flex;align-items:center;gap:6px;padding-left:8px;font-weight:${me?'800':'600'};${meBg}${me?'box-shadow:inset 3px 0 0 #0F6E63;':''}`,
+        tagStyle: me ? 'font-size:10px;background:#0F6E63;color:#fff;padding:1px 6px;border-radius:999px;font-weight:700;' : 'display:none;',
+        cntStyle: `border-left:1px solid #D9D5CC;border-bottom:1px solid #EEECE6;height:36px;display:flex;align-items:center;justify-content:center;color:#6B7270;${meBg}` };
+    });
+    const leaveOpts = ['연차','경조사','병가','공가','특별휴가 · 검진'].map((l, i) => ({ l, style: `padding:6px 10px;border-radius:6px;font-size:12px;border:1px solid ${i===1?'#1B1F1E':'#D9D5CC'};${i===1?'background:#F6F4EF;font-weight:700;':'background:#fff;color:#6B7270;'}` }));
+    return { days, rowsA, rowsB, rowsC, rowsJ, novCells, reqByDate, novDays, reqRows, rowsSwap, swapNow, swapNew, sentReqs, recvReqs, leaveOpts, navAdjustNurse: navMk('adjust', false), leaveReasons, peers, genSummary, staff, rules, showCounts,
+      navHome: navMk('home', false), navOff: navMk('off', false), navLeave: navMk('leave', false), navPeers: navMk('peers', false), navRules: navMk('rules', false),
+      navGen: navMk('gen', true), navAdjust: navMk('adjust', true), navStaff: navMk('staff', true), navRuleset: navMk('ruleset', true), ruleParams, rulePatterns };
+  }
+}
+</script>
+</body>
+</html>

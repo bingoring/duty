@@ -60,7 +60,7 @@ updated: 2026-09-27
 | `bo` | 보수교육 올해 이수 횟수 |
 
 ### `GridCellView`
-`{ date, label: 'D'|'E'|'N'|'S'|'off'|'연'|'휴'|'', chip: 'd'|'e'|'n'|'s'|'off'|'leave'|null, outline: 'admin'|'requested'|null, checkupHalf, weekend, title }`
+`{ date, label: 'D'|'E'|'N'|'S'|'off'|'휴'|'', chip: 'd'|'e'|'n'|'s'|'off'|'leave'|null, outline: 'admin'|'requested'|null, checkupHalf, weekend, title }`
 
 ### 2.2 `SummaryCards`
 | 카드 | 필드 |
@@ -80,6 +80,9 @@ updated: 2026-09-27
 | `annual`, `special`, `founding`, `checkup` | 월말 잔여 |
 | `foundingEligible` | `foundingOffEligible` (false·null → "-") |
 | `eduContThisYear` | 올해 보수교육 이수 횟수(월말 기준) |
+
+## 3.1 `LeaveBalanceSummary` (사이드바)
+`{ annual, annualGranted, special, specialGranted, checkup, sick, offCarry, nightBank }` — R-SHELL-2.
 
 ## 4. SoT 매핑
 

@@ -65,13 +65,20 @@ buildScheduleView(d):
 
 `cellView(c)`:
 ```
-label = c ? { D,E,N,S → 코드, OFF → 'off', AL → '연', LEAVE → '휴' } : ''
+label = c ? { D,E,N,S → 코드, OFF → 'off', AL|LEAVE → '휴' } : ''
 chip  = c ? { D→d, E→e, N→n, S→s, OFF→off, AL|LEAVE→leave } : null
 outline = !c || c.code ∈ {AL, LEAVE} ? null : c.source == admin ? 'admin' : c.source == requested ? 'requested' : null
 title = [M/D (요일), label, 종류(offKind·leaveKind 한글), 검진 반차?, 신청 반영|관리자 수정].join(' · ')
 ```
 
 종류 한글: regular 없음 · sleeping "슬리핑오프" · edu_cont "보수교육" · edu_union "노조교육" · special "특별휴가" · founding "개원오프" · family "경조휴가" · sick "병가" · official "공가".
+
+### 2.4 사이드바 잔여 (`balances.ts` `leaveBalanceSummary`)
+```
+today의 달 (y, m)에 대해 rowBalances(viewer만)를 계산 → 월말(확정이면) 또는 월초(확정 전) 잔여
+granted(account) = SUM(delta) WHERE delta > 0 AND account IN (annual_leave, special_leave) AND created_at의 서울 연도 = y
+```
+AppShell(layout)에서 요청마다 한 번 계산한다(사용자 1명, 쿼리 3~4개).
 
 ## 3. 상태 전이
 

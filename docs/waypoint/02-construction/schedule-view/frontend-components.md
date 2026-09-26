@@ -12,6 +12,7 @@ updated: 2026-09-27
 ## 1. 컴포넌트 트리
 
 ```
+AppShell (v2)  Sidebar: NavList(재구성) · LeaveBalanceCard · UserBlock
 (app)/page.tsx  SchedulePage (server)
 ├── ScheduleHeader        ‹ 제목 › · 배지 · 다음 달 링크 · 범례 · PrintButton(client)
 ├── SummaryCards          5열 카드 (cards 없으면 안내)
@@ -52,13 +53,20 @@ updated: 2026-09-27
 - 요일 행: h18, 10px, border-bottom `line`, 색 R-VIEW-8.
 - 성명 칸: h32, padding-left 8, 600, border-right `line`, border-bottom `line-soft`. head → `admin` 색. me → 800 + bg `primary-soft` + `box-shadow: inset 3px 0 0 primary`.
 - 숫자 칸: h32 center `ink-2`, border-right `line`, border-bottom `line-soft`, me면 bg `primary-soft`. 누적 off: border-left `line` + 700 `ink`.
-- `CellChip` 래퍼: h32 center, border-right·bottom `line-soft`, 빨간 날 bg `weekend-cell`, `title`. 칩: 20×20 radius 5 700, 10.5px(off는 8.5px), 배경 `shift-*`(연·휴는 `shift-al`), outline admin `inset 0 0 0 2px admin` / requested `inset 0 0 0 1.5px danger`. 검진 반차: 칩 오른쪽 위 4×4 원 `ink-2`.
+- `CellChip` 래퍼: h32 center, border-right·bottom `line-soft`, 빨간 날 bg `weekend-cell`, `title`. 칩: 20×20 radius 5 700, 10.5px(off는 8.5px), 배경 `shift-*`(휴는 `shift-leave` #D8E6C3), outline admin `inset 0 0 0 2px admin` / requested `inset 0 0 0 1.5px danger`. 검진 반차: 칩 오른쪽 위 4×4 원 `ink-2`.
 
 ### `EmptyState`
 - 격자 자리의 흰 카드 padding 32 center, 14px `ink-2`: "2026년 9월 근무표가 아직 확정되지 않았습니다." 관리자 + 생성 중이면 아래에 보조 버튼 링크 "듀티 생성에서 생성안 보기"(`/admin/generate`).
 
 ### `ScheduleFooter`
 - 12px `ink-2`. R-VIEW-17 문구.
+
+### `LeaveBalanceCard` (server, 모든 화면)
+- 위치: 사이드바 `margin-top:auto` 영역, UserBlock 위, gap 8.
+- 카드 bg `panel` border `line-soft` radius 10 padding 10 12, flex column gap 5, 12px.
+- 제목 11px `ink-3` letter-spacing .06em 600 "내 휴가 잔여". 행: flex space-between, 라벨 `ink-2`, 값 `<b>`.
+- 행: 연차 "9 / 15" · 특별휴가 "2 / 2" · 검진 반차 "0.5" · 병가 "60" · 누적 OFF "+4"(색 없음) · 잔여 N "3".
+- UserBlock은 padding 10 10 0, border-top `line-nav`(v2), 로그아웃 버튼은 유지한다.
 
 ## 3. 상태
 

@@ -14,7 +14,7 @@ updated: 2026-09-27
 
 ## 입력 (Inputs)
 
-- [`../inputs/design-handoff_v1/README.md`](../inputs/design-handoff_v1/README.md) 확정 사항 2~5, S3 / 프로토타입 `id="1c"`
+- [`../inputs/design-handoff_v2/README.md`](../inputs/design-handoff_v2/README.md) 확정 사항 2~5·12~14, S3, 공통 셸 / 프로토타입 `id="1c"`·3b 사이드바
 - [`../01-inception/02-domain-model.md`](../01-inception/02-domain-model.md) §2, §4 종이 우측 컬럼, §8 권한
 - [`../01-inception/03-architecture-decision.md`](../01-inception/03-architecture-decision.md) §5 권한 계층, §7 NFR
 - 2-2 `@duty/domain` (정산·빨간 날·개원오프·근무 시각)
@@ -39,6 +39,7 @@ Build Spec(standard, 4 아티팩트): [`schedule-view/build-spec-index.md`](sche
 - **공개 범위(Q2):** 동료의 휴가 종류·검진 반차·잔여 컬럼까지 모두 공개. 코멘트·휴가 사유는 S3에 없다.
 - **표시(Q1·Q3):** 누적 OFF는 색 없이 부호 + "다음 달 반납 n / n일 더 받음". "이번달 OFF"는 정산 기준 OFF.
 - **기본 달(Q4):** 이번 달. 다음 달이 확정되면 헤더 링크.
+- **핸드오프 v2:** 메뉴 재구성(근무 조정을 일반 메뉴로, 휴가 신청 제거, 관리자 3개), 사이드바「내 휴가 잔여」(모든 화면), 휴가 칩 `휴`(#D8E6C3).
 - **개발 데이터:** 종이 2026-10(가명)을 확정 근무표·초기 원장으로 시드해 화면·E2E에서 쓴다.
 
 ## 검토 게이트 (Human Gate)

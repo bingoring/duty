@@ -2,12 +2,16 @@
 
 **Framework:** [Waypoint](https://github.com/bingoring/waypoint)
 **Requirements:** [inputs/requirements_v3.md](inputs/requirements_v3.md) (근무 지침 원문 + 근무자 명단)
-**Design handoff:** [inputs/design-handoff_v1/](inputs/design-handoff_v1/README.md) (최신)
+**Design handoff:** [inputs/design-handoff_v2/](inputs/design-handoff_v2/README.md) (최신, 2026-09-27) · [v1](inputs/design-handoff_v1/README.md)
 **Decisions (audit):** [DECISIONS.md](DECISIONS.md)
 **Last updated:** 2026-09-27
 
 > 🔒 **개인정보:** 공개 저장소다. 간호사 이름·사번은 모두 가명이며, 실명 자료는 커밋하지 않는다([DECISIONS](DECISIONS.md) 2026-09-26).
 
+> 🎨 **핸드오프 v2 반영 (2026-09-27).** 근무 조정을 모든 간호사에게 열고 간호사 간 교환 요청(3a) 추가, 휴가 신청을 근무 신청 팝오버에 통합(3b, 증빙 없음),
+> 메뉴 재구성(근무 조정이 일반 메뉴로), 사이드바 「내 휴가 잔여」, 휴가 칩 `휴`(#D8E6C3). 입력의 실명 16건은 가명 치환, 종이 사진은 제외했다.
+> 단계 조정: 2-5에 휴가 포함, 2-8 교환 요청 신설, 통합은 2-9. 2-3 Build Spec에 메뉴·잔여 카드·휴가 칩 반영.
+>
 > 📝 **2-3 근무표 조회 Build Spec READY (2026-09-27).** 1c 격자·요약 카드 5개·월 이동·인쇄를 서버 컴포넌트로 만든다. 이월 값은 마감된 달은
 > 정산 스냅샷, 미마감 달은 원장 + 앞선 확정 달 투영. 질문 Q1~Q4 해소 — 누적 OFF 색 없이 부호+설명, 동료 정보 모두 공개,
 > 이번달 OFF = 정산 기준, 기본 달 = 이번 달. 구현 착수 승인 대기.
@@ -58,7 +62,8 @@
 
 ## Phase 2 — Construction (How)
 
-> 1-3 §10의 분해(승인됨). MVP 범위 = 1-1 Q1. 2차 범위(S2·S5·S6·S7)는 MVP 리뷰 후 2-9 이후로 추가.
+> 1-3 §10의 분해(승인됨)를 핸드오프 v2에 맞춰 조정(2026-09-27): 휴가 신청은 S4 팝오버로 들어와 2-5에 포함, 간호사 교환 요청은 2-8로 분리.
+> 2차 범위(S2·S6·S7)는 MVP 리뷰 후 2-10 이후로 추가.
 
 | 스테이지 | 문서 | 상태 |
 |---------|------|------|
@@ -66,10 +71,11 @@
 | 2-2 Domain Core | [02-domain-core.md](02-construction/02-domain-core.md) · [Build Spec](02-construction/domain-core/build-spec-index.md) (IMPLEMENTED) | HUMAN_APPROVED |
 | 2-3 근무표 조회 (S3) | [03-schedule-view.md](02-construction/03-schedule-view.md) · [Build Spec](02-construction/schedule-view/build-spec-index.md) (READY) | AI_PROPOSED |
 | 2-4 관리자 설정 (S10·S11) | 02-construction/04-admin-settings.md | PENDING |
-| 2-5 근무 신청 (S4) | 02-construction/05-shift-requests.md | PENDING |
+| 2-5 근무 신청·휴가 (S4 + S5 팝오버 통합) | 02-construction/05-shift-requests.md | PENDING |
 | 2-6 솔버·듀티 생성 (S8) | 02-construction/06-solver-generation.md | PENDING |
-| 2-7 근무 조정·월 마감 (S9) | 02-construction/07-adjust-close.md | PENDING |
-| 2-8 통합·E2E | 02-construction/08-integration-e2e.md | PENDING |
+| 2-7 근무 조정·월 마감 (S9 관리자) | 02-construction/07-adjust-close.md | PENDING |
+| 2-8 근무 교환 요청 (S9 간호사, 3a) | 02-construction/08-swap-requests.md | PENDING |
+| 2-9 통합·E2E | 02-construction/09-integration-e2e.md | PENDING |
 
 ## Phase R — Independent Code Review 🔍 (Construction → Operations 게이트)
 
