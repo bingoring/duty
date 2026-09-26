@@ -140,18 +140,18 @@ export function checkPerson(n: NurseProfile, ctx: PersonCtx): Violation[] {
       }),
     )
 
-  // S-OFF-AFTER-N: 대상 월 안에서 끝나는 N 구간
-  for (const d of month) {
+  // S-OFF-AFTER-N: 전월 꼬리에서 끝난 N 구간도 본다(10/31 N → 11/1 OFF → 11/2 E). 다음 근무가 말일 뒤면 판단하지 않는다
+  for (const d of grid.timeline) {
     if (code(d) !== 'N' || code(addDays(d, 1)) === 'N') continue
     const dates = [d]
     let next = addDays(d, 1)
-    while (grid.inMonth(next) && at(next) && isRestCode(at(next)!.code)) {
+    while (next <= grid.monthEnd && at(next) && isRestCode(at(next)!.code)) {
       dates.push(next)
       next = addDays(next, 1)
     }
-    const nextCell = grid.inMonth(next) ? at(next) : undefined
+    const nextCell = next <= grid.monthEnd ? at(next) : undefined
     const rest = dates.length - 1
-    if (!nextCell || rest === 0 || rest >= p.offAfterNight) continue
+    if (!nextCell || rest === 0 || rest >= p.offAfterNight || !touchesMonth([...dates, next])) continue
     out.push(violation('S-OFF-AFTER-N', [n.id], [...dates, next], { rest, next: nextCell.code }))
   }
 

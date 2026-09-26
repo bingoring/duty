@@ -349,3 +349,46 @@ describe('checkSchedule 계약', () => {
     expect(checkSchedule(rev)).toEqual(checkSchedule(inp))
   })
 })
+
+// 사용자 설명(2026-09-27): "10월 마지막 날 나이트였다면 11월 초에는 최대 2일만 나이트". 다음 달도 전월을 이어서 본다
+describe('월 경계 — 11월 검사에서 10월 말을 이어서 본다', () => {
+  const nov = (tail: string, tailStart: string, spec: string) =>
+    input({
+      year: 2026,
+      month: 11,
+      nurses: [nurse('a')],
+      prevTail: row('a', tailStart, tail),
+      cells: row('a', '2026-11-01', spec),
+    })
+
+  it('10/31 N이면 11월 초 N은 2일까지, 3일이면 연속 4일로 위반', () => {
+    expect(only(nov('N', '2026-10-31', 'N N O O'), 'H-NIGHT-CONSEC')).toEqual([])
+    expect(only(nov('N', '2026-10-31', 'N N N O'), 'H-NIGHT-CONSEC')).toMatchObject([
+      { dates: ['2026-10-31', '2026-11-01', '2026-11-02', '2026-11-03'], data: { count: 4 } },
+    ])
+  })
+
+  it('10/30·31 N N이면 11/1 N 하나까지만', () => {
+    expect(only(nov('N N', '2026-10-30', 'N O O'), 'H-NIGHT-CONSEC')).toEqual([])
+    expect(only(nov('N N', '2026-10-30', 'N N O'), 'H-NIGHT-CONSEC')).toHaveLength(1)
+  })
+
+  it('10/31 N 뒤 11/1 OFF 하나만 쉬고 근무하면 N 후 OFF 경고', () => {
+    expect(only(nov('N', '2026-10-31', 'O E'), 'S-OFF-AFTER-N')).toMatchObject([
+      { dates: ['2026-10-31', '2026-11-01', '2026-11-02'], data: { rest: 1, next: 'E' } },
+    ])
+    expect(only(nov('N', '2026-10-31', 'O O E'), 'S-OFF-AFTER-N')).toEqual([])
+  })
+
+  it('10/31 N 다음 날 11/1 D는 휴식 위반, 10/30 N·10/31 OFF 뒤 11/1 D는 N-OFF-D', () => {
+    expect(only(nov('N', '2026-10-31', 'D'), 'H-REST')).toHaveLength(1)
+    expect(only(nov('N O', '2026-10-30', 'D'), 'H-PATTERN').map((v) => v.data.pattern)).toEqual(['N-OFF-D'])
+  })
+
+  it('10월 말 오프 12일 + 11월 초 오프 4일 = 연속 16일로 위반', () => {
+    const tail = Array(12).fill('O').join(' ')
+    expect(only(nov(tail, '2026-10-20', 'O O O O D'), 'H-OFF-CONSEC')).toMatchObject([
+      { data: { count: 16 } },
+    ])
+  })
+})
