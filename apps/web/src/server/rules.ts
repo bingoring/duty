@@ -1,5 +1,5 @@
 import 'server-only'
-import { DEFAULT_RULES, type RuleSet } from '@duty/domain'
+import { DEFAULT_RULES, RuleSetSchema, type RuleSet } from '@duty/domain'
 import { desc, eq } from 'drizzle-orm'
 import { getDb } from './db/client'
 import { ruleVersions, wards } from './db/schema'
@@ -16,12 +16,13 @@ export async function getCurrentRules(): Promise<RuleSet & { version: number | n
       .orderBy(desc(ruleVersions.version))
       .limit(1)
     if (!row) return { ...DEFAULT_RULES, version: null }
-    return {
+    // 예전 버전에 없는 수치는 스키마 기본값으로 채운다
+    const rules = RuleSetSchema.parse({
       params: row.v.params,
       toggles: row.v.toggles,
       forbiddenPatterns: row.v.forbiddenPatterns,
-      version: row.v.version,
-    }
+    })
+    return { ...rules, version: row.v.version }
   } catch {
     return { ...DEFAULT_RULES, version: null }
   }

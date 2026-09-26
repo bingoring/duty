@@ -47,6 +47,7 @@ export const BALANCE_REASONS = [
   'leave_approved',
   'leave_cancelled',
 ] as const
+export const TRAINEE_KINDS = ['new_grad', 'experienced'] as const
 export const EDIT_REASONS = ['manual', 'swap', 'leave_approved'] as const
 
 export type Role = (typeof ROLES)[number]
@@ -61,4 +62,5 @@ export type RequestSpecial = (typeof REQUEST_SPECIALS)[number]
 export type HolidayKind = (typeof HOLIDAY_KINDS)[number]
 export type MonthPlanStatus = (typeof MONTH_PLAN_STATUSES)[number]
 export type BalanceAccount = (typeof BALANCE_ACCOUNTS)[number]
+export type TraineeKind = (typeof TRAINEE_KINDS)[number]
 export type BalanceReason = (typeof BALANCE_REASONS)[number]

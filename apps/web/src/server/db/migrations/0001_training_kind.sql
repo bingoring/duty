@@ -1,0 +1,1 @@
+ALTER TABLE "trainings" ADD COLUMN "kind" text DEFAULT 'new_grad' NOT NULL;

@@ -87,6 +87,8 @@ export const trainings = pgTable('trainings', {
   preceptorId: uuid('preceptor_id')
     .notNull()
     .references(() => users.id),
+  // TRAINEE_KINDS: 완전 신규 3주 / 경력자 2주 3인 배정 (2-2)
+  kind: text('kind').notNull().default('new_grad'),
   startDate: day('start_date').notNull(),
   endDate: day('end_date').notNull(),
   tripleStaffUntil: day('triple_staff_until').notNull(),

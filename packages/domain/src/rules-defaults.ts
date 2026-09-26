@@ -24,6 +24,9 @@ export const RuleParamsSchema = z.object({
   minStaffPerShift: positiveInt,
   minKTass: z.number().int().nonnegative(),
   newbieTripleWeeks: z.number().int().nonnegative(),
+  // 2-2에서 추가. 예전 규칙 버전(jsonb)에는 없으므로 기본값으로 채운다
+  experiencedTripleWeeks: z.number().int().nonnegative().default(2),
+  tripleNightCount: z.number().int().nonnegative().default(3),
   trainingMonths: positiveInt,
   sleepingOffPerN: positiveInt,
   requestDeadlineDay: positiveInt.max(28),
@@ -53,10 +56,11 @@ export type RuleToggles = z.infer<typeof RuleTogglesSchema>
 export type RuleSet = z.infer<typeof RuleSetSchema>
 
 // rule_versions v1. 핸드오프 S11 항목/기본값 + 요구사항 원문(야간 운영 지침 §1·§3, 응급실 지침 §6)의 수치.
+// maxConsecutiveOff 15와 신규 3인 근무 수치는 사용자 답변(DECISIONS 2026-09-27 Q2·Q5).
 export const DEFAULT_RULES: RuleSet = {
   params: {
     minRestHours: 16,
-    maxConsecutiveOff: 10,
+    maxConsecutiveOff: 15,
     workDaysPerWeek: 5,
     maxNightPerMonth: 7,
     targetNightPerMonth: 6,
@@ -65,6 +69,8 @@ export const DEFAULT_RULES: RuleSet = {
     minStaffPerShift: 2,
     minKTass: 1,
     newbieTripleWeeks: 3,
+    experiencedTripleWeeks: 2,
+    tripleNightCount: 3,
     trainingMonths: 3,
     sleepingOffPerN: 6,
     requestDeadlineDay: 15,

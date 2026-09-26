@@ -21,6 +21,9 @@ pnpm db:migrate && pnpm db:seed      # 가명 11명, 비밀번호 duty-dev-1234
 pnpm dev                             # http://localhost:3000 — 00101(관리자) / 00103(간호사)
 ```
 
+> 규칙 기본값이 바뀌면(예: 2-2에서 최대 연속 오프 10 → 15) 이미 시드된 개발 DB의 `rule_versions` v1은 그대로다.
+> `docker compose down -v && docker compose up -d` 후 `pnpm db:migrate && pnpm db:seed`로 다시 만든다.
+
 ## 검증
 
 ```sh
