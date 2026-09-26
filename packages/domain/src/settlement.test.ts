@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { baselineOff, reverseEntries, settleMonth, summarizeNurse } from './settlement'
+import { baselineOff, reverseEntries, settleMonth, summarizeNurse, weekendPairCarryOut } from './settlement'
 import { loadPaper, nurse, row } from './test-utils'
 
 const OCT = { year: 2026, month: 10 }
@@ -70,6 +70,20 @@ describe('settleMonth', () => {
     expect(r.entries.find((e) => e.account === 'off_carry')).toBeUndefined()
   })
 
+  it('10/31(토) OFF 주말은 11/1 칸으로 판정하고, 11월 칸이 없으면 달성 예정으로 본다', () => {
+    const spec = Array(30).fill('D').join(' ') + ' O'
+    const base = {
+      nurse: nurse('a'),
+      ...OCT,
+      cells: row('a', '2026-10-01', spec),
+      holidays: HOL,
+      sleepingOffPerN: 6,
+    }
+    expect(settleMonth(base).weekendPairAchieved).toBe(true)
+    expect(settleMonth({ ...base, nextHead: row('a', '2026-11-01', 'O')[0] }).weekendPairAchieved).toBe(true)
+    expect(settleMonth({ ...base, nextHead: row('a', '2026-11-01', 'D')[0] }).weekendPairAchieved).toBe(false)
+  })
+
   it('주말 통 OFF 달성 여부를 기록한다 (R-SETTLE-7)', () => {
     expect(settle('D D O O').weekendPairAchieved).toBe(true)
     expect(settle('D D O D').weekendPairAchieved).toBe(false)
@@ -114,5 +128,22 @@ describe('종이 근무표 2026-10 정산', () => {
       const s = settleMonth({ nurse: n, ...OCT, cells, holidays: input.holidays, sleepingOffPerN: 6 })
       expect([r.name, s.offCarryAfter]).toEqual([r.name, paperOffCarryAfter.get(n.id)])
     }
+  })
+})
+
+describe('weekendPairCarryOut — 다음 달 1일(일)에 기대는지', () => {
+  const oct = (spec: string) => weekendPairCarryOut(row('a', '2026-10-01', spec), 2026, 10)
+  const days = (off: number[]) => {
+    const t = Array(31).fill('D')
+    for (const d of off) t[d - 1] = 'O'
+    return t.join(' ')
+  }
+  it('월 안 주말이 없고 마지막 토요일이 OFF면 true', () => {
+    expect(oct(days([31]))).toBe(true)
+    expect(oct(days([17, 18, 31]))).toBe(false)
+    expect(oct(days([30]))).toBe(false)
+  })
+  it('마지막 날이 토요일이 아닌 달은 false', () => {
+    expect(weekendPairCarryOut(row('a', '2026-11-01', Array(30).fill('O').join(' ')), 2026, 11)).toBe(false)
   })
 })

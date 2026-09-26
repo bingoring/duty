@@ -12,12 +12,17 @@ import {
 } from '../types'
 import { violation, type Violation } from './rules'
 
+// D·E·N이 이보다 적은 달(휴가가 긴 달 등)은 분포를 따지지 않는다
+export const SHIFT_BALANCE_MIN_WORK = 9
+
 // 한 사람에 대한 규칙 (business-rules §1.2·§1.3 사람 단위)
 export type PersonCtx = {
   input: ScheduleInput
   grid: Grid
   redDays: ReadonlySet<IsoDate>
   requests: ReadonlyMap<string, RequestEntry>
+  // 대상 월에 트레이닝 중인 신규 (프리셉터를 따라가므로 D·E·N 분포 검사 제외)
+  trainees: ReadonlySet<string>
 }
 
 const minutes = (hhmm: string) => {
@@ -31,11 +36,14 @@ export function restHoursBetween(a: keyof typeof SHIFT_TIMES, b: keyof typeof SH
   return (1440 + minutes(SHIFT_TIMES[b].start) - end) / 60
 }
 
-export function hasWeekendPair(isRest: (d: IsoDate) => boolean, monthDates: readonly IsoDate[]): boolean {
-  const last = monthDates.at(-1)!
+// 토요일이 속한 달로 센다. 일요일이 다음 달 1일이고 칸을 모르면(undefined) 달성 예정으로 본다
+export function hasWeekendPair(
+  restAt: (d: IsoDate) => boolean | undefined,
+  monthDates: readonly IsoDate[],
+): boolean {
   return monthDates.some((d) => {
-    const sun = addDays(d, 1)
-    return dayOfWeek(d) === 6 && sun <= last && isRest(d) && isRest(sun)
+    if (dayOfWeek(d) !== 6 || restAt(d) !== true) return false
+    return restAt(addDays(d, 1)) !== false
   })
 }
 
@@ -176,14 +184,29 @@ export function checkPerson(n: NurseProfile, ctx: PersonCtx): Violation[] {
       out.push(violation('H-EDU-UNION', [n.id], [c.date], { reason: 'red_day' }))
   }
 
-  // S-WEEKEND-PAIR
+  // S-WEEKEND-PAIR · S-WEEKEND-CARRY
   if (input.rules.toggles.weekendPairOffMonthly) {
-    const isRest = (d: IsoDate) => {
+    const restAt = (d: IsoDate): boolean | undefined => {
       const c = at(d)
-      return c !== undefined && isRestCode(c.code)
+      if (!c) return d > grid.monthEnd ? undefined : false
+      return isRestCode(c.code)
     }
-    if (month.some((d) => isEmployed(n, d)) && !hasWeekendPair(isRest, month))
+    if (month.some((d) => isEmployed(n, d)) && !hasWeekendPair(restAt, month))
       out.push(violation('S-WEEKEND-PAIR', [n.id], [], { consecutive: n.weekendPairMissedLastMonth }))
+    const first = grid.monthStart
+    const firstCell = at(first)
+    if (n.weekendPairCarryIn && dayOfWeek(first) === 0 && firstCell && !isRestCode(firstCell.code))
+      out.push(violation('S-WEEKEND-CARRY', [n.id], [addDays(first, -1), first], { code: firstCell.code }))
+  }
+
+  // S-SHIFT-BALANCE: 한 사람의 D·E·N 개수 차이
+  if (input.rules.toggles.balanceShiftTypes && !dedicated && !ctx.trainees.has(n.id)) {
+    const c = { D: 0, E: 0, N: 0 }
+    for (const x of monthCells) if (x.code === 'D' || x.code === 'E' || x.code === 'N') c[x.code]++
+    const spread = Math.max(c.D, c.E, c.N) - Math.min(c.D, c.E, c.N)
+    const tolerance = p.shiftBalanceTolerance
+    if (c.D + c.E + c.N >= SHIFT_BALANCE_MIN_WORK && spread > tolerance)
+      out.push(violation('S-SHIFT-BALANCE', [n.id], [], { ...c, spread, tolerance }))
   }
 
   return out

@@ -33,13 +33,22 @@ describe('DEFAULT_RULES', () => {
     expect(parsed.params.tripleNightCount).toBe(3)
   })
 
-  it('토글 기본값: 주말 통 OFF·저연차 방지·반복 겹침 최소화 켜짐, 야간 전담 꺼짐', () => {
+  it('토글 기본값: 주말 통 OFF·저연차 방지·반복 겹침 최소화·D/E/N 고르게 켜짐, 야간 전담 꺼짐', () => {
     expect(DEFAULT_RULES.toggles).toEqual({
       weekendPairOffMonthly: true,
       avoidJuniorOnly: true,
       minimizeRepeatPairs: true,
       nightDedicated: false,
+      balanceShiftTypes: true,
     })
+    expect(DEFAULT_RULES.params.shiftBalanceTolerance).toBe(2)
+  })
+
+  it('D/E/N 분포 항목이 없는 예전 규칙 버전도 기본값으로 읽는다', () => {
+    const { balanceShiftTypes: _t, ...oldToggles } = DEFAULT_RULES.toggles
+    const { shiftBalanceTolerance: _p, ...oldParams } = DEFAULT_RULES.params
+    const parsed = RuleSetSchema.parse({ ...DEFAULT_RULES, toggles: oldToggles, params: oldParams })
+    expect([parsed.toggles.balanceShiftTypes, parsed.params.shiftBalanceTolerance]).toEqual([true, 2])
   })
 
   it('금지 패턴은 대문자 OFF로 정규화된 4개다', () => {

@@ -7,7 +7,7 @@ import { checkPerson } from './person'
 import type { CheckResult, Violation } from './rules'
 
 export * from './rules'
-export { hasWeekendPair, restHoursBetween } from './person'
+export { hasWeekendPair, restHoursBetween, SHIFT_BALANCE_MIN_WORK } from './person'
 export { REPEAT_PAIR_MIN } from './duty'
 
 const cmp = (a: string, b: string) => (a < b ? -1 : a > b ? 1 : 0)
@@ -30,7 +30,12 @@ export function checkSchedule(input: ScheduleInput): CheckResult {
   const grid = buildGrid(input)
   const staffing = createStaffing(input, grid)
   const requests = new Map(input.requests.map((r) => [`${r.userId}|${r.date}`, r]))
-  const ctx = { input, grid, redDays: redDaySet(input.holidays), requests }
+  const trainees = new Set(
+    input.trainings
+      .filter((t) => t.startDate <= grid.monthEnd && t.endDate >= grid.monthStart)
+      .map((t) => t.traineeId),
+  )
+  const ctx = { input, grid, redDays: redDaySet(input.holidays), requests, trainees }
 
   const out: Violation[] = []
   for (const n of input.nurses) if (n.rotation === 'rotating') out.push(...checkPerson(n, ctx))

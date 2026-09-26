@@ -27,6 +27,8 @@ export const RuleParamsSchema = z.object({
   // 2-2에서 추가. 예전 규칙 버전(jsonb)에는 없으므로 기본값으로 채운다
   experiencedTripleWeeks: z.number().int().nonnegative().default(2),
   tripleNightCount: z.number().int().nonnegative().default(3),
+  // 한 사람의 D·E·N 개수 차이 허용치 (사용자 요청 2026-09-27)
+  shiftBalanceTolerance: z.number().int().nonnegative().default(2),
   trainingMonths: positiveInt,
   sleepingOffPerN: positiveInt,
   requestDeadlineDay: positiveInt.max(28),
@@ -43,6 +45,7 @@ export const RuleTogglesSchema = z.object({
   avoidJuniorOnly: z.boolean(),
   minimizeRepeatPairs: z.boolean(),
   nightDedicated: z.boolean(),
+  balanceShiftTypes: z.boolean().default(true),
 })
 
 export const RuleSetSchema = z.object({
@@ -71,6 +74,7 @@ export const DEFAULT_RULES: RuleSet = {
     newbieTripleWeeks: 3,
     experiencedTripleWeeks: 2,
     tripleNightCount: 3,
+    shiftBalanceTolerance: 2,
     trainingMonths: 3,
     sleepingOffPerN: 6,
     requestDeadlineDay: 15,
@@ -86,6 +90,7 @@ export const DEFAULT_RULES: RuleSet = {
     avoidJuniorOnly: true,
     minimizeRepeatPairs: true,
     nightDedicated: false,
+    balanceShiftTypes: true,
   },
   forbiddenPatterns: ['E-D', 'N-E', 'N-off-D', 'E-S'].map(normalizePattern),
 }

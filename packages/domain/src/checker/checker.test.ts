@@ -278,8 +278,19 @@ describe('S-WEEKEND-PAIR (토글)', () => {
     expect(only(solo(month('17 18')), 'S-WEEKEND-PAIR')).toEqual([])
   })
 
-  it('월 경계에 걸친 주말(10/31 토)은 세지 않는다', () => {
-    expect(only(solo(month('31')), 'S-WEEKEND-PAIR')).toHaveLength(1)
+  // 달을 걸친 주말은 토요일이 속한 달로 센다 (사용자 답변 2026-09-27)
+  it('10/31(토) OFF는 11월 근무표가 없으면 달성 예정으로 본다', () => {
+    expect(only(solo(month('31')), 'S-WEEKEND-PAIR')).toEqual([])
+  })
+
+  it('11월 근무표가 있으면 11/1(일)까지 확인한다', () => {
+    const next = (spec: string) => solo(month('31'), { nextHead: row('a', '2026-11-01', spec) })
+    expect(only(next('O'), 'S-WEEKEND-PAIR')).toEqual([])
+    expect(only(next('D'), 'S-WEEKEND-PAIR')).toHaveLength(1)
+  })
+
+  it('다음 달 1일 칸이 범위를 벗어나면 입력 오류다', () => {
+    expect(() => checkSchedule(solo('D', { nextHead: row('a', '2026-11-02', 'O') }))).toThrow()
   })
 
   it('전달도 미배정이면 consecutive, 토글이 꺼지면 검사하지 않는다', () => {
@@ -390,5 +401,70 @@ describe('월 경계 — 11월 검사에서 10월 말을 이어서 본다', () =
     expect(only(nov(tail, '2026-10-20', 'O O O O D'), 'H-OFF-CONSEC')).toMatchObject([
       { data: { count: 16 } },
     ])
+  })
+})
+
+describe('S-WEEKEND-CARRY — 전달 주말이 이번 달 1일(일)에 걸림', () => {
+  const nov = (spec: string, carry: boolean) =>
+    input({
+      year: 2026,
+      month: 11,
+      nurses: [nurse('a', { weekendPairCarryIn: carry })],
+      prevTail: row('a', '2026-10-31', 'O'),
+      cells: row('a', '2026-11-01', spec),
+    })
+
+  it('전달이 기대고 있으면 11/1도 OFF여야 한다', () => {
+    expect(only(nov('D', true), 'S-WEEKEND-CARRY')).toMatchObject([
+      { userIds: ['a'], dates: ['2026-10-31', '2026-11-01'] },
+    ])
+    expect(only(nov('O', true), 'S-WEEKEND-CARRY')).toEqual([])
+    expect(only(nov('D', false), 'S-WEEKEND-CARRY')).toEqual([])
+  })
+
+  it('10/31–11/1 주말은 11월 몫이 아니다', () => {
+    expect(
+      only(nov('O D D D D D D D D D D D D D D D D D D D D D D D D D D D D D', true), 'S-WEEKEND-PAIR'),
+    ).toHaveLength(1)
+  })
+})
+
+describe('S-SHIFT-BALANCE — 한 사람의 D·E·N 분포 (사용자 요청 2026-09-27)', () => {
+  // D×d, E×e, N은 3개씩 묶고 사이에 OFF 2개 (31칸 이내)
+  const work = (d: number, e: number, n: number) => {
+    const nights = Array.from({ length: n }, (_, i) => (i % 3 === 2 && i < n - 1 ? 'N O O' : 'N'))
+    return [...Array(d).fill('D'), 'O', ...Array(e).fill('E'), 'O', ...nights].join(' ')
+  }
+
+  it('D·E·N 개수 차이가 허용치(2)를 넘으면 경고', () => {
+    expect(only(solo(work(4, 7, 6)), 'S-SHIFT-BALANCE')).toMatchObject([
+      { userIds: ['a'], data: { D: 4, E: 7, N: 6, spread: 3, tolerance: 2 } },
+    ])
+    expect(only(solo(work(6, 5, 7)), 'S-SHIFT-BALANCE')).toEqual([])
+  })
+
+  it('허용치는 규칙 설정 값, 토글이 꺼지면 검사하지 않는다', () => {
+    expect(
+      only(solo(work(4, 7, 6), { rules: rules({ shiftBalanceTolerance: 3 }) }), 'S-SHIFT-BALANCE'),
+    ).toEqual([])
+    expect(
+      only(solo(work(4, 7, 6), { rules: rules({}, { balanceShiftTypes: false }) }), 'S-SHIFT-BALANCE'),
+    ).toEqual([])
+  })
+
+  it('근무가 적은 달(D·E·N 합 9 미만)과 트레이닝 중인 신규는 제외', () => {
+    expect(only(solo(work(0, 5, 3)), 'S-SHIFT-BALANCE')).toEqual([])
+    const t: TrainingSpan = {
+      traineeId: 'a',
+      preceptorId: 'p',
+      kind: 'new_grad',
+      startDate: '2026-10-01',
+      endDate: '2026-12-31',
+      tripleStaffUntil: '2026-10-21',
+      tripleNightsBefore: 0,
+    }
+    expect(
+      only(solo(work(4, 7, 6), { nurses: [nurse('a'), nurse('p')], trainings: [t] }), 'S-SHIFT-BALANCE'),
+    ).toEqual([])
   })
 })

@@ -1,6 +1,6 @@
 import type { BalanceAccount, ShiftCode } from './allowed-sets'
 import { hasWeekendPair } from './checker/person'
-import { isEmployed, isRedDay, monthDates, redDaySet } from './dates'
+import { dayOfWeek, isEmployed, isRedDay, monthDates, redDaySet, type IsoDate } from './dates'
 import { isRestCode, type GridCell, type HolidayDay, type NurseProfile } from './types'
 
 export type BalanceDelta = { account: BalanceAccount; delta: number }
@@ -48,6 +48,8 @@ export function settleMonth(args: {
   cells: readonly GridCell[]
   holidays: readonly HolidayDay[]
   sleepingOffPerN: number
+  // 다음 달 1일 칸. 달을 걸친 주말(토요일이 속한 달로 셈) 판정용, 없으면 달성 예정으로 본다
+  nextHead?: GridCell
 }): SettlementResult {
   const { nurse, cells } = args
   const off = (kind: string) => cells.filter((c) => c.code === 'OFF' && c.offKind === kind).length
@@ -84,11 +86,8 @@ export function settleMonth(args: {
     .filter(([, delta]) => delta !== 0)
     .map(([account, delta]) => ({ account, delta }))
 
-  const byDate = new Map(cells.map((c) => [c.date, c]))
-  const isRest = (d: string) => {
-    const c = byDate.get(d)
-    return c !== undefined && isRestCode(c.code)
-  }
+  const days = monthDates(args.year, args.month)
+  const restAt = restLookup(cells, days, args.nextHead)
 
   return {
     baselineOff: baseline,
@@ -99,7 +98,7 @@ export function settleMonth(args: {
     offCarryAfter: round1(nurse.offCarryBefore + offDelta),
     nightBankBefore: nurse.nightBankBefore,
     nightBankAfter: nurse.nightBankBefore + nightDelta,
-    weekendPairAchieved: hasWeekendPair(isRest, monthDates(args.year, args.month)),
+    weekendPairAchieved: hasWeekendPair(restAt, days),
     specialUsed,
     foundingUsed,
     checkupUsed,
@@ -109,6 +108,26 @@ export function settleMonth(args: {
     sickUsed,
     entries,
   }
+}
+
+// 대상 월 칸은 쉬는 칸 여부, 다음 달 1일은 칸이 없으면 undefined(모름)
+function restLookup(cells: readonly GridCell[], days: readonly IsoDate[], nextHead?: GridCell) {
+  const byDate = new Map(cells.map((c) => [c.date, c]))
+  const last = days.at(-1)!
+  return (d: IsoDate): boolean | undefined => {
+    const c = d > last ? (nextHead?.date === d ? nextHead : undefined) : byDate.get(d)
+    if (!c) return d > last ? undefined : false
+    return isRestCode(c.code)
+  }
+}
+
+// 월 안에 주말 통 OFF가 없고 마지막 날(토) OFF에 기대는지 → 다음 달 NurseProfile.weekendPairCarryIn
+export function weekendPairCarryOut(cells: readonly GridCell[], year: number, month: number): boolean {
+  const days = monthDates(year, month)
+  const last = days.at(-1)!
+  const restAt = restLookup(cells, days)
+  const inMonth = (d: IsoDate) => (d > last ? false : restAt(d))
+  return dayOfWeek(last) === 6 && restAt(last) === true && !hasWeekendPair(inMonth, days)
 }
 
 // R-SETTLE-6: 마감 취소

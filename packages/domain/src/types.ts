@@ -24,6 +24,8 @@ export type NurseProfile = Employment & {
   offCarryBefore: number
   nightBankBefore: number
   weekendPairMissedLastMonth: boolean
+  // 전달이 마지막 토요일 OFF에 기대 주말 통 OFF를 달성 예정으로 둠 → 이번 달 1일(일)도 OFF여야 한다
+  weekendPairCarryIn: boolean
 }
 
 export type TrainingSpan = {
@@ -64,6 +66,8 @@ export type ScheduleInput = {
   holidays: HolidayDay[]
   cells: GridCell[]
   prevTail: GridCell[]
+  // 다음 달 1일 칸(다음 달 근무표가 있을 때만). 월을 걸친 주말 판정용
+  nextHead: GridCell[]
   requests: RequestEntry[]
 }
 

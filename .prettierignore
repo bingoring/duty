@@ -4,3 +4,4 @@ waypoint/
 **/.next/
 **/migrations/
 **/node_modules/
+apps/web/next-env.d.ts

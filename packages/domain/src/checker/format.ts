@@ -75,6 +75,16 @@ export function formatViolation(v: Violation, ctx: FormatContext): { title: stri
         title: `${name} · 주말 연휴 OFF 미배정`,
         detail: d.consecutive ? `${prev}월도 미배정 → ${next}월 최우선` : `${next}월 우선 대상`,
       }
+    case 'S-WEEKEND-CARRY':
+      return {
+        title: `${name} · ${formatMD(v.dates[1] ?? '')} OFF 필요`,
+        detail: `${formatMD(v.dates[0] ?? '')}(토) OFF와 이어져야 ${prev}월 주말 연휴 OFF가 완성됩니다`,
+      }
+    case 'S-SHIFT-BALANCE':
+      return {
+        title: `${name} · D ${d.D} · E ${d.E} · N ${d.N}`,
+        detail: `D·E·N 차이 ${d.spread}개 (허용 ${d.tolerance}개)`,
+      }
     case 'S-HEAD-FILL':
       return {
         title: `${day} ${v.shift} 수간호사로 인원 충족`,

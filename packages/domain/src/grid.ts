@@ -69,6 +69,7 @@ export function buildGrid(input: ScheduleInput): Grid {
   }
   for (const c of input.cells) add(c, monthStart, monthEnd)
   for (const c of input.prevTail) add(c, tailStart, addDays(monthStart, -1))
+  for (const c of input.nextHead) add(c, addDays(monthEnd, 1), addDays(monthEnd, 1))
 
   const timeline: IsoDate[] = []
   for (let d = tailStart; d <= monthEnd; d = addDays(d, 1)) timeline.push(d)

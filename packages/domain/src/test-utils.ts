@@ -53,6 +53,7 @@ export function nurse(id: string, over: Partial<NurseProfile> = {}): NurseProfil
     offCarryBefore: 0,
     nightBankBefore: 0,
     weekendPairMissedLastMonth: false,
+    weekendPairCarryIn: false,
     ...over,
   }
 }
@@ -76,6 +77,7 @@ export function input(over: Partial<ScheduleInput> & { rules?: RuleSet } = {}): 
     holidays: [],
     cells: [],
     prevTail: [],
+    nextHead: [],
     requests: [],
     ...over,
   }
