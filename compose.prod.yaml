@@ -30,6 +30,8 @@ services:
     build: { context: ., dockerfile: apps/web/Dockerfile, target: runner }
     environment:
       DATABASE_URL: postgres://${POSTGRES_USER:-duty}:${POSTGRES_PASSWORD}@db:5432/${POSTGRES_DB:-duty}
+      # 공공데이터포털 「한국천문연구원_특일 정보」 Decoding 인증키(선택). 없으면 공휴일 가져오기 버튼이 비활성
+      HOLIDAY_API_KEY: ${HOLIDAY_API_KEY:-}
     ports:
       - '3000:3000'
     depends_on:

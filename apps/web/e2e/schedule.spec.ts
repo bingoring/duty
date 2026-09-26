@@ -22,7 +22,7 @@ test.describe('S3 근무표', () => {
       await expect(cards.getByText(label)).toBeVisible()
     await expect(cards.getByText('다음 달 반납 4')).toBeVisible()
     await page.setViewportSize({ width: 1280, height: 760 })
-    await page.screenshot({ path: 'test-results/schedule-1280x760.png' })
+    await page.screenshot({ path: 'test-results/schedule-1280x760.png', caret: 'initial' })
   })
 
   test('월 이동과 근무표가 없는 달의 빈 상태', async ({ page }) => {

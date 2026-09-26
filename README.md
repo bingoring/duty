@@ -24,6 +24,12 @@ pnpm dev                             # http://localhost:3000 — 00101(관리자
 > 규칙 기본값이 바뀌면(예: 2-2에서 최대 연속 오프 10 → 15) 이미 시드된 개발 DB의 `rule_versions` v1은 그대로다.
 > `docker compose down -v && docker compose up -d` 후 `pnpm db:migrate && pnpm db:seed`로 다시 만든다.
 
+## 공휴일 가져오기 (선택)
+
+[공공데이터포털 「한국천문연구원_특일 정보」](https://www.data.go.kr/data/15012690/openapi.do)에서 활용 신청(자동 승인) 후 받은
+**Decoding** 인증키를 `apps/web/.env`(운영은 `.env.prod`)의 `HOLIDAY_API_KEY`에 넣으면, 관리자 → 규칙 설정 → 「공공데이터에서 가져오기」가 켜진다.
+키는 커밋하지 않는다.
+
 ## 검증
 
 ```sh
