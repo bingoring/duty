@@ -11,7 +11,7 @@
 > 🎨 **핸드오프 v3 반영 (2026-09-27).** 변경 1건: S3 격자의 오늘 열 강조(헤더 청록·흰 글자, 열 전체 연청록 세로 띠, 이번 달만).
 > 2-3에 구현했고 E2E는 `DUTY_FAKE_TODAY=2026-10-13`으로 날짜를 고정했다(운영에서는 무시). 입력의 실명 16건 가명 치환·사진 제외.
 >
-> 🏗️ **2-3 근무표 조회 구현 완료 → 승인 대기 (2026-09-27).** S3 격자(1c)·요약 카드 5개·월 이동·인쇄(A4 가로 1장) + 공통 셸 v2(메뉴 재구성,
+> ✅ **2-3 근무표 조회 승인 (2026-09-27).** S3 격자(1c)·요약 카드 5개·월 이동·인쇄(A4 가로 1장) + 공통 셸 v2(메뉴 재구성,
 > 「내 휴가 잔여」). 이월 값은 마감 달 스냅샷 / 미마감 달 원장 + 앞선 확정 달 투영. 개발 시드에 종이 10월(가명) 확정본.
 > 단위 276·통합 47·E2E 15 그린, 편차 4건(Build Spec §7). 확인: `pnpm db:seed` → `/?ym=2026-10`.
 >
@@ -76,7 +76,7 @@
 |---------|------|------|
 | 2-1 Foundation | [01-foundation.md](02-construction/01-foundation.md) · [Build Spec](02-construction/foundation/build-spec-index.md) (IMPLEMENTED) | HUMAN_APPROVED |
 | 2-2 Domain Core | [02-domain-core.md](02-construction/02-domain-core.md) · [Build Spec](02-construction/domain-core/build-spec-index.md) (IMPLEMENTED) | HUMAN_APPROVED |
-| 2-3 근무표 조회 (S3) | [03-schedule-view.md](02-construction/03-schedule-view.md) · [Build Spec](02-construction/schedule-view/build-spec-index.md) (IMPLEMENTED) | AI_PROPOSED |
+| 2-3 근무표 조회 (S3) | [03-schedule-view.md](02-construction/03-schedule-view.md) · [Build Spec](02-construction/schedule-view/build-spec-index.md) (IMPLEMENTED) | HUMAN_APPROVED |
 | 2-4 관리자 설정 (S10·S11) | 02-construction/04-admin-settings.md | PENDING |
 | 2-5 근무 신청·휴가 (S4 + S5 팝오버 통합) | 02-construction/05-shift-requests.md | PENDING |
 | 2-6 솔버·듀티 생성 (S8) | 02-construction/06-solver-generation.md | PENDING |
