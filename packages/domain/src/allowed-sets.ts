@@ -17,7 +17,7 @@ export const HOLIDAY_KINDS = [
   'union_agreed',
   'founding_day',
 ] as const
-export const HOLIDAY_SOURCES = ['seed', 'admin'] as const
+export const HOLIDAY_SOURCES = ['seed', 'admin', 'api'] as const
 export const MONTH_PLAN_STATUSES = [
   'REQUESTING',
   'REQUEST_CLOSED',
