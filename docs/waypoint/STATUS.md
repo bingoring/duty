@@ -8,6 +8,10 @@
 
 > 🔒 **개인정보:** 공개 저장소다. 간호사 이름·사번은 모두 가명이며, 실명 자료는 커밋하지 않는다([DECISIONS](DECISIONS.md) 2026-09-26).
 
+> 📝 **2-4 관리자 설정 Build Spec READY (2026-09-27).** S10 간호사 관리(연차 구분·노조·근무 방식·권한·초기 잔여치 포함, 임시 비밀번호 1회 표시,
+> 자동 부여, 잔여치 조정 원장 기록)·S11 규칙 설정(수치 22개 + 토글 5, 버전 이력)·공휴일(공공데이터 API 가져오기 + 병원 지정일·개원기념일)·
+> 연초 자동 처리(전년 12월 마감 뒤). 구현 착수 승인 대기.
+>
 > 🎨 **핸드오프 v3 반영 (2026-09-27).** 변경 1건: S3 격자의 오늘 열 강조(헤더 청록·흰 글자, 열 전체 연청록 세로 띠, 이번 달만).
 > 2-3에 구현했고 E2E는 `DUTY_FAKE_TODAY=2026-10-13`으로 날짜를 고정했다(운영에서는 무시). 입력의 실명 16건 가명 치환·사진 제외.
 >
@@ -77,7 +81,7 @@
 | 2-1 Foundation | [01-foundation.md](02-construction/01-foundation.md) · [Build Spec](02-construction/foundation/build-spec-index.md) (IMPLEMENTED) | HUMAN_APPROVED |
 | 2-2 Domain Core | [02-domain-core.md](02-construction/02-domain-core.md) · [Build Spec](02-construction/domain-core/build-spec-index.md) (IMPLEMENTED) | HUMAN_APPROVED |
 | 2-3 근무표 조회 (S3) | [03-schedule-view.md](02-construction/03-schedule-view.md) · [Build Spec](02-construction/schedule-view/build-spec-index.md) (IMPLEMENTED) | HUMAN_APPROVED |
-| 2-4 관리자 설정 (S10·S11) | 02-construction/04-admin-settings.md | PENDING |
+| 2-4 관리자 설정 (S10·S11) | [04-admin-settings.md](02-construction/04-admin-settings.md) · [Build Spec](02-construction/admin-settings/build-spec-index.md) (READY) | AI_PROPOSED |
 | 2-5 근무 신청·휴가 (S4 + S5 팝오버 통합) | 02-construction/05-shift-requests.md | PENDING |
 | 2-6 솔버·듀티 생성 (S8) | 02-construction/06-solver-generation.md | PENDING |
 | 2-7 근무 조정·월 마감 (S9 관리자) | 02-construction/07-adjust-close.md | PENDING |

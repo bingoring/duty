@@ -1,0 +1,82 @@
+---
+build-spec: admin-settings
+stage: 02-construction/04-admin-settings
+status: READY
+depth: standard
+updated: 2026-09-27
+---
+
+# Build Spec — 2-4 관리자 설정 (S10·S11)
+
+## §0. 개요 & 범위
+
+- **목표(한 줄):** 관리자가 간호사(추가·수정·제거·임시 비밀번호·트레이닝·잔여치)와 규칙(수치·토글·금지 패턴·버전 이력), 공휴일·병원 지정일·개원기념일을
+  관리하고, 연초 잔여치 처리가 자동으로 일어나게 한다.
+- **SoT:**
+  - 화면: 핸드오프 v3 README「S10」「S11」, 프로토타입 `id="1k"`(624~662행)·`id="2b"`(177~213행)·`staff`·`ruleParams`(862~881행)
+  - 도메인: [`02-domain-model.md`](../../01-inception/02-domain-model.md) §2 User·Training·Holiday·RuleVersion·BalanceEntry, §4 연 단위 잔여치, §6 불변식
+  - 2-2 `@duty/domain`: `RuleSetSchema`·`DEFAULT_RULES`·`PATTERN_REGEX`·`specialLeaveDays`·`employedDaysInYear`·`defaultTrainingEnd`·`defaultTripleStaffUntil`·`foundingOffEligible`
+  - 2-1 인증: `generateTempPassword`·`hashPassword`, R-AUTH-14(비활성화 시 세션 삭제)
+  - 외부: [한국천문연구원_특일 정보 `getRestDeInfo`](https://www.data.go.kr/data/15012690/openapi.do)
+  - 결정: [DECISIONS](../../DECISIONS.md) 2026-09-27 「2-4 관리자 설정 (Q1~Q4)」
+- **범위 밖:** 휴가 신청·승인(2-5), 월 마감(2-7), 제거한 간호사 복구(필요해지면 추가), S2 초기 설정(2차).
+- **규모/제약:** 간호사 11명 내외. 관리자 1~2명. 모든 쓰기는 서버 액션 + `requireAdmin` + zod 검증.
+- **깊이 티어:** `standard` + business-logic-model·frontend-components 모두 — 원장 쓰기·연초 처리·외부 API가 로직의 핵심이고, 두 화면은 폼이 많다.
+
+## §1. 분해
+
+| 단위 | 파일(`apps/web/src/`) | 책임 |
+|---|---|---|
+| 간호사 서비스 | `server/staff/service.ts` | 목록 조회(역할·트레이닝·연차 계산), 추가(계정·임시 비밀번호·초기 원장·자동 부여·트레이닝), 수정, 제거(소프트 삭제·세션 삭제), 비밀번호 재발급, 잔여치 조정 |
+| 규칙 서비스 | `server/rules/service.ts` | 편집 항목 정의(라벨·종류·단위·범위), 검증, 새 버전 저장(diff), 이력 |
+| 공휴일 서비스 | `server/holidays/service.ts`, `server/holidays/api.ts` | 목록·추가·삭제, 공공데이터 가져오기(upsert), 개원오프 부여 재계산 |
+| 연초 처리 | `server/balances/year-start.ts` | `ensureYearStart(db, today)` — 멱등, advisory lock |
+| 서버 액션 | `server/admin/actions.ts` | 위 서비스를 폼에 연결(requireAdmin, zod, revalidatePath) |
+| 화면 | `app/(app)/admin/staff/page.tsx`, `admin/rules/page.tsx`, `components/admin/*` | S10·S11 |
+| 도메인 보강 | `packages/domain` | `HOLIDAY_SOURCES`에 `api` 추가, 규칙 편집 항목 범위(`RULE_PARAM_LIMITS`) |
+
+## §2. 아티팩트 인덱스
+
+| 아티팩트 | 상태 | 링크 |
+|---|---|---|
+| domain-entities | ✅ | [`domain-entities.md`](domain-entities.md) |
+| business-rules | ✅ | [`business-rules.md`](business-rules.md) |
+| business-logic-model | ✅ | [`business-logic-model.md`](business-logic-model.md) |
+| frontend-components | ✅ | [`frontend-components.md`](frontend-components.md) |
+
+## §3. 미해결 질문
+
+없음. 2026-09-27 답변으로 해소했다(DECISIONS).
+- Q1 추가 패널 → 연차 구분(필수)·노조 여부·근무 방식(기본 교대)·권한(기본 간호사)을 추가 패널과 수정 창에 넣는다.
+- Q2 잔여치 → 추가할 때 연차·잔여 N·이월 오프를 입력하고 특휴(산식)·검진 0.5·병가 60·개원오프(대상이면)를 자동 부여. 이후 수정 창 "잔여치 조정"(원장 `admin_adjust` + 메모).
+- Q3 공휴일 → 공공데이터 특일 정보 API로 가져온다(인증키는 `.env`의 `HOLIDAY_API_KEY`, 사용자가 발급). 병원 지정일·노사 협의일·개원기념일은 규칙 설정 화면의 "공휴일·병원 지정일" 섹션에서 입력.
+- Q4 연초 처리 → 자동. 새해 첫 요청에서 실행하되 전년 12월이 확정·미마감이면 마감 뒤로 미룬다.
+
+AI가 정한 사항(READY 승인으로 확정): 사번은 추가 후 바꿀 수 없다. 트레이닝 시작일 = 입사일. 제거는 자기 자신·마지막 관리자에게 불가.
+규칙의 운영 수치(마감일·협의 기간)는 이후 새로 만드는 달 계획부터 적용(이미 만든 달은 S9에서 달별로 수정). "저연차만 배정 방지" 설명은 연차 구분 기준으로 고친다(핸드오프의 "3년차 이상"은 쓰지 않음).
+
+## §4. 구현 체크리스트
+
+- [ ] 도메인: `HOLIDAY_SOURCES` + `api`, `RULE_PARAM_LIMITS`·`validateRuleSet`(범위·상호 제약) + 테스트
+- [ ] 간호사 서비스 + 통합 테스트(추가·중복 사번·초기 원장·자동 부여·트레이닝 기본값·수정·제거·세션 삭제·재발급·잔여치 조정·자기/마지막 관리자 제거 금지)
+- [ ] 규칙 서비스 + 테스트(범위 검증·diff·버전 증가·이력·운영 수치 상호 제약·금지 패턴 정규화)
+- [ ] 공휴일 서비스 + API 어댑터(가짜 fetch로 테스트: 분류 매핑·upsert·관리자 항목 보존·키 없음·API 오류) + 개원오프 재계산
+- [ ] 연초 처리 + 통합 테스트(멱등·12월 미마감이면 연기·계정별 리셋·특휴 산식·동시 실행)
+- [ ] 서버 액션(requireAdmin·zod) + S10·S11 화면
+- [ ] E2E: 간호사 추가 → 임시 비밀번호 1회 표시 → 그 계정 첫 로그인, 제거, 규칙 저장 → 이력·근무표 하단 문구 반영, 병원 지정일 추가 → 근무표 빨간 날, 간호사는 403
+
+## §5. 검증 계획
+
+- [ ] `typecheck`·`lint`·`format:check` = 0
+- [ ] 단위: 도메인 규칙 검증, 역할 판정, 공휴일 분류
+- [ ] 통합(실제 Postgres): 간호사·규칙·공휴일·연초 처리 서비스
+- [ ] E2E: §4 마지막 항목
+- [ ] 수동·시각: 1280×760에서 1k·2b와 비교
+- [ ] 보안: 모든 액션이 간호사 세션에서 거부(통합 테스트로 액션 가드 확인), 임시 비밀번호는 로그·DB에 평문이 없음
+- [ ] 공개 저장소 점검: 실명 검사 0건, `HOLIDAY_API_KEY`가 커밋되지 않음
+
+## §6. NFR · 성능
+
+standard 티어 — 공휴일 API는 타임아웃 5초, 실패 시 기존 데이터를 그대로 둔다.
+
+## §7. 편차 로그 — 구현 후
