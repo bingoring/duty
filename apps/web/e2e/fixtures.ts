@@ -17,3 +17,8 @@ export async function loginAndWait(page: Page, employeeNo: string, password = DE
   await login(page, employeeNo, password)
   await page.waitForURL('/')
 }
+
+// 대화형 폼이 하이드레이션을 마칠 때까지 기다린다(그 전에 입력하면 느린 CI에서 값이 사라진다)
+export async function waitHydrated(page: Page) {
+  await page.locator('[data-hydrated]').first().waitFor()
+}

@@ -1,11 +1,12 @@
 import { expect, test } from '@playwright/test'
-import { ADMIN, NURSE, login, loginAndWait } from './fixtures'
+import { ADMIN, NURSE, login, loginAndWait, waitHydrated } from './fixtures'
 
 // Build Spec 2-4 §4 E2E. 다른 스펙에 영향을 주지 않도록 만든 데이터는 테스트 안에서 되돌린다
 test.describe('S10 간호사 관리', () => {
   test('신규 간호사 추가 → 임시 비밀번호 1회 → 첫 로그인 비밀번호 변경 → 제거', async ({ page, browser }) => {
     await loginAndWait(page, ADMIN.employeeNo)
     await page.goto('/admin/staff')
+    await waitHydrated(page)
     await expect(page.getByRole('heading', { name: '간호사 관리 · 응급실 11명' })).toBeVisible()
     const panel = page.getByRole('complementary', { name: '간호사 추가' })
     await panel.getByLabel('사번').fill('00150')
@@ -39,6 +40,7 @@ test.describe('S10 간호사 관리', () => {
   test('중복 사번은 필드 오류', async ({ page }) => {
     await loginAndWait(page, ADMIN.employeeNo)
     await page.goto('/admin/staff')
+    await waitHydrated(page)
     await page.setViewportSize({ width: 1280, height: 760 })
     await page.screenshot({ path: 'test-results/staff-1280x760.png', caret: 'initial' })
     const panel = page.getByRole('complementary', { name: '간호사 추가' })
@@ -53,6 +55,7 @@ test.describe('S11 규칙 설정', () => {
   test('수치 변경 → 저장 전 표시 → 저장 → 이력', async ({ page }) => {
     await loginAndWait(page, ADMIN.employeeNo)
     await page.goto('/admin/rules')
+    await waitHydrated(page)
     await expect(page.getByText('다음 듀티 생성(11월)부터 적용')).toBeVisible()
     await page.getByRole('button', { name: '최대 연속 오프 늘리기' }).click()
     await expect(page.getByText('변경 1건 저장 전')).toBeVisible()
@@ -66,6 +69,7 @@ test.describe('S11 규칙 설정', () => {
   test('범위를 벗어나면 저장되지 않고 항목에 오류', async ({ page }) => {
     await loginAndWait(page, ADMIN.employeeNo)
     await page.goto('/admin/rules')
+    await waitHydrated(page)
     await page.setViewportSize({ width: 1280, height: 820 })
     await page.screenshot({ path: 'test-results/rules-1280x820.png', caret: 'initial' })
     await page.getByLabel('근무 간 최소 휴식', { exact: true }).fill('30')
@@ -76,6 +80,7 @@ test.describe('S11 규칙 설정', () => {
   test('병원 지정일을 추가하면 근무표의 빨간 날이 되고, 삭제하면 돌아온다', async ({ page }) => {
     await loginAndWait(page, ADMIN.employeeNo)
     await page.goto('/admin/rules?year=2026')
+    await waitHydrated(page)
     const section = page.getByRole('region', { name: '공휴일·병원 지정일' })
     await expect(section.getByRole('button', { name: '공공데이터에서 가져오기' })).toBeDisabled()
     await section.getByLabel('날짜').fill('2026-10-14')
@@ -88,6 +93,8 @@ test.describe('S11 규칙 설정', () => {
     await expect(head.first()).toHaveClass(/bg-weekend-head/)
 
     await page.goto('/admin/rules?year=2026')
+
+    await waitHydrated(page)
     page.once('dialog', (d) => d.accept())
     await page.getByRole('button', { name: '병원 휴무 테스트 삭제' }).click()
     await expect(page.getByRole('row', { name: '2026-10-14 병원 휴무 테스트' })).toHaveCount(0)

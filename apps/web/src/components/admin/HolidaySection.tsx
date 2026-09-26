@@ -5,7 +5,7 @@ import { useRouter } from 'next/navigation'
 import { useState, useTransition } from 'react'
 import { addHolidayAction, deleteHolidayAction, importHolidaysAction } from '@/server/admin/actions'
 import type { HolidayRow } from '@/server/holidays/service'
-import { btnSecondary, inputCls } from './ui'
+import { btnSecondary, inputCls, useHydrated } from './ui'
 
 // 공휴일·병원 지정일 (Build Spec 2-4 R-HOL-*)
 const KIND_LABEL: Record<HolidayKind, string> = {
@@ -35,6 +35,7 @@ export function HolidaySection({
   const [msg, setMsg] = useState('')
   const [errors, setErrors] = useState<Partial<Record<string, string>>>({})
   const [pending, start] = useTransition()
+  const hydrated = useHydrated()
 
   const add = () =>
     start(async () => {
@@ -63,6 +64,7 @@ export function HolidaySection({
   return (
     <section
       aria-label="공휴일·병원 지정일"
+      data-hydrated={hydrated || undefined}
       className="flex flex-col gap-3 rounded-xl border border-line bg-surface p-4 text-[13px]"
     >
       <div className="flex items-center gap-3">

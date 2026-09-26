@@ -9,7 +9,7 @@ import {
   updateStaffAction,
 } from '@/server/admin/actions'
 import type { StaffRow } from '@/server/staff/service'
-import { Dialog, Field, btnPrimary, btnSecondary, inputCls } from './ui'
+import { Dialog, Field, btnPrimary, btnSecondary, inputCls, useHydrated } from './ui'
 
 // S10 간호사 관리 (Build Spec 2-4 frontend-components §2, 핸드오프 1k)
 type Params = { trainingMonths: number; newbieTripleWeeks: number; experiencedTripleWeeks: number }
@@ -523,6 +523,7 @@ export function StaffManager({
   const [menu, setMenu] = useState<string | null>(null)
   const [error, setError] = useState('')
   const [pending, start] = useTransition()
+  const hydrated = useHydrated()
   const preceptors = rows.filter((r) => r.rotation === 'rotating')
   const shown = rows.filter((r) => !q || r.name.includes(q.trim()) || r.employeeNo.includes(q.trim()))
 
@@ -540,7 +541,7 @@ export function StaffManager({
     })
 
   return (
-    <div className="grid min-w-0 grid-cols-[1fr_380px] gap-5 px-7 py-6">
+    <div data-hydrated={hydrated || undefined} className="grid min-w-0 grid-cols-[1fr_380px] gap-5 px-7 py-6">
       <div className="flex min-w-0 flex-col gap-3.5">
         {notice && (
           <div className="rounded-lg bg-warn-bg px-3.5 py-2.5 text-[13px] text-warn-ink">{notice}</div>

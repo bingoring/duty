@@ -11,6 +11,7 @@ import {
 import { useState, useTransition } from 'react'
 import { saveRulesAction } from '@/server/admin/actions'
 import type { RuleEditor } from '@/server/rules/service'
+import { useHydrated } from './ui'
 
 // S11 관리자 · 규칙 설정 (Build Spec 2-4 frontend-components §2, 핸드오프 2b)
 const KIND_CLS = {
@@ -68,6 +69,7 @@ export function RulesForm({ editor }: { editor: RuleEditor }) {
   const [errors, setErrors] = useState<Partial<Record<string, string>>>({})
   const [message, setMessage] = useState('')
   const [pending, start] = useTransition()
+  const hydrated = useHydrated()
   const base = editor.rules
   const setParam = (k: keyof RuleParams, v: number) =>
     setRules({ ...rules, params: { ...rules.params, [k]: v } })
@@ -96,7 +98,7 @@ export function RulesForm({ editor }: { editor: RuleEditor }) {
 
   const groups = [...new Set(RULE_PARAM_LIMITS.map((l) => l.group))]
   return (
-    <div className="grid min-w-0 grid-cols-[1fr_340px] gap-5">
+    <div data-hydrated={hydrated || undefined} className="grid min-w-0 grid-cols-[1fr_340px] gap-5">
       <div className="flex min-w-0 flex-col gap-3">
         <div className="flex items-center gap-3">
           <h1 className="text-[22px] font-bold tracking-[-0.02em]">규칙 설정 · 응급실</h1>
