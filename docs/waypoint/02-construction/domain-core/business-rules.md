@@ -32,7 +32,7 @@ updated: 2026-09-27
 | H-NIGHT-MAX | 한 달 N 수 > 상한. 상한 = `maxNightPerMonth`(7). 단 `toggles.nightDedicated`이고 그 사람의 야간 전담 기간이 대상 월과 겹치면 `nightDedicatedMaxPerMonth`(15), 31일 달은 `…31`(16) | 사람·월 | 야간 지침 §1 |
 | H-NIGHT-CONSEC | 연속 N > `maxConsecutiveNight`(3) | 사람·연속 구간 | 야간 지침 §2 |
 | H-OFF-CONSEC | 연속으로 쉬는 날 > `maxConsecutiveOff`(**15**, 관리자 설정). OFF·AL은 1일로 세고, **LEAVE는 세지 않되 연속을 끊지도 않는다** **(Q2)** | 사람·연속 구간 | 핸드오프 S7 규칙 8 |
-| H-STAFF | 날짜 d, 듀티 s ∈ {D,E,N}의 (집계 인원 + 수간호사 보충 인원) < `minStaffPerShift`(2). R-STAFF-1·4 | 날짜·듀티 | 응급실 지침 §2 |
+| H-STAFF | 날짜 d, 듀티 s ∈ {D,E,N}의 (집계 인원 + 수간호사 보충 인원) < `minStaffPerShift`(2). R-STAFF-1·4. 3인 근무 신규는 세지 않으므로 그 듀티는 신규 + 프리셉터(H-TRAINING) + 그 외 1명 = 3명이 된다 | 날짜·듀티 | 응급실 지침 §2 |
 | H-KTASS | (집계 K-tass + 수간호사 보충 K-tass) < `minKTass`(1). 트레이닝 중인 신규는 K-tass로 세지 않는다 | 날짜·듀티 | 응급실 지침 §1 |
 | H-TRAINING | 트레이닝 기간의 날짜마다 신규와 프리셉터의 칸이 "같은 근무"여야 한다: 둘 다 쉬는 칸이거나, 같은 근무 코드. 둘 중 한 명이라도 AL·LEAVE인 날은 예외 **(Q4)** | 신규·날짜 | 응급실 지침 §6 |
 | H-SPECIAL-REQ | `special` 신청(AL → AL, EDU_CONT → OFF edu_cont, EDU_UNION → OFF edu_union)과 칸이 다르면 위반 | 사람·날짜 | 1-3 §3 "고정 셀" |
@@ -55,7 +55,9 @@ updated: 2026-09-27
 
 | ID | 규칙 | 근거 |
 |---|---|---|
-| R-STAFF-1 | 집계 인원 = 그날 코드가 s인 사람 중 교대 근무자이고 재직일이며, "3인 배정 기간"(`startDate ≤ d ≤ tripleStaffUntil`)의 신규가 아닌 사람 | 1-2 §7 |
+| R-STAFF-1 | 집계 인원 = 그날 코드가 s인 사람 중 교대 근무자이고 재직일이며, **3인 근무 중인 신규가 아닌** 사람. 3인 근무 = ① 3인 배정 기간(`startDate ≤ d ≤ tripleStaffUntil`)이거나 ② 그 칸이 **3인 나이트**(R-STAFF-5) | 1-2 §7, 2026-09-27 답변 |
+| R-STAFF-5 | 3인 나이트 = 트레이닝 기간 안에서 `tripleStaffUntil` 이후 신규가 서는 N을 날짜순으로 세어, `tripleNightsBefore + 순번 ≤ tripleNightCount`(3)인 N. 떨어져 있어도 센다. 3인 배정 기간 안의 N은 세지 않는다 | 2026-09-27 답변 |
+| R-STAFF-6 | `defaultTripleStaffUntil(start, kind) = start + 7 × (new_grad ? newbieTripleWeeks(3) : experiencedTripleWeeks(2)) − 1일` | 2026-09-27 답변 |
 | R-STAFF-2 | K-tass 집계는 R-STAFF-1에서 트레이닝 기간(`startDate ≤ d ≤ endDate`) 신규를 한 번 더 뺀다 | 1-2 §7 |
 | R-STAFF-3 | S 근무는 D/E/N 어느 인원에도 세지 않는다 | 원문 응급실 §7 |
 | R-STAFF-4 | 수간호사 보충 인원 = 그날 코드가 s이고 재직일인 `fixed_weekday` 사람 수(K-tass 보유자는 보충 K-tass에도 셈). 교대 근무자만으로 모자랄 때만 의미가 있으며 S-HEAD-FILL로 표시한다 | 2026-09-27 답변 (Q1) |
@@ -115,6 +117,8 @@ N/A — 도메인 패키지는 권한을 모른다. 코멘트는 `RequestEntry`�
 | 첫 달(전월 꼬리 없음) | 월 경계 규칙은 대상 월 안에서만 판단 |
 | 월 중간 입사·퇴사 | 재직일만 검사·집계, 기준 OFF도 재직일만 |
 | 신규의 3인 배정 기간이 월 경계에 걸침 | 날짜별로 판단 |
+| 3인 나이트가 월 경계에 걸침(10월에 1개, 11월에 2개) | 11월 입력의 `tripleNightsBefore = 1` → 11월 첫 N 2개가 3인 나이트 |
+| 트레이닝이 끝날 때까지 N을 3개 못 섬 | 트레이닝 기간 밖의 N은 3인 나이트가 아니다 |
 | 월말이 N | S-OFF-AFTER-N 판단 안 함. 다음 달 검사가 전월 꼬리로 판단 |
 | 월말 토요일(2026-10-31) | 그 주말은 10월·11월 어디에도 세지 않음 |
 | 신청 없는 AL 칸 | 출처 `requested`, S-REQUEST 대상 아님 |

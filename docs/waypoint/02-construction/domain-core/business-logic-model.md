@@ -47,7 +47,12 @@ buildGrid(input):
 ```
 countStaff(ctx, date, s):                        // s ∈ D,E,N
   members = nurses.filter(n => rotating(n) && isEmployed(n, date) && cellAt(n, date)?.code == s
-                               && !inTriplePeriod(n, date))
+                               && !triple(n, date, s))
+  triple(n, d, s) = inTriplePeriod(n, d) || (s == N && tripleNightDates(n).has(d))
+
+tripleNightDates(trainee):                        // R-STAFF-5, 트레이닝마다 한 번 계산
+  ns = 대상 월에서 tripleStaffUntil < d ≤ endDate 이고 code == N 인 날짜(오름차순)
+  return ns.slice(0, max(0, tripleNightCount − tripleNightsBefore))
   kTass   = members.filter(n => n.kTass && !inTraining(n, date)).length
   heads   = nurses.filter(n => fixedWeekday(n) && isEmployed(n, date) && cellAt(n, date)?.code == s)   // 수간호사 보충
   all     = members + heads
@@ -187,6 +192,7 @@ resolveCellSource(cell, request?, adminEdited):
 ```
 employedDaysInYear(y, from, until) = max(0, diffDays(min(y-12-31, until ?? ∞), max(y-01-01, from ?? −∞)) + 1)
 specialLeaveDays(days) = min(5, floor((10 × days + 365) / 730))
+defaultTripleStaffUntil(start, kind, params) = addDays(start, 7 × weeks(kind) − 1)   // new_grad 3주, experienced 2주
 foundingOffEligible(nurse, y, holidays) = foundingDay(y) ? isEmployed(nurse, foundingDay) : null
 ```
 

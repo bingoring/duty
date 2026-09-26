@@ -57,6 +57,8 @@ updated: 2026-09-27
 - Q2 연속 오프 → 10일은 간호사 사이의 구두 합의이고 규정상 한도는 15일이다. **`maxConsecutiveOff` 기본값을 15로** 바꾸고 관리자가 규칙 설정(S11)에서 수정한다. LEAVE는 세지 않되 연속을 끊지 않는다(기본안 유지, 답변에서 따로 언급 없음).
 - Q3 금지 패턴 → 쉬는 칸(OFF·연차·휴가)은 모두 off로 본다.
 - Q4 트레이닝 → 둘 중 한 명이 연차·휴가인 날은 예외.
+- Q5 3인 근무(추가 답변) → 3인 = 신규 + 프리셉터 + 그 외 1명. 3인 배정 기간은 **완전 신규 3주, 타 병원 경력자 2주**. 기간이 지나도
+  **그 뒤 신규가 처음 서는 N 3개**는 3인으로 근무한다(떨어져 있어도 순서대로 셈). → `Training.kind`, 규칙 수치 `experiencedTripleWeeks`(2)·`tripleNightCount`(3) 추가.
 
 AI가 정한 사항(READY 승인으로 함께 확정):
 - 16시간 휴식은 **서로 다른 근무 코드 사이**에만 적용한다(종이의 D-D 15.5h, N-N 15h). S→D(13h)·N→S(1.5h)도 위반이다.
@@ -70,12 +72,14 @@ AI가 정한 사항(READY 승인으로 함께 확정):
 
 **기반**
 - [ ] `DEFAULT_RULES.maxConsecutiveOff` 10 → 15 (Q2) + 기존 테스트 갱신. 개발 DB의 `rule_versions` v1은 이미 10이므로 README에 재시드 안내
+- [ ] `RuleParams`에 `experiencedTripleWeeks`(2)·`tripleNightCount`(3) 추가(zod 기본값으로 기존 v1 행도 읽힘), `TRAINEE_KINDS`, web `getCurrentRules`가 스키마로 파싱
+- [ ] DB 마이그레이션: `trainings.kind text not null default 'new_grad'`
 - [ ] `dates.ts` + 테스트(윤년, 월말, 2026-10-01 = 목, 문자열 비교 재직 판정)
 - [ ] `types.ts`·`grid.ts` + `requiredTailDays`·토큰 테스트
 - [ ] `fixtures/paper-2026-10.json`(가명) + 로더 테스트(31칸 × 10명, 합계가 evidence 스크립트와 일치)
 
 **검사기**
-- [ ] `staffing.ts` + 테스트(3인 배정 기간, K-tass 제외, S 미집계, 퇴사자 제외)
+- [ ] `staffing.ts` + 테스트(3인 배정 기간 신규 3주·경력 2주, 3인 나이트 3개(떨어진 N·월 경계 `tripleNightsBefore`·트레이닝 종료), K-tass 제외, S 미집계, 퇴사자 제외)
 - [ ] 하드 규칙 12종 — 규칙마다 통과·위반·월 경계 케이스
 - [ ] 소프트 규칙 6종 + 토글 꺼짐 케이스
 - [ ] `checkSchedule` 정렬·결정성·입력 오류 throw
@@ -114,3 +118,4 @@ AI가 정한 사항(READY 승인으로 함께 확정):
 | 핸드오프 S11·S7 최대 연속 오프 기본값 10일 | 기본값 15일(관리자 수정 가능) | 2026-09-27 사용자 답변: 10일은 구두 합의, 규정상 한도는 15일 (Q2) |
 | 1-1 Q3 수간호사는 인원·K-tass에서 제외 | 교대 근무자만으로 모자랄 때만 수간호사 D를 세고 소프트 경고 `S-HEAD-FILL` | 2026-09-27 사용자 답변: "정말 안 되면 넣는" 최후의 수단 (Q1) |
 | 1-2 §9 전월 말 3일 | 전월 꼬리 `requiredTailDays`(기본값 기준 15일) | 연속 오프 상한을 월 경계에서 잡기 위해 |
+| 1-2 §2 Training `tripleStaffUntil` 기본 start+3주 | 신규 종류별 기본값(완전 신규 3주·경력자 2주) + 기간 뒤 첫 N 3개도 3인 | 2026-09-27 사용자 추가 설명 (Q5) |

@@ -43,6 +43,7 @@ Build Spec(comprehensive, frontend-components N/A): [`domain-core/build-spec-ind
 - **fixture:** 저장소 루트 `fixtures/paper-2026-10.json`(가명) — 2-6 솔버 테스트도 같은 파일을 쓴다.
 - **종이로 확인한 해석:** 16시간 휴식은 서로 다른 근무 코드 사이에만 적용한다(종이의 D-D·N-N). 10/2 D는 수간호사 보충(최후의 수단)이다.
 - **규칙 기본값 변경:** 최대 연속 오프 10 → 15(사용자 답변, 편차 기록).
+- **신규 3인 근무:** 3인 배정 기간은 완전 신규 3주·경력자 2주, 기간 뒤 신규의 첫 N 3개도 3인(신규 + 프리셉터 + 1명). `trainings.kind` 컬럼과 규칙 수치 2개를 추가한다.
 
 ## 검토 게이트 (Human Gate)
 

@@ -51,8 +51,10 @@ updated: 2026-09-27
 | 필드 | 타입 | 설명 |
 |---|---|---|
 | `traineeId`, `preceptorId` | `string` | |
+| `kind` | `TraineeKind` | `new_grad`(완전 신규) · `experienced`(타 병원 경력) |
 | `startDate`, `endDate` | `IsoDate` | 트레이닝 기간(양끝 포함) |
-| `tripleStaffUntil` | `IsoDate` | 3인 배정 마지막 날(포함) |
+| `tripleStaffUntil` | `IsoDate` | 3인 배정 마지막 날(포함). 기본값 = `defaultTripleStaffUntil(startDate, kind, params)`, 등록 시 수정 가능 |
+| `tripleNightsBefore` | `number` | 3인 배정 기간 뒤 대상 월 이전까지 신규가 선 N 수(서버가 이전 확정본에서 센다). 3인 나이트 순번 계산용 |
 
 ### `HolidayDay`
 `{ date: IsoDate; kind: HolidayKind }` — `founding_day`는 빨간 날·기준 OFF에서 제외한다(R-BASE-1).
@@ -131,6 +133,7 @@ updated: 2026-09-27
 |---|---|---|
 | `HARD_RULE_IDS` | `H-CELL`, `H-PATTERN`, `H-REST`, `H-NIGHT-MAX`, `H-NIGHT-CONSEC`, `H-OFF-CONSEC`, `H-STAFF`, `H-KTASS`, `H-TRAINING`, `H-SPECIAL-REQ`, `H-SLEEPING`, `H-EDU-UNION` | 추가만 |
 | `SOFT_RULE_IDS` | `S-NIGHT-TARGET`, `S-OFF-AFTER-N`, `S-WEEKEND-PAIR`, `S-HEAD-FILL`, `S-JUNIOR-ONLY`, `S-REPEAT-PAIR`, `S-REQUEST` | 추가만 |
+| `TRAINEE_KINDS` | `new_grad`, `experienced` | 추가만. DB `trainings.kind`(text, 기본 `new_grad`) |
 | `PLAN_EVENTS` | `CLOSE_REQUESTS`, `GENERATE`, `CONFIRM`, `ADJUST`, `CLOSE`, `REOPEN` | 추가만 |
 | `WORK_CODES` | `D E N S` | — |
 | `REST_CODES` | `OFF AL LEAVE` | — |
