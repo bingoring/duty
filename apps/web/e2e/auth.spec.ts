@@ -22,10 +22,10 @@ test('간호사 셸: 이름·사번, 관리자 메뉴 대신 "권한 없음"', a
   await expect(nav.getByRole('link', { name: '근무표' })).toHaveAttribute('aria-current', 'page')
 })
 
-test('관리자 셸: 관리자 메뉴 4개와 "관리자" 표시', async ({ page }) => {
+test('관리자 셸: 관리자 메뉴 3개와 "관리자" 표시 (핸드오프 v2)', async ({ page }) => {
   await login(page, ADMIN.employeeNo)
   const nav = page.getByRole('navigation')
-  for (const label of ['듀티 생성', '근무 조정', '간호사 관리', '규칙 설정']) {
+  for (const label of ['듀티 생성', '간호사 관리', '규칙 설정']) {
     await expect(nav.getByRole('link', { name: label })).toBeVisible()
   }
   await expect(nav.getByText('관리자', { exact: true }).last()).toBeVisible()

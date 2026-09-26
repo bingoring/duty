@@ -1,6 +1,9 @@
 import Link from 'next/link'
 import { AppShell } from '@/components/shell/AppShell'
 import { getSession } from '@/server/auth/session'
+import { getDb } from '@/server/db/client'
+import { loadLeaveBalance } from '@/server/schedule/load'
+import { todaySeoul } from '@/server/schedule/month'
 
 // forbidden 파일은 앱 루트에만 둘 수 있어 셸 레이아웃 밖에서 렌더링된다 → 세션을 읽어 셸을 직접 그린다.
 export default async function Forbidden() {
@@ -17,5 +20,11 @@ export default async function Forbidden() {
     </div>
   )
   const session = await getSession()
-  return session ? <AppShell session={session}>{body}</AppShell> : body
+  if (!session) return body
+  const leaveBalance = await loadLeaveBalance(getDb(), { viewerId: session.user.id, today: todaySeoul() })
+  return (
+    <AppShell session={session} leaveBalance={leaveBalance}>
+      {body}
+    </AppShell>
+  )
 }

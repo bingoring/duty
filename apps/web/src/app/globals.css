@@ -42,7 +42,7 @@
   --color-shift-n: #d9d6f2;
   --color-shift-off: #eeece6;
   --color-shift-s: #f7d9e3;
-  --color-shift-al: #ddefeb;
+  --color-shift-leave: #d8e6c3;
 
   --radius-frame: 14px;
   --radius-card: 12px;
@@ -61,4 +61,38 @@ body {
   color: var(--color-ink);
   font-family: var(--font-sans);
   -webkit-font-smoothing: antialiased;
+}
+
+/* S3 인쇄 (Build Spec 2-3 frontend-components §5): 격자만 A4 가로 1장 */
+.print-only {
+  display: none;
+}
+
+@media print {
+  @page {
+    size: A4 landscape;
+    margin: 8mm;
+  }
+  html,
+  body {
+    background: #fff;
+    print-color-adjust: exact;
+    -webkit-print-color-adjust: exact;
+  }
+  nav,
+  [data-print='hide'] {
+    display: none !important;
+  }
+  .print-only {
+    display: block;
+  }
+  body > div,
+  main {
+    display: block !important;
+    min-width: 0 !important;
+    background: #fff !important;
+  }
+  .schedule-grid {
+    zoom: 0.95;
+  }
 }
