@@ -1,0 +1,153 @@
+{
+  "_comment": "종이 근무표 2026-10 (가명·가상 사번). O=OFF, -=칸 없음. 슬리핑오프는 종이에서 구분되지 않아 로더가 floor((이월N+그달N)/6)개를 앞쪽 OFF부터 sleeping으로 표시한다. 출처: waypoint/projects/duty/01-inception/evidence/paper-2026-10-settlement-check.py. 수간호사 행은 평일 D·빨간 날 빈칸으로 구성했다.",
+  "year": 2026,
+  "month": 10,
+  "holidays": [
+    {
+      "date": "2026-10-03",
+      "kind": "public"
+    },
+    {
+      "date": "2026-10-05",
+      "kind": "substitute"
+    },
+    {
+      "date": "2026-10-09",
+      "kind": "public"
+    }
+  ],
+  "nurses": [
+    {
+      "employeeNo": "00101",
+      "name": "한수정",
+      "rotation": "fixed_weekday",
+      "seniorityTier": "senior",
+      "kTass": true,
+      "unionMember": true,
+      "offCarryBefore": 0,
+      "nightBankBefore": 0,
+      "paperOffCarryAfter": 0,
+      "row": "D D - - - D D D - - - D D D D D - - D D D D D - - D D D D D -"
+    },
+    {
+      "employeeNo": "00102",
+      "name": "박서연",
+      "rotation": "rotating",
+      "seniorityTier": "senior",
+      "kTass": true,
+      "unionMember": true,
+      "offCarryBefore": -1,
+      "nightBankBefore": 2,
+      "paperOffCarryAfter": 0,
+      "row": "E E O O N N O O D D D O O O D D E O N N O O E E E O N N O O D"
+    },
+    {
+      "employeeNo": "00103",
+      "name": "정하늘",
+      "rotation": "rotating",
+      "seniorityTier": "senior",
+      "kTass": true,
+      "unionMember": true,
+      "offCarryBefore": 4,
+      "nightBankBefore": 3,
+      "paperOffCarryAfter": 4,
+      "row": "N N O O D D D O E N N O O D E O O O O E N N O O D D E E O E E"
+    },
+    {
+      "employeeNo": "00104",
+      "name": "오민지",
+      "rotation": "rotating",
+      "seniorityTier": "senior",
+      "kTass": true,
+      "unionMember": true,
+      "offCarryBefore": 1,
+      "nightBankBefore": 2,
+      "paperOffCarryAfter": 2,
+      "row": "O O N N O O O D E E O N N O O E E E O D D D O D D E O O N N O"
+    },
+    {
+      "employeeNo": "00105",
+      "name": "강도윤",
+      "rotation": "rotating",
+      "seniorityTier": "senior",
+      "kTass": false,
+      "unionMember": false,
+      "offCarryBefore": 1,
+      "nightBankBefore": 3,
+      "paperOffCarryAfter": 3,
+      "row": "E O N N O O O D D E O E E O O N N O O D D E O O N N O O E E O"
+    },
+    {
+      "employeeNo": "00106",
+      "name": "윤채원",
+      "rotation": "rotating",
+      "seniorityTier": "senior",
+      "kTass": true,
+      "unionMember": false,
+      "offCarryBefore": -1,
+      "nightBankBefore": 3,
+      "paperOffCarryAfter": 0,
+      "row": "O D D D E O E E O O O O N N N O O O D E E O D N N N O O D D O"
+    },
+    {
+      "employeeNo": "00107",
+      "name": "임소라",
+      "rotation": "rotating",
+      "seniorityTier": "mid",
+      "kTass": true,
+      "unionMember": false,
+      "offCarryBefore": 0,
+      "nightBankBefore": 2,
+      "paperOffCarryAfter": 1,
+      "row": "D O E O E E N N N O O D D E O N N N O O E E O O O O O D D O D"
+    },
+    {
+      "employeeNo": "00108",
+      "name": "배지현",
+      "rotation": "rotating",
+      "seniorityTier": "mid",
+      "kTass": true,
+      "unionMember": false,
+      "offCarryBefore": 1,
+      "nightBankBefore": 2,
+      "paperOffCarryAfter": 2,
+      "row": "O O D E O O O N N O E E E E O O D D E O O O N N O O D D E N N"
+    },
+    {
+      "employeeNo": "00109",
+      "name": "서예린",
+      "rotation": "rotating",
+      "seniorityTier": "junior",
+      "kTass": false,
+      "unionMember": false,
+      "offCarryBefore": 3,
+      "nightBankBefore": 4,
+      "paperOffCarryAfter": 3,
+      "row": "N N O O D E E E O O D D D N N O O E E O O D D D O O N N O O E"
+    },
+    {
+      "employeeNo": "00110",
+      "name": "홍다은",
+      "rotation": "rotating",
+      "seniorityTier": "junior",
+      "kTass": false,
+      "unionMember": false,
+      "offCarryBefore": 2,
+      "nightBankBefore": 2,
+      "paperOffCarryAfter": 2,
+      "row": "D O O D N N N O O D E O O D E E O N N N O O E E O D D E N O O"
+    },
+    {
+      "employeeNo": "00111",
+      "name": "문가을",
+      "rotation": "rotating",
+      "seniorityTier": "junior",
+      "kTass": false,
+      "unionMember": false,
+      "offCarryBefore": 3,
+      "nightBankBefore": 5,
+      "paperOffCarryAfter": 0,
+      "row": "O E E E O D D O O N N N O O D D D D D O N N N O E E E O O D N"
+    }
+  ]
+}
