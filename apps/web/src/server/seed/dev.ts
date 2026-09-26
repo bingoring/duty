@@ -4,6 +4,7 @@ import { credentials, users } from '../db/schema'
 import { hashPassword } from '../auth/password'
 import { createDb, type Db } from '../db/client'
 import { ensureBase, isMain } from './core'
+import { seedPaperSchedule } from './dev-schedule'
 import type { RosterRow } from './roster'
 
 export const DEV_PASSWORD = 'duty-dev-1234'
@@ -55,6 +56,7 @@ export async function seedDev(db: Db): Promise<void> {
         await tx.insert(credentials).values({ userId: inserted.id, passwordHash, mustChangePassword: false })
       }
     }
+    await seedPaperSchedule(tx, wardId)
   })
 }
 

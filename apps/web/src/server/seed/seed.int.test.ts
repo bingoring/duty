@@ -3,7 +3,16 @@ import { eq, sql } from 'drizzle-orm'
 import { beforeEach, describe, expect, it } from 'vitest'
 import { resetDb, setupTestDb } from '../../test/db'
 import { authenticate } from '../auth/service'
-import { credentials, holidays, ruleVersions, users, wards } from '../db/schema'
+import {
+  balanceEntries,
+  credentials,
+  holidays,
+  monthPlans,
+  ruleVersions,
+  scheduleCells,
+  users,
+  wards,
+} from '../db/schema'
 import { bootstrap } from './bootstrap'
 import { DEV_PASSWORD, DEV_ROSTER, seedDev } from './dev'
 import { SEED_HOLIDAYS } from './holidays'
@@ -180,4 +189,44 @@ it('공휴일은 source=seed로 저장된다', async () => {
   await seedDev(db)
   const rows = await db.select().from(holidays)
   expect(rows.every((h) => h.source === 'seed')).toBe(true)
+})
+
+describe('seedDev — 종이 2026-10 확정 근무표 (Build Spec 2-3 business-logic-model §4)', () => {
+  it('10월 계획(CONFIRMED)과 칸 330개(교대 10명 × 31 + 수간호사 평일 20)를 넣는다', async () => {
+    await seedDev(db)
+    const [plan] = await db.select().from(monthPlans)
+    expect(plan).toMatchObject({ year: 2026, month: 10, status: 'CONFIRMED', ruleVersion: 1 })
+    expect([plan!.requestDeadline, plan!.negotiationStart, plan!.negotiationEnd]).toEqual([
+      '2026-09-15',
+      '2026-09-16',
+      '2026-09-20',
+    ])
+    const cells = await db.select().from(scheduleCells)
+    expect(cells).toHaveLength(330)
+    expect(cells.every((c) => c.source === 'auto')).toBe(true)
+  })
+
+  it('초기 원장: 이월 off·이월 N과 연차 15·특휴 5·검진 0.5·병가 60', async () => {
+    await seedDev(db)
+    const [u] = await db.select().from(users).where(eq(users.employeeNo, '00103'))
+    const rows = await db.select().from(balanceEntries).where(eq(balanceEntries.userId, u!.id))
+    const byAccount = Object.fromEntries(rows.map((r) => [r.account, Number(r.delta)]))
+    expect(byAccount).toEqual({
+      off_carry: 4,
+      night_bank: 3,
+      annual_leave: 15,
+      special_leave: 5,
+      checkup: 0.5,
+      sick_leave: 60,
+    })
+    expect(rows.every((r) => r.reason === 'initial_input')).toBe(true)
+  })
+
+  it('두 번 실행해도 계획·칸·원장이 늘지 않는다', async () => {
+    await seedDev(db)
+    await seedDev(db)
+    expect(await db.$count(monthPlans)).toBe(1)
+    expect(await db.$count(scheduleCells)).toBe(330)
+    expect(await db.$count(balanceEntries)).toBe(11 * 6)
+  })
 })
