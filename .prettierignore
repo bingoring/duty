@@ -1,0 +1,6 @@
+pnpm-lock.yaml
+waypoint/
+.local/
+**/.next/
+**/migrations/
+**/node_modules/

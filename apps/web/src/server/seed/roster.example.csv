@@ -1,0 +1,4 @@
+employee_no,name,role,rotation,seniority_rank,seniority_tier,hire_date,k_tass,union_member
+00101,한수정,admin,fixed_weekday,1,senior,,true,true
+00102,박서연,nurse,rotating,2,senior,2012-03-02,true,true
+00109,서예린,nurse,rotating,9,junior,2025-03-02,false,false

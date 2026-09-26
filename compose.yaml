@@ -1,0 +1,21 @@
+# 개발용: DB만 띄운다. 앱은 `pnpm dev`로 로컬 실행.
+services:
+  db:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_USER: duty
+      POSTGRES_PASSWORD: duty
+      POSTGRES_DB: duty
+    ports:
+      - '5433:5432'
+    volumes:
+      - db-data:/var/lib/postgresql/data
+      - ./infra/postgres/init-test-db.sql:/docker-entrypoint-initdb.d/init-test-db.sql:ro
+    healthcheck:
+      test: ['CMD-SHELL', 'pg_isready -U duty -d duty']
+      interval: 2s
+      timeout: 3s
+      retries: 20
+
+volumes:
+  db-data:

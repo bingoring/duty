@@ -1,2 +1,9 @@
 .DS_Store
 .local/
+node_modules/
+.env
+.env.*
+!.env.example
+coverage/
+test-results/
+playwright-report/

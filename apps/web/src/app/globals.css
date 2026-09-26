@@ -1,0 +1,64 @@
+@import 'tailwindcss';
+
+/* 핸드오프 README 「Design Tokens」 — Build Spec 2-1 frontend-components §6 */
+@theme {
+  --color-canvas: #e9e6df;
+  --color-app: #f6f4ef;
+  --color-surface: #ffffff;
+  --color-panel: #faf9f6;
+  --color-weekend-cell: #f3f1ec;
+  --color-weekend-head: #eeece6;
+
+  --color-ink: #1b1f1e;
+  --color-ink-2: #6b7270;
+  --color-ink-3: #9aa09d;
+  --color-ink-4: #b5bab7;
+  --color-ink-5: #c9c5bc;
+  --color-nav-ink: #3a403e;
+
+  --color-line: #d9d5cc;
+  --color-line-soft: #eeece6;
+  --color-line-nav: #e4e1da;
+
+  --color-primary: #0f6e63;
+  --color-primary-hover: #0b564d;
+  --color-primary-soft: #ddefeb;
+
+  --color-danger: #c8321e;
+  --color-danger-bg: #fdecea;
+  --color-danger-ink: #8a1f12;
+  --color-danger-row: #fff7f5;
+
+  --color-admin: #1f5aa6;
+  --color-admin-soft: #eef3fb;
+  --color-admin-row: #f7fafe;
+
+  --color-warn-bg: #fbe7b5;
+  --color-warn-ink: #6b4300;
+  --color-warn-dot: #d99a1e;
+
+  --color-shift-d: #fbe7b5;
+  --color-shift-e: #cfe8e3;
+  --color-shift-n: #d9d6f2;
+  --color-shift-off: #eeece6;
+  --color-shift-s: #f7d9e3;
+  --color-shift-al: #ddefeb;
+
+  --radius-frame: 14px;
+  --radius-card: 12px;
+  --radius-control: 10px;
+  --radius-chip: 6px;
+
+  --shadow-frame: 0 1px 2px rgba(0, 0, 0, 0.06), 0 12px 32px rgba(0, 0, 0, 0.08);
+  --shadow-popover: 0 16px 40px rgba(0, 0, 0, 0.18);
+
+  --font-sans: 'Pretendard Variable', Pretendard, -apple-system, sans-serif;
+}
+
+html,
+body {
+  background: var(--color-app);
+  color: var(--color-ink);
+  font-family: var(--font-sans);
+  -webkit-font-smoothing: antialiased;
+}

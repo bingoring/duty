@@ -1,0 +1,30 @@
+{
+  "name": "duty",
+  "private": true,
+  "packageManager": "pnpm@10.34.5",
+  "engines": {
+    "node": ">=24"
+  },
+  "scripts": {
+    "dev": "pnpm --filter web dev",
+    "build": "pnpm --filter web build",
+    "typecheck": "pnpm -r typecheck",
+    "lint": "pnpm -r lint",
+    "format": "prettier --write .",
+    "format:check": "prettier --check .",
+    "test": "pnpm -r test",
+    "test:int": "pnpm --filter web test:int",
+    "test:e2e": "pnpm --filter web test:e2e",
+    "db:generate": "pnpm --filter web db:generate",
+    "db:migrate": "pnpm --filter web db:migrate",
+    "db:seed": "pnpm --filter web db:seed",
+    "db:bootstrap": "pnpm --filter web db:bootstrap",
+    "db:import-roster": "pnpm --filter web db:import-roster"
+  },
+  "devDependencies": {
+    "@types/node": "^24.19.0",
+    "prettier": "^3.9.9",
+    "typescript": "^5.9.3",
+    "vitest": "^5.0.2"
+  }
+}
