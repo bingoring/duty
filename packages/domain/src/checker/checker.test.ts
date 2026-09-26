@@ -274,7 +274,7 @@ describe('S-WEEKEND-PAIR (토글)', () => {
   }
 
   it('월 안에 토·일 둘 다 쉬는 주말이 없으면 경고', () => {
-    expect(only(solo(month('3 11 17')), 'S-WEEKEND-PAIR')).toMatchObject([{ data: { consecutive: false } }])
+    expect(only(solo(month('3 11 17')), 'S-WEEKEND-PAIR')).toMatchObject([{ data: { missedStreak: 0 } }])
     expect(only(solo(month('17 18')), 'S-WEEKEND-PAIR')).toEqual([])
   })
 
@@ -289,13 +289,14 @@ describe('S-WEEKEND-PAIR (토글)', () => {
     expect(only(next('D'), 'S-WEEKEND-PAIR')).toHaveLength(1)
   })
 
-  it('다음 달 1일 칸이 범위를 벗어나면 입력 오류다', () => {
-    expect(() => checkSchedule(solo('D', { nextHead: row('a', '2026-11-02', 'O') }))).toThrow()
+  it('다음 달 칸은 앞쪽 requiredTailDays일(기본 11/15)까지만 받는다', () => {
+    expect(() => checkSchedule(solo('D', { nextHead: row('a', '2026-11-15', 'O') }))).not.toThrow()
+    expect(() => checkSchedule(solo('D', { nextHead: row('a', '2026-11-16', 'O') }))).toThrow()
   })
 
-  it('전달도 미배정이면 consecutive, 토글이 꺼지면 검사하지 않는다', () => {
-    const inp = solo(month(''), { nurses: [nurse('a', { weekendPairMissedLastMonth: true })] })
-    expect(only(inp, 'S-WEEKEND-PAIR')).toMatchObject([{ data: { consecutive: true } }])
+  it('연속 미배정 개월 수를 싣고, 토글이 꺼지면 검사하지 않는다', () => {
+    const inp = solo(month(''), { nurses: [nurse('a', { weekendPairMissedStreak: 2 })] })
+    expect(only(inp, 'S-WEEKEND-PAIR')).toMatchObject([{ data: { missedStreak: 2 } }])
     expect(
       only(solo(month(''), { rules: rules({}, { weekendPairOffMonthly: false }) }), 'S-WEEKEND-PAIR'),
     ).toEqual([])
@@ -466,5 +467,150 @@ describe('S-SHIFT-BALANCE — 한 사람의 D·E·N 분포 (사용자 요청 202
     expect(
       only(solo(work(4, 7, 6), { nurses: [nurse('a'), nurse('p')], trainings: [t] }), 'S-SHIFT-BALANCE'),
     ).toEqual([])
+  })
+})
+
+// 사용자 설명(2026-09-27): 10·11월은 예시일 뿐, 이월되는 모든 것을 고려한다
+describe('달·연도와 무관하게 이월을 본다', () => {
+  const at = (year: number, month: number, over: Partial<ScheduleInput>) =>
+    input({ year, month, nurses: [nurse('a')], ...over })
+
+  it('12월 → 다음 해 1월: 12/31 N이면 1월 초 N은 2개까지', () => {
+    const jan = (spec: string) =>
+      at(2034, 1, { prevTail: row('a', '2033-12-31', 'N'), cells: row('a', '2034-01-01', spec) })
+    expect(only(jan('N N O'), 'H-NIGHT-CONSEC')).toEqual([])
+    expect(only(jan('N N N'), 'H-NIGHT-CONSEC')).toHaveLength(1)
+  })
+
+  it('말일이 토요일인 달은 모두 다음 달 1일(일)과 이어 본다 — 28일 2월, 30일 4월, 12월', () => {
+    const cases: [number, number, string, number][] = [
+      [2026, 2, '2026-03-01', 28],
+      [2033, 4, '2033-05-01', 30],
+      [2033, 12, '2034-01-01', 31],
+    ]
+    for (const [y, m, next, days] of cases) {
+      const spec =
+        Array(days - 1)
+          .fill('D')
+          .join(' ') + ' O'
+      const first = `${y}-${String(m).padStart(2, '0')}-01`
+      const base = { cells: row('a', first, spec) }
+      expect(only(at(y, m, base), 'S-WEEKEND-PAIR'), `${y}-${m} 예정`).toEqual([])
+      expect(
+        only(at(y, m, { ...base, nextHead: row('a', next, 'D') }), 'S-WEEKEND-PAIR'),
+        `${y}-${m}`,
+      ).toHaveLength(1)
+    }
+  })
+
+  it('다음 해 1월 1일(일)에도 S-WEEKEND-CARRY', () => {
+    const inp = input({
+      year: 2034,
+      month: 1,
+      nurses: [nurse('a', { weekendPairCarryIn: true })],
+      prevTail: row('a', '2033-12-31', 'O'),
+      cells: row('a', '2034-01-01', 'D'),
+    })
+    expect(only(inp, 'S-WEEKEND-CARRY')).toHaveLength(1)
+  })
+})
+
+describe('다음 달 근무표가 있을 때 앞 달을 고치는 경우 (nextHead)', () => {
+  const oct = (spec: string, next: string) =>
+    input({
+      nurses: [nurse('a')],
+      cells: row('a', '2026-10-01', spec),
+      nextHead: row('a', '2026-11-01', next),
+    })
+  const tail29 = Array(29).fill('D').join(' ')
+
+  it('10/31 E → 11/1 D는 10월 검사에서도 금지 패턴·휴식 위반', () => {
+    const inp = oct(`${tail29} O E`, 'D')
+    expect(only(inp, 'H-PATTERN')).toMatchObject([
+      { dates: ['2026-10-31', '2026-11-01'], data: { pattern: 'E-D' } },
+    ])
+    expect(only(inp, 'H-REST')).toHaveLength(1)
+  })
+
+  it('10월 말 N 2개 + 11월 초 N 2개 = 연속 4일', () => {
+    expect(only(oct(`${Array(29).fill('O').join(' ')} N N`, 'N N O'), 'H-NIGHT-CONSEC')).toMatchObject([
+      { data: { count: 4 } },
+    ])
+  })
+
+  it('10/31 N 뒤 11/1 OFF, 11/2 E면 10월 검사에서도 N 후 OFF 경고', () => {
+    expect(only(oct(`${tail29} O N`, 'O E'), 'S-OFF-AFTER-N')).toHaveLength(1)
+  })
+
+  it('다음 달 칸만으로 이뤄진 위반은 다음 달의 몫이다', () => {
+    expect(only(oct(`${tail29} O O`, 'E D'), 'H-PATTERN')).toEqual([])
+  })
+})
+
+describe('S-SHIFT-BALANCE 누적 — 최근 3개월', () => {
+  const month = (d: number, e: number, n: number) => {
+    const nights = Array.from({ length: n }, (_, i) => (i % 3 === 2 && i < n - 1 ? 'N O O' : 'N'))
+    return [...Array(d).fill('D'), 'O', ...Array(e).fill('E'), 'O', ...nights].join(' ')
+  }
+
+  it('이번 달만 보면 고르지만 지난 두 달에 D가 몰렸으면 누적으로 경고', () => {
+    const inp = solo(month(6, 6, 6), { nurses: [nurse('a', { shiftCountsBefore: { D: 16, E: 9, N: 12 } })] })
+    expect(only(inp, 'S-SHIFT-BALANCE')).toMatchObject([
+      { data: { scope: 'window', months: 3, D: 22, E: 15, N: 18, spread: 7, tolerance: 4 } },
+    ])
+  })
+
+  it('지난달 D가 많았고 이번 달 E·N으로 보상하면 누적은 통과(이번 달 차이만 경고)', () => {
+    const inp = solo(month(4, 7, 6), { nurses: [nurse('a', { shiftCountsBefore: { D: 16, E: 11, N: 12 } })] })
+    expect(only(inp, 'S-SHIFT-BALANCE').map((v) => v.data.scope)).toEqual(['month'])
+  })
+
+  it('누적 기간은 규칙 설정 값, 1개월이면 누적 검사를 하지 않는다', () => {
+    const nurses = [nurse('a', { shiftCountsBefore: { D: 16, E: 9, N: 12 } })]
+    expect(
+      only(
+        solo(month(6, 6, 6), { nurses, rules: rules({ shiftBalanceWindowMonths: 1 }) }),
+        'S-SHIFT-BALANCE',
+      ),
+    ).toEqual([])
+  })
+})
+
+describe('H-EDU-LIMIT — 올해 앞선 달의 이수 횟수를 이어서', () => {
+  it('보수교육은 연 1회, 노조교육은 연 2회', () => {
+    const m = { unionMember: true }
+    expect(
+      only(solo('EC', { nurses: [nurse('a', { eduUsedThisYear: { cont: 0, union: 0 } })] }), 'H-EDU-LIMIT'),
+    ).toEqual([])
+    expect(
+      only(solo('EC', { nurses: [nurse('a', { eduUsedThisYear: { cont: 1, union: 0 } })] }), 'H-EDU-LIMIT'),
+    ).toMatchObject([{ dates: ['2026-10-01'], data: { kind: 'edu_cont', used: 2, limit: 1 } }])
+    expect(
+      only(
+        solo('EU', { nurses: [nurse('a', { ...m, eduUsedThisYear: { cont: 0, union: 1 } })] }),
+        'H-EDU-LIMIT',
+      ),
+    ).toEqual([])
+    expect(
+      only(
+        solo('EU D EU', { nurses: [nurse('a', { ...m, eduUsedThisYear: { cont: 0, union: 1 } })] }),
+        'H-EDU-LIMIT',
+      ),
+    ).toMatchObject([{ data: { kind: 'edu_union', used: 3, limit: 2 } }])
+  })
+})
+
+describe('H-BALANCE — 이월된 잔여를 넘는 배정', () => {
+  const bal = { annualLeave: 1, specialLeave: 0, foundingOff: 1, checkup: 0.5, sickLeave: 60 }
+  it('연차·특휴·개원오프·검진·병가 잔여를 넘으면 위반', () => {
+    const inp = solo('A A SP FO D+ D+ L', { nurses: [nurse('a', { balancesBefore: bal })] })
+    expect(only(inp, 'H-BALANCE').map((v) => [v.data.account, v.data.used, v.data.remaining])).toEqual([
+      ['annual_leave', 2, 1],
+      ['special_leave', 1, 0],
+      ['checkup', 1, 0.5],
+    ])
+  })
+  it('잔여를 모르면(null) 검사하지 않는다', () => {
+    expect(only(solo('A A A'), 'H-BALANCE')).toEqual([])
   })
 })

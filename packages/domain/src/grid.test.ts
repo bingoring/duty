@@ -41,11 +41,12 @@ describe('buildGrid', () => {
     expect(g.cellAt('a', '2026-10-03')).toBeUndefined()
   })
 
-  it('타임라인은 꼬리 시작일부터 말일까지다', () => {
+  it('타임라인은 꼬리 시작일부터 다음 달 앞쪽(같은 길이)까지다', () => {
     const g = buildGrid(input())
     expect(g.tailStart).toBe('2026-09-16')
     expect(g.timeline[0]).toBe('2026-09-16')
-    expect(g.timeline.at(-1)).toBe('2026-10-31')
+    expect(g.headEnd).toBe('2026-11-15')
+    expect(g.timeline.at(-1)).toBe('2026-11-15')
     expect(g.monthDates.length).toBe(31)
   })
 

@@ -15,6 +15,8 @@ export const HARD_RULE_IDS = [
   'H-SPECIAL-REQ',
   'H-SLEEPING',
   'H-EDU-UNION',
+  'H-EDU-LIMIT',
+  'H-BALANCE',
 ] as const
 
 export const SOFT_RULE_IDS = [

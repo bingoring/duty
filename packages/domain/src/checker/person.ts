@@ -148,16 +148,16 @@ export function checkPerson(n: NurseProfile, ctx: PersonCtx): Violation[] {
       }),
     )
 
-  // S-OFF-AFTER-N: 전월 꼬리에서 끝난 N 구간도 본다(10/31 N → 11/1 OFF → 11/2 E). 다음 근무가 말일 뒤면 판단하지 않는다
+  // S-OFF-AFTER-N: 전월 꼬리에서 끝난 N 구간과 다음 달 앞쪽 칸까지 본다. 다음 근무 칸을 모르면 판단하지 않는다
   for (const d of grid.timeline) {
     if (code(d) !== 'N' || code(addDays(d, 1)) === 'N') continue
     const dates = [d]
     let next = addDays(d, 1)
-    while (next <= grid.monthEnd && at(next) && isRestCode(at(next)!.code)) {
+    while (next <= grid.headEnd && at(next) && isRestCode(at(next)!.code)) {
       dates.push(next)
       next = addDays(next, 1)
     }
-    const nextCell = next <= grid.monthEnd ? at(next) : undefined
+    const nextCell = next <= grid.headEnd ? at(next) : undefined
     const rest = dates.length - 1
     if (!nextCell || rest === 0 || rest >= p.offAfterNight || !touchesMonth([...dates, next])) continue
     out.push(violation('S-OFF-AFTER-N', [n.id], [...dates, next], { rest, next: nextCell.code }))
@@ -192,7 +192,7 @@ export function checkPerson(n: NurseProfile, ctx: PersonCtx): Violation[] {
       return isRestCode(c.code)
     }
     if (month.some((d) => isEmployed(n, d)) && !hasWeekendPair(restAt, month))
-      out.push(violation('S-WEEKEND-PAIR', [n.id], [], { consecutive: n.weekendPairMissedLastMonth }))
+      out.push(violation('S-WEEKEND-PAIR', [n.id], [], { missedStreak: n.weekendPairMissedStreak }))
     const first = grid.monthStart
     const firstCell = at(first)
     if (n.weekendPairCarryIn && dayOfWeek(first) === 0 && firstCell && !isRestCode(firstCell.code))
@@ -206,7 +206,60 @@ export function checkPerson(n: NurseProfile, ctx: PersonCtx): Violation[] {
     const spread = Math.max(c.D, c.E, c.N) - Math.min(c.D, c.E, c.N)
     const tolerance = p.shiftBalanceTolerance
     if (c.D + c.E + c.N >= SHIFT_BALANCE_MIN_WORK && spread > tolerance)
-      out.push(violation('S-SHIFT-BALANCE', [n.id], [], { ...c, spread, tolerance }))
+      out.push(violation('S-SHIFT-BALANCE', [n.id], [], { scope: 'month', ...c, spread, tolerance }))
+
+    // 누적: 이번 달 + 최근 (months − 1)개월. 한 달에 허용치만큼씩 치우쳐도 되지만 쌓이면 경고
+    const months = p.shiftBalanceWindowMonths
+    const b = n.shiftCountsBefore
+    if (months > 1 && b.D + b.E + b.N > 0) {
+      const w = { D: c.D + b.D, E: c.E + b.E, N: c.N + b.N }
+      const wSpread = Math.max(w.D, w.E, w.N) - Math.min(w.D, w.E, w.N)
+      const wTolerance = tolerance + months - 1
+      if (wSpread > wTolerance)
+        out.push(
+          violation('S-SHIFT-BALANCE', [n.id], [], {
+            scope: 'window',
+            months,
+            ...w,
+            spread: wSpread,
+            tolerance: wTolerance,
+          }),
+        )
+    }
+  }
+
+  // H-EDU-LIMIT: 올해 앞선 달 이수 횟수 + 이번 달
+  for (const [kind, used, limit] of [
+    ['edu_cont', n.eduUsedThisYear.cont, p.eduContPerYear],
+    ['edu_union', n.eduUsedThisYear.union, p.eduUnionPerYear],
+  ] as const) {
+    const dates = monthCells.filter((x) => x.offKind === kind).map((x) => x.date)
+    if (dates.length && used + dates.length > limit)
+      out.push(violation('H-EDU-LIMIT', [n.id], dates, { kind, used: used + dates.length, limit }))
+  }
+
+  // H-BALANCE: 이월된 잔여를 넘는 배정
+  if (n.balancesBefore) {
+    const bal = n.balancesBefore
+    const usage = [
+      ['annual_leave', bal.annualLeave, monthCells.filter((x) => x.code === 'AL'), 1],
+      ['special_leave', bal.specialLeave, monthCells.filter((x) => x.offKind === 'special'), 1],
+      ['founding_off', bal.foundingOff, monthCells.filter((x) => x.offKind === 'founding'), 1],
+      ['checkup', bal.checkup, monthCells.filter((x) => x.checkupHalf), 0.5],
+      ['sick_leave', bal.sickLeave, monthCells.filter((x) => x.leaveKind === 'sick'), 1],
+    ] as const
+    for (const [account, remaining, cells, unit] of usage) {
+      const used = cells.length * unit
+      if (used > remaining)
+        out.push(
+          violation(
+            'H-BALANCE',
+            [n.id],
+            cells.map((x) => x.date),
+            { account, used, remaining },
+          ),
+        )
+    }
   }
 
   return out

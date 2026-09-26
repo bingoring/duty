@@ -38,11 +38,12 @@ describe('formatViolation (business-logic-model §2.6)', () => {
       title: '문가을 · N-OFF-E 1회',
       detail: '10/9~10/11',
     })
-    expect(f('S-WEEKEND-PAIR', ['a'], [], { consecutive: true })).toEqual({
+    expect(f('S-WEEKEND-PAIR', ['a'], [], { missedStreak: 1 })).toEqual({
       title: '정하늘 · 주말 연휴 OFF 미배정',
-      detail: '9월도 미배정 → 11월 최우선',
+      detail: '2개월 연속 미배정 → 11월 최우선',
     })
-    expect(f('S-WEEKEND-PAIR', ['a'], [], { consecutive: false }).detail).toBe('11월 우선 대상')
+    expect(f('S-WEEKEND-PAIR', ['a'], [], { missedStreak: 3 }).detail).toBe('4개월 연속 미배정 → 11월 최우선')
+    expect(f('S-WEEKEND-PAIR', ['a'], [], { missedStreak: 0 }).detail).toBe('11월 우선 대상')
   })
 
   it('트레이닝은 신규·프리셉터 순, 12월 다음 달은 1월', () => {
@@ -50,7 +51,7 @@ describe('formatViolation (business-logic-model §2.6)', () => {
       title: '문가을 · 프리셉터와 다른 근무',
       detail: '10/5 문가을 D / 서예린 E',
     })
-    const dec = formatViolation(violation('S-WEEKEND-PAIR', ['a'], [], { consecutive: false }), {
+    const dec = formatViolation(violation('S-WEEKEND-PAIR', ['a'], [], { missedStreak: 0 }), {
       ...ctx,
       month: 12,
     })
@@ -65,6 +66,30 @@ describe('formatViolation (business-logic-model §2.6)', () => {
       title: '정하늘 · 신청 불충족',
       detail: '10/1 신청 O/D → 배정 E',
     })
+  })
+
+  it('누적 D·E·N 분포·교육 연간 횟수·잔여 초과 문구', () => {
+    expect(
+      f('S-SHIFT-BALANCE', ['a'], [], {
+        scope: 'window',
+        months: 3,
+        D: 22,
+        E: 15,
+        N: 18,
+        spread: 7,
+        tolerance: 4,
+      }),
+    ).toEqual({ title: '정하늘 · 최근 3개월 D 22 · E 15 · N 18', detail: 'D·E·N 차이 7개 (허용 4개)' })
+    expect(f('H-EDU-LIMIT', ['a'], ['2026-10-05'], { kind: 'edu_union', used: 3, limit: 2 })).toEqual({
+      title: '정하늘 · 노조교육 연 3회',
+      detail: '연 2회까지 (10/5)',
+    })
+    expect(f('H-BALANCE', ['a'], ['2026-10-05'], { account: 'annual_leave', used: 3, remaining: 1 })).toEqual(
+      {
+        title: '정하늘 · 연차 잔여 초과',
+        detail: '이번 달 3일 사용 / 잔여 1일',
+      },
+    )
   })
 
   it('모든 규칙 ID가 빈 문구 없이 표시된다', () => {

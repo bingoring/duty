@@ -29,6 +29,10 @@ export const RuleParamsSchema = z.object({
   tripleNightCount: z.number().int().nonnegative().default(3),
   // 한 사람의 D·E·N 개수 차이 허용치 (사용자 요청 2026-09-27)
   shiftBalanceTolerance: z.number().int().nonnegative().default(2),
+  // 누적 D·E·N 분포를 보는 기간(이번 달 포함). 1이면 누적 검사 안 함
+  shiftBalanceWindowMonths: positiveInt.default(3),
+  eduContPerYear: z.number().int().nonnegative().default(1),
+  eduUnionPerYear: z.number().int().nonnegative().default(2),
   trainingMonths: positiveInt,
   sleepingOffPerN: positiveInt,
   requestDeadlineDay: positiveInt.max(28),
@@ -75,6 +79,9 @@ export const DEFAULT_RULES: RuleSet = {
     experiencedTripleWeeks: 2,
     tripleNightCount: 3,
     shiftBalanceTolerance: 2,
+    shiftBalanceWindowMonths: 3,
+    eduContPerYear: 1,
+    eduUnionPerYear: 2,
     trainingMonths: 3,
     sleepingOffPerN: 6,
     requestDeadlineDay: 15,

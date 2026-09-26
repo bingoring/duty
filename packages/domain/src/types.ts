@@ -23,7 +23,20 @@ export type NurseProfile = Employment & {
   nightDedicated: { from: IsoDate; to: IsoDate } | null
   offCarryBefore: number
   nightBankBefore: number
-  weekendPairMissedLastMonth: boolean
+  // 주말 통 OFF를 받지 못한 연속 개월 수(직전 달부터 거슬러). 0이면 직전 달은 받음
+  weekendPairMissedStreak: number
+  // 최근 (shiftBalanceWindowMonths − 1)개월의 D·E·N 개수 합. 누적 분포 판정용
+  shiftCountsBefore: { D: number; E: number; N: number }
+  // 올해 대상 월 이전까지 이수한 교육 횟수(연초에 0)
+  eduUsedThisYear: { cont: number; union: number }
+  // 월초 잔여(원장 합에서 마감 안 된 달 사용분을 뺀 값). null이면 검사하지 않는다
+  balancesBefore: {
+    annualLeave: number
+    specialLeave: number
+    foundingOff: number
+    checkup: number
+    sickLeave: number
+  } | null
   // 전달이 마지막 토요일 OFF에 기대 주말 통 OFF를 달성 예정으로 둠 → 이번 달 1일(일)도 OFF여야 한다
   weekendPairCarryIn: boolean
 }
@@ -66,7 +79,7 @@ export type ScheduleInput = {
   holidays: HolidayDay[]
   cells: GridCell[]
   prevTail: GridCell[]
-  // 다음 달 1일 칸(다음 달 근무표가 있을 때만). 월을 걸친 주말 판정용
+  // 다음 달 앞쪽 requiredTailDays일의 칸(다음 달 근무표가 있을 때만). 앞 달을 고칠 때 월 경계 규칙·달을 걸친 주말 판정용
   nextHead: GridCell[]
   requests: RequestEntry[]
 }

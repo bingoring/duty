@@ -22,7 +22,9 @@ export type Grid = {
   monthStart: IsoDate
   monthEnd: IsoDate
   monthDates: IsoDate[]
-  // 꼬리 시작일 ~ 말일
+  // 다음 달 앞쪽 끝(말일 + requiredTailDays)
+  headEnd: IsoDate
+  // 꼬리 시작일 ~ headEnd. 다음 달 칸은 nextHead가 있을 때만 채워진다
   timeline: IsoDate[]
   cellAt(userId: string, date: IsoDate): GridCell | undefined
   inMonth(date: IsoDate): boolean
@@ -45,7 +47,9 @@ export function buildGrid(input: ScheduleInput): Grid {
   const days = monthDates(input.year, input.month)
   const monthStart = days[0]!
   const monthEnd = days.at(-1)!
-  const tailStart = addDays(monthStart, -requiredTailDays(input.rules))
+  const tailDays = requiredTailDays(input.rules)
+  const tailStart = addDays(monthStart, -tailDays)
+  const headEnd = addDays(monthEnd, tailDays)
 
   const ids = new Set<string>()
   for (const n of input.nurses) {
@@ -69,16 +73,17 @@ export function buildGrid(input: ScheduleInput): Grid {
   }
   for (const c of input.cells) add(c, monthStart, monthEnd)
   for (const c of input.prevTail) add(c, tailStart, addDays(monthStart, -1))
-  for (const c of input.nextHead) add(c, addDays(monthEnd, 1), addDays(monthEnd, 1))
+  for (const c of input.nextHead) add(c, addDays(monthEnd, 1), headEnd)
 
   const timeline: IsoDate[] = []
-  for (let d = tailStart; d <= monthEnd; d = addDays(d, 1)) timeline.push(d)
+  for (let d = tailStart; d <= headEnd; d = addDays(d, 1)) timeline.push(d)
 
   return {
     tailStart,
     monthStart,
     monthEnd,
     monthDates: days,
+    headEnd,
     timeline,
     cellAt: (userId, date) => byKey.get(`${userId}|${date}`),
     inMonth: (date) => date >= monthStart && date <= monthEnd,

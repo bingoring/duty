@@ -52,7 +52,10 @@ export function nurse(id: string, over: Partial<NurseProfile> = {}): NurseProfil
     nightDedicated: null,
     offCarryBefore: 0,
     nightBankBefore: 0,
-    weekendPairMissedLastMonth: false,
+    weekendPairMissedStreak: 0,
+    shiftCountsBefore: { D: 0, E: 0, N: 0 },
+    eduUsedThisYear: { cont: 0, union: 0 },
+    balancesBefore: null,
     weekendPairCarryIn: false,
     ...over,
   }

@@ -4,6 +4,13 @@ import type { Violation } from './rules'
 export type FormatContext = { nameOf: (userId: string) => string; month: number }
 
 const SPECIAL_LABEL: Record<string, string> = { AL: '연차', EDU_CONT: '보수교육', EDU_UNION: '노조교육' }
+const BALANCE_LABEL: Record<string, string> = {
+  annual_leave: '연차',
+  special_leave: '특휴',
+  founding_off: '개원오프',
+  checkup: '검진',
+  sick_leave: '병가',
+}
 const OPTION_LABEL: Record<string, string> = { OFF: 'O', D: 'D', E: 'E', N: 'N' }
 
 const range = (dates: IsoDate[]) =>
@@ -66,6 +73,16 @@ export function formatViolation(v: Violation, ctx: FormatContext): { title: stri
         title: `${name} · 노조교육 배정 불가`,
         detail: `${range(v.dates)} ${d.reason === 'not_member' ? '노조원 아님' : '주말·공휴일'}`,
       }
+    case 'H-EDU-LIMIT':
+      return {
+        title: `${name} · ${d.kind === 'edu_union' ? '노조교육' : '보수교육'} 연 ${d.used}회`,
+        detail: `연 ${d.limit}회까지 (${v.dates.map(formatMD).join(', ')})`,
+      }
+    case 'H-BALANCE':
+      return {
+        title: `${name} · ${BALANCE_LABEL[String(d.account)] ?? String(d.account)} 잔여 초과`,
+        detail: `이번 달 ${d.used}일 사용 / 잔여 ${d.remaining}일`,
+      }
     case 'S-NIGHT-TARGET':
       return { title: `${name} · 나이트 ${d.count}개`, detail: `목표 ${d.target}개 이하` }
     case 'S-OFF-AFTER-N':
@@ -73,7 +90,10 @@ export function formatViolation(v: Violation, ctx: FormatContext): { title: stri
     case 'S-WEEKEND-PAIR':
       return {
         title: `${name} · 주말 연휴 OFF 미배정`,
-        detail: d.consecutive ? `${prev}월도 미배정 → ${next}월 최우선` : `${next}월 우선 대상`,
+        detail:
+          Number(d.missedStreak) > 0
+            ? `${Number(d.missedStreak) + 1}개월 연속 미배정 → ${next}월 최우선`
+            : `${next}월 우선 대상`,
       }
     case 'S-WEEKEND-CARRY':
       return {
@@ -82,7 +102,7 @@ export function formatViolation(v: Violation, ctx: FormatContext): { title: stri
       }
     case 'S-SHIFT-BALANCE':
       return {
-        title: `${name} · D ${d.D} · E ${d.E} · N ${d.N}`,
+        title: `${name} · ${d.scope === 'window' ? `최근 ${d.months}개월 ` : ''}D ${d.D} · E ${d.E} · N ${d.N}`,
         detail: `D·E·N 차이 ${d.spread}개 (허용 ${d.tolerance}개)`,
       }
     case 'S-HEAD-FILL':

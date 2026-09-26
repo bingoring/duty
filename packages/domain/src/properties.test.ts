@@ -65,16 +65,18 @@ function randomInput(seed: number): ScheduleInput {
       unionMember: rnd() < 0.4,
       nightBankBefore: Math.floor(rnd() * 6),
       offCarryBefore: Math.floor(rnd() * 7) - 3,
-      weekendPairMissedLastMonth: rnd() < 0.3,
+      weekendPairMissedStreak: Math.floor(rnd() * 3),
     }),
   )
   const spec = (n: number) => Array.from({ length: n }, () => (rnd() < 0.05 ? '-' : pick(TOKENS))).join(' ')
   const cells: GridCell[] = []
   const prevTail: GridCell[] = []
+  const nextHead: GridCell[] = []
   const requests: RequestEntry[] = []
   for (const n of nurses) {
     cells.push(...row(n.id, '2026-10-01', spec(31)))
     prevTail.push(...row(n.id, '2026-09-16', spec(15)))
+    nextHead.push(...row(n.id, '2026-11-01', spec(15)))
     for (let k = 0; k < 3; k++) {
       const date = addDays('2026-10-01', Math.floor(rnd() * 31))
       if (requests.some((r) => r.userId === n.id && r.date === date)) continue
@@ -118,6 +120,7 @@ describe('무작위 격자 속성 (고정 시드 200개)', () => {
         nurses: shuffle(inp.nurses, rnd),
         cells: shuffle(inp.cells, rnd),
         prevTail: shuffle(inp.prevTail, rnd),
+        nextHead: shuffle(inp.nextHead, rnd),
         requests: shuffle(inp.requests, rnd),
       }
       expect(checkSchedule(shuffled), `seed ${seed}`).toEqual(checkSchedule(inp))

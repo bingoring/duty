@@ -42,6 +42,8 @@ describe('DEFAULT_RULES', () => {
       balanceShiftTypes: true,
     })
     expect(DEFAULT_RULES.params.shiftBalanceTolerance).toBe(2)
+    expect(DEFAULT_RULES.params.shiftBalanceWindowMonths).toBe(3)
+    expect([DEFAULT_RULES.params.eduContPerYear, DEFAULT_RULES.params.eduUnionPerYear]).toEqual([1, 2])
   })
 
   it('D/E/N 분포 항목이 없는 예전 규칙 버전도 기본값으로 읽는다', () => {
