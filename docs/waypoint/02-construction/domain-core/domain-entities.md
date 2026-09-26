@@ -45,7 +45,10 @@ updated: 2026-09-27
 | `nightDedicated` | `{ from: IsoDate; to: IsoDate } \| null` | ✓ | 야간 전담 기간 |
 | `offCarryBefore` | `number` | ✓ | 월초 누적 OFF(원장 `off_carry` 합). 0.5 단위 |
 | `nightBankBefore` | `number` | ✓ | 월초 잔여 N(원장 `night_bank` 합). 정수 |
-| `weekendPairMissedLastMonth` | `boolean` | ✓ | 전달 `month_settlements.weekend_pair_achieved = false`. 전달 정산이 없으면 `false` |
+| `weekendPairMissedStreak` | `number` | ✓ | 주말 통 OFF를 받지 못한 연속 개월 수(직전 달부터 거슬러 `month_settlements.weekend_pair_achieved = false`인 달 수) |
+| `shiftCountsBefore` | `{ D, E, N }` | ✓ | 최근 (`shiftBalanceWindowMonths` − 1)개월 확정본의 D·E·N 개수 합 |
+| `eduUsedThisYear` | `{ cont, union }` | ✓ | 올해 대상 월 이전까지 이수한 보수·노조교육 횟수(원장 합, 1월은 0) |
+| `balancesBefore` | `{ annualLeave, specialLeave, foundingOff, checkup, sickLeave } \| null` | ✓ | 월초 잔여 = 원장 합 − 마감 안 된 앞 달 사용분. null이면 H-BALANCE 생략 |
 | `weekendPairCarryIn` | `boolean` | ✓ | 전달 칸에 `weekendPairCarryOut`을 적용한 값(마지막 토요일 OFF에 기대 달성 예정) |
 
 ### `TrainingSpan`
@@ -88,7 +91,7 @@ updated: 2026-09-27
 | `trainings` | `TrainingSpan[]` | 대상 월과 겹치는 것 |
 | `holidays` | `HolidayDay[]` | 대상 월 + 전월 꼬리 기간 |
 | `cells` | `GridCell[]` | 대상 월 칸 |
-| `nextHead` | `GridCell[]` | 다음 달 1일 칸(다음 달 근무표가 있을 때만, 없으면 빈 배열). 달을 걸친 주말 판정용 |
+| `nextHead` | `GridCell[]` | 다음 달 앞쪽 `requiredTailDays`일의 칸(다음 달 근무표가 있을 때만, 없으면 빈 배열). 앞 달을 고칠 때 월 경계 규칙과 달을 걸친 주말 판정용 |
 | `prevTail` | `GridCell[]` | 전월 마지막 `requiredTailDays(rules)`일의 칸(없으면 빈 배열 — 첫 달) |
 | `requests` | `RequestEntry[]` | 대상 월 신청 |
 
@@ -133,7 +136,7 @@ updated: 2026-09-27
 
 | 이름 | 값 | 확장 규칙 |
 |---|---|---|
-| `HARD_RULE_IDS` | `H-CELL`, `H-PATTERN`, `H-REST`, `H-NIGHT-MAX`, `H-NIGHT-CONSEC`, `H-OFF-CONSEC`, `H-STAFF`, `H-KTASS`, `H-TRAINING`, `H-SPECIAL-REQ`, `H-SLEEPING`, `H-EDU-UNION` | 추가만 |
+| `HARD_RULE_IDS` | `H-CELL`, `H-PATTERN`, `H-REST`, `H-NIGHT-MAX`, `H-NIGHT-CONSEC`, `H-OFF-CONSEC`, `H-STAFF`, `H-KTASS`, `H-TRAINING`, `H-SPECIAL-REQ`, `H-SLEEPING`, `H-EDU-UNION`, `H-EDU-LIMIT`, `H-BALANCE` | 추가만 |
 | `SOFT_RULE_IDS` | `S-NIGHT-TARGET`, `S-OFF-AFTER-N`, `S-WEEKEND-PAIR`, `S-WEEKEND-CARRY`, `S-SHIFT-BALANCE`, `S-HEAD-FILL`, `S-JUNIOR-ONLY`, `S-REPEAT-PAIR`, `S-REQUEST` | 추가만 |
 | `TRAINEE_KINDS` | `new_grad`, `experienced` | 추가만. DB `trainings.kind`(text, 기본 `new_grad`) |
 | `PLAN_EVENTS` | `CLOSE_REQUESTS`, `GENERATE`, `CONFIRM`, `ADJUST`, `CLOSE`, `REOPEN` | 추가만 |

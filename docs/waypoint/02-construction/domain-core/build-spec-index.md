@@ -127,7 +127,9 @@ AI가 정한 사항(READY 승인으로 함께 확정):
 | READY 결정 "월 경계에 걸친 주말은 세지 않는다" | 토요일이 속한 달로 센다. 다음 달 1일 칸이 없으면 달성 예정, 다음 달 검사에서 `S-WEEKEND-CARRY` | 2026-09-27 사용자 답변 |
 | (신규) | 소프트 `S-SHIFT-BALANCE`: 한 사람의 D·E·N 차이 > 2, 토글·허용치는 규칙 설정 | 2026-09-27 사용자 요청: 종이로 할 때 D만·E만 서는 사람이 있어 불만 |
 
-**검증 결과 (2026-09-27, 추가 변경 후)**: format·typecheck·lint 0 · 단위 216(domain 178 + web 38) · 통합 35 · `next build` 성공 · E2E 9 · 실명 검사 0건.
+| 이월 입력 = 전월 꼬리·`weekendPairMissedLastMonth`(1개월)·잔여 N·누적 OFF | 이월 관점 확장: 다음 달 앞쪽 칸(`nextHead`)으로 앞 달 수정 시 경계 규칙 검사, 주말 미배정 연속 개월 수, D·E·N 3개월 누적, 교육 연간 횟수(`H-EDU-LIMIT`), 잔여 초과(`H-BALANCE`) | 2026-09-27 사용자 설명: "10·11월은 예시, 이월되는 것에 대해 많은 것을 고려" |
+
+**검증 결과 (2026-09-27, 이월 확장 후)**: format·typecheck·lint 0 · 단위 230(domain 192 + web 38) · 통합 35 · `next build` 성공 · E2E 9 · 실명 검사 0건.
 - 종이 10월: 10명 누적 OFF 전원 일치, 하드 위반 0, 소프트 = 수간호사 보충 1(10/2 D)·N-OFF-E 2·나이트 7개 2·주말 미배정 2(10/31 OFF인 3명은 달성 예정)·반복 겹침 5쌍(기준 5)·D/E/N 분포 1(강도윤 D 4·E 7·N 6).
 - 속성 테스트(시드 200개): 입력 순서를 섞어도 결과 동일. 사용자 id 정렬을 일부러 지운 코드에서는 실패하는 것을 확인했다.
 - 성능: 11×31 검사 100회 평균 < 5ms(Node). 비테스트 소스에 `node:*` import 없음.
@@ -137,5 +139,5 @@ AI가 정한 사항(READY 승인으로 함께 확정):
 - 2-5: S4 "기준 OFF + 이월 = 최대" 카드는 D1 부호(양수 = 더 쉼)와 반대이므로 `기준 − 누적 + 슬리핑오프 가능 수`로 다시 정한다. 노조교육 연 2회·보수교육 연 1회는 신청 단계에서 검증한다.
 - 2-6: 솔버는 `S-HEAD-FILL`에 큰 벌점을 주고, 3인 나이트는 `tripleNightsBefore`로 월을 넘어 이어 센다. 서버는 전월 확정본에서 `requiredTailDays`일의 꼬리와 `tripleNightsBefore`를 조립한다.
 - 2-7: `month_settlements`에 `edu_union` 컬럼이 없다(원장에는 기록). 휴가 승인 시 원장 차감(`leave_approved`)과 월 정산 차감이 겹치지 않도록 S5에서 한쪽만 쓴다.
-- 2-4: S11에 토글 `balanceShiftTypes`(D/E/N 고르게)와 수치 `shiftBalanceTolerance`(2) 항목 추가.
-- 2-6: 서버는 전달 칸으로 `weekendPairCarryIn`을, 다음 달 확정본이 있으면 `nextHead`를 조립한다. 솔버는 D·E·N 차이를 줄이는 소프트 항과, carry-in인 사람의 1일 OFF에 큰 가중치를 둔다.
+- 2-4: S11에 토글 `balanceShiftTypes`(D/E/N 고르게)와 수치 `shiftBalanceTolerance`(2)·`shiftBalanceWindowMonths`(3)·`eduContPerYear`(1)·`eduUnionPerYear`(2) 항목 추가.
+- 2-6·2-7: 서버는 `weekendPairCarryIn`·`weekendPairMissedStreak`·`shiftCountsBefore`(최근 2개월)·`eduUsedThisYear`·`balancesBefore`(마감 안 된 앞 달 사용분 차감)를 조립하고, 다음 달 확정본이 있으면 앞쪽 `requiredTailDays`일을 `nextHead`로 넣는다. 솔버는 D·E·N 차이를 줄이는 소프트 항과, carry-in인 사람의 1일 OFF에 큰 가중치를 둔다.

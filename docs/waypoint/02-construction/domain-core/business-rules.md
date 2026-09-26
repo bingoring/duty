@@ -19,7 +19,7 @@ updated: 2026-09-27
 |---|---|---|---|
 | R-SCOPE-1 | `rotation = fixed_weekday`인 사람(수간호사)은 사람 단위 검사에서 모두 제외한다. 인원 집계에는 **최후의 수단**으로만 넣는다(R-STAFF-4) **(Q1)** | — | 1-1 Q3, 2026-09-27 답변 |
 | R-SCOPE-2 | 재직일 = `employedFrom ≤ d ≤ employedUntil`(null은 무제한). 재직일이 아닌 날의 칸은 검사하지 않고, 인원에도 세지 않는다 | — | 1-2 §4 |
-| R-SCOPE-3 | 위반은 **대상 월 날짜를 하나 이상 포함할 때만** 보고한다. 전월 꼬리만으로 이뤄진 위반은 전월의 몫이다 | — | 월 경계 |
+| R-SCOPE-3 | 위반은 **대상 월 날짜를 하나 이상 포함할 때만** 보고한다. 전월 꼬리만으로 이뤄진 위반은 전월의, 다음 달 앞쪽 칸만으로 이뤄진 위반은 다음 달의 몫이다. 월 경계에 걸친 위반은 두 달 모두에서 보인다 | — | 월 경계 |
 | R-SCOPE-4 | 전월 꼬리 길이 `requiredTailDays = max(maxConsecutiveOff, maxConsecutiveNight, 가장 긴 금지 패턴 길이 − 1, offAfterNight + 1)` (기본값 기준 15) | — | 1-2 §9 |
 
 ### 1.2 하드 규칙
@@ -37,6 +37,8 @@ updated: 2026-09-27
 | H-TRAINING | 트레이닝 기간의 날짜마다 신규와 프리셉터의 칸이 "같은 근무"여야 한다: 둘 다 쉬는 칸이거나, 같은 근무 코드. 둘 중 한 명이라도 AL·LEAVE인 날은 예외 **(Q4)** | 신규·날짜 | 응급실 지침 §6 |
 | H-SPECIAL-REQ | `special` 신청(AL → AL, EDU_CONT → OFF edu_cont, EDU_UNION → OFF edu_union)과 칸이 다르면 위반 | 사람·날짜 | 1-3 §3 "고정 셀" |
 | H-SLEEPING | 그달 슬리핑오프 칸 수 > `floor((nightBankBefore + 그달 N 수) / sleepingOffPerN)` | 사람·월 | 1-2 §4 |
+| H-EDU-LIMIT | 올해 앞선 달 이수 횟수(`eduUsedThisYear`) + 이번 달 교육 OFF > 연 한도(`eduContPerYear` 1, `eduUnionPerYear` 2) | 사람·교육 종류 | 응급실 지침 §8·§9 |
+| H-BALANCE | 이번 달 연차·특휴·개원오프·검진(0.5)·병가 사용 > 월초 잔여(`balancesBefore`) | 사람·계정 | 1-2 §6-6 |
 | H-EDU-UNION | OFF edu_union 칸이 주말·빨간 날이거나, 그 사람이 `unionMember`가 아니면 위반 | 사람·날짜 | 응급실 지침 §9, 1-2 §6-3 |
 
 ### 1.3 소프트 규칙
@@ -45,9 +47,9 @@ updated: 2026-09-27
 |---|---|---|---|
 | S-NIGHT-TARGET | 한 달 N 수 > `targetNightPerMonth`(6)이면서 하드 상한 이하 | — | 야간 지침 §1 "6일 이상이 되지 않도록" |
 | S-OFF-AFTER-N | N 연속 구간이 끝난 뒤 다음 근무 전까지 쉬는 날 < `offAfterNight`(2). 전월 꼬리에서 끝난 N 구간도 본다. 다음 칸이 대상 월 밖(월말)이면 판단하지 않는다 | — | 응급실 지침 §14 |
-| S-WEEKEND-PAIR | 토·일이 **둘 다** 쉬는 칸인 주말이 없다. 달을 걸친 주말은 **토요일이 속한 달**로 센다: 일요일(다음 달 1일) 칸이 `nextHead`에 있으면 확인하고, 없으면 토요일 OFF만으로 달성 예정으로 본다. `weekendPairMissedLastMonth`이면 `data.consecutive = true`(문구 "전달도 미배정") | `weekendPairOffMonthly` | 응급실 지침 §4 |
+| S-WEEKEND-PAIR | 토·일이 **둘 다** 쉬는 칸인 주말이 없다. 문구와 솔버 가중치는 연속 미배정 개월 수(`weekendPairMissedStreak`)를 쓴다. 달을 걸친 주말은 **토요일이 속한 달**로 센다: 일요일(다음 달 1일) 칸이 `nextHead`에 있으면 확인하고, 없으면 토요일 OFF만으로 달성 예정으로 본다. `weekendPairMissedLastMonth`이면 `data.consecutive = true`(문구 "전달도 미배정") | `weekendPairOffMonthly` | 응급실 지침 §4 |
 | S-WEEKEND-CARRY | 전달이 마지막 토요일 OFF에 기대 주말 통 OFF를 달성 예정으로 뒀는데(`weekendPairCarryIn`) 이번 달 1일(일)이 근무 | `weekendPairOffMonthly` | 2026-09-27 답변 |
-| S-SHIFT-BALANCE | 한 사람의 그달 D·E·N 개수에서 (최대 − 최소) > `shiftBalanceTolerance`(2). D·E·N 합이 9 미만인 달, 트레이닝 중인 신규, 야간 전담 적용 중인 사람은 제외 | `balanceShiftTypes` | 2026-09-27 요청 |
+| S-SHIFT-BALANCE | 한 사람의 그달 D·E·N 개수에서 (최대 − 최소) > `shiftBalanceTolerance`(2). 또한 최근 `shiftBalanceWindowMonths`(3)개월 누적(`shiftCountsBefore` + 이번 달)의 차이 > 허용치 + (개월 − 1)이면 누적 경고. D·E·N 합이 9 미만인 달, 트레이닝 중인 신규, 야간 전담 적용 중인 사람은 제외 | `balanceShiftTypes` | 2026-09-27 요청 |
 | S-HEAD-FILL | 교대 근무자만으로는 H-STAFF 또는 H-KTASS를 채우지 못하고 수간호사 보충으로 채운 날·듀티(수간호사 D는 최후의 수단) | — | 2026-09-27 답변 (Q1) |
 | S-JUNIOR-ONLY | 집계 인원(수간호사 보충 포함)이 1명 이상이고 전원 `junior` | `avoidJuniorOnly` | 응급실 지침 §3 |
 | S-REPEAT-PAIR | 두 사람이 같은 날 같은 듀티(D/E/N)에 함께 선 횟수 ≥ 경고 기준. 경고 기준 = `max(4, ceil(2 × 전체 쌍 평균))`. 트레이닝 기간 중 신규–프리셉터 쌍은 제외 | `minimizeRepeatPairs` | 응급실 지침 §13 |
