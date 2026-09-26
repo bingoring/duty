@@ -45,7 +45,9 @@ updated: 2026-09-27
 |---|---|---|---|
 | S-NIGHT-TARGET | 한 달 N 수 > `targetNightPerMonth`(6)이면서 하드 상한 이하 | — | 야간 지침 §1 "6일 이상이 되지 않도록" |
 | S-OFF-AFTER-N | N 연속 구간이 끝난 뒤 다음 근무 전까지 쉬는 날 < `offAfterNight`(2). 전월 꼬리에서 끝난 N 구간도 본다. 다음 칸이 대상 월 밖(월말)이면 판단하지 않는다 | — | 응급실 지침 §14 |
-| S-WEEKEND-PAIR | 대상 월 안에 토·일이 **둘 다** 쉬는 칸인 주말이 없다. 토·일 중 하나가 월 밖인 주말은 세지 않는다. `weekendPairMissedLastMonth`이면 `data.consecutive = true`(문구 "전달도 미배정") | `weekendPairOffMonthly` | 응급실 지침 §4 |
+| S-WEEKEND-PAIR | 토·일이 **둘 다** 쉬는 칸인 주말이 없다. 달을 걸친 주말은 **토요일이 속한 달**로 센다: 일요일(다음 달 1일) 칸이 `nextHead`에 있으면 확인하고, 없으면 토요일 OFF만으로 달성 예정으로 본다. `weekendPairMissedLastMonth`이면 `data.consecutive = true`(문구 "전달도 미배정") | `weekendPairOffMonthly` | 응급실 지침 §4 |
+| S-WEEKEND-CARRY | 전달이 마지막 토요일 OFF에 기대 주말 통 OFF를 달성 예정으로 뒀는데(`weekendPairCarryIn`) 이번 달 1일(일)이 근무 | `weekendPairOffMonthly` | 2026-09-27 답변 |
+| S-SHIFT-BALANCE | 한 사람의 그달 D·E·N 개수에서 (최대 − 최소) > `shiftBalanceTolerance`(2). D·E·N 합이 9 미만인 달, 트레이닝 중인 신규, 야간 전담 적용 중인 사람은 제외 | `balanceShiftTypes` | 2026-09-27 요청 |
 | S-HEAD-FILL | 교대 근무자만으로는 H-STAFF 또는 H-KTASS를 채우지 못하고 수간호사 보충으로 채운 날·듀티(수간호사 D는 최후의 수단) | — | 2026-09-27 답변 (Q1) |
 | S-JUNIOR-ONLY | 집계 인원(수간호사 보충 포함)이 1명 이상이고 전원 `junior` | `avoidJuniorOnly` | 응급실 지침 §3 |
 | S-REPEAT-PAIR | 두 사람이 같은 날 같은 듀티(D/E/N)에 함께 선 횟수 ≥ 경고 기준. 경고 기준 = `max(4, ceil(2 × 전체 쌍 평균))`. 트레이닝 기간 중 신규–프리셉터 쌍은 제외 | `minimizeRepeatPairs` | 응급실 지침 §13 |
@@ -120,7 +122,7 @@ N/A — 도메인 패키지는 권한을 모른다. 코멘트는 `RequestEntry`�
 | 3인 나이트가 월 경계에 걸침(10월에 1개, 11월에 2개) | 11월 입력의 `tripleNightsBefore = 1` → 11월 첫 N 2개가 3인 나이트 |
 | 트레이닝이 끝날 때까지 N을 3개 못 섬 | 트레이닝 기간 밖의 N은 3인 나이트가 아니다 |
 | 월말이 N | S-OFF-AFTER-N 판단 안 함. 다음 달 검사가 전월 꼬리로 판단 |
-| 월말 토요일(2026-10-31) | 그 주말은 10월·11월 어디에도 세지 않음 |
+| 월말 토요일(2026-10-31) | 10월 몫. 11월 칸이 없으면 10/31 OFF만으로 달성 예정, 11월 검사는 11/1이 근무면 S-WEEKEND-CARRY |
 | 신청 없는 AL 칸 | 출처 `requested`, S-REQUEST 대상 아님 |
 | 금지 패턴 목록이 비어 있음 | H-PATTERN 없음, `requiredTailDays`는 다른 항으로 결정 |
 | 슬리핑오프를 받았는데 N 누적이 모자람 | H-SLEEPING |

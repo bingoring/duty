@@ -46,6 +46,7 @@ updated: 2026-09-27
 | `offCarryBefore` | `number` | ✓ | 월초 누적 OFF(원장 `off_carry` 합). 0.5 단위 |
 | `nightBankBefore` | `number` | ✓ | 월초 잔여 N(원장 `night_bank` 합). 정수 |
 | `weekendPairMissedLastMonth` | `boolean` | ✓ | 전달 `month_settlements.weekend_pair_achieved = false`. 전달 정산이 없으면 `false` |
+| `weekendPairCarryIn` | `boolean` | ✓ | 전달 칸에 `weekendPairCarryOut`을 적용한 값(마지막 토요일 OFF에 기대 달성 예정) |
 
 ### `TrainingSpan`
 | 필드 | 타입 | 설명 |
@@ -87,6 +88,7 @@ updated: 2026-09-27
 | `trainings` | `TrainingSpan[]` | 대상 월과 겹치는 것 |
 | `holidays` | `HolidayDay[]` | 대상 월 + 전월 꼬리 기간 |
 | `cells` | `GridCell[]` | 대상 월 칸 |
+| `nextHead` | `GridCell[]` | 다음 달 1일 칸(다음 달 근무표가 있을 때만, 없으면 빈 배열). 달을 걸친 주말 판정용 |
 | `prevTail` | `GridCell[]` | 전월 마지막 `requiredTailDays(rules)`일의 칸(없으면 빈 배열 — 첫 달) |
 | `requests` | `RequestEntry[]` | 대상 월 신청 |
 
@@ -132,7 +134,7 @@ updated: 2026-09-27
 | 이름 | 값 | 확장 규칙 |
 |---|---|---|
 | `HARD_RULE_IDS` | `H-CELL`, `H-PATTERN`, `H-REST`, `H-NIGHT-MAX`, `H-NIGHT-CONSEC`, `H-OFF-CONSEC`, `H-STAFF`, `H-KTASS`, `H-TRAINING`, `H-SPECIAL-REQ`, `H-SLEEPING`, `H-EDU-UNION` | 추가만 |
-| `SOFT_RULE_IDS` | `S-NIGHT-TARGET`, `S-OFF-AFTER-N`, `S-WEEKEND-PAIR`, `S-HEAD-FILL`, `S-JUNIOR-ONLY`, `S-REPEAT-PAIR`, `S-REQUEST` | 추가만 |
+| `SOFT_RULE_IDS` | `S-NIGHT-TARGET`, `S-OFF-AFTER-N`, `S-WEEKEND-PAIR`, `S-WEEKEND-CARRY`, `S-SHIFT-BALANCE`, `S-HEAD-FILL`, `S-JUNIOR-ONLY`, `S-REPEAT-PAIR`, `S-REQUEST` | 추가만 |
 | `TRAINEE_KINDS` | `new_grad`, `experienced` | 추가만. DB `trainings.kind`(text, 기본 `new_grad`) |
 | `PLAN_EVENTS` | `CLOSE_REQUESTS`, `GENERATE`, `CONFIRM`, `ADJUST`, `CLOSE`, `REOPEN` | 추가만 |
 | `WORK_CODES` | `D E N S` | — |
