@@ -1,7 +1,7 @@
 ---
 artifact: business-logic-model
 build-spec: schedule-view
-status: DRAFT
+status: IMPLEMENTED
 updated: 2026-09-27
 ---
 
@@ -89,7 +89,7 @@ N/A — 조회만 한다.
 1. `fixtures/paper-2026-10.json`(가명)을 읽는다. 없으면 건너뛴다.
 2. 2026-10 MonthPlan이 이미 있으면 건너뛴다(멱등).
 3. 사용자별 초기 원장(`initial_input`, `created_at` = 2026-09-30): `off_carry` = 이월 off, `night_bank` = 이월 N, `annual_leave` 15, `special_leave` 5, `checkup` 0.5, `sick_leave` 60.
-4. MonthPlan(2026-10, CONFIRMED, `defaultPlanDates`, 규칙 v1, 확정자 = 관리자) + `schedule_cells` 341개. 슬리핑오프는 `floor((이월N + 그달N)/6)`개를 앞쪽 OFF부터, `source`는 모두 `auto`.
+4. MonthPlan(2026-10, CONFIRMED, `defaultPlanDates`, 규칙 v1, 확정자 = 관리자) + `schedule_cells` 330개. 슬리핑오프는 `floor((이월N + 그달N)/6)`개를 앞쪽 OFF부터, `source`는 모두 `auto`.
 
 ## 5. 통합 지점
 

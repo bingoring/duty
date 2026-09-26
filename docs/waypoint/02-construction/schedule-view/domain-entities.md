@@ -1,7 +1,7 @@
 ---
 artifact: domain-entities
 build-spec: schedule-view
-status: DRAFT
+status: IMPLEMENTED
 updated: 2026-09-27
 ---
 

@@ -8,6 +8,10 @@
 
 > 🔒 **개인정보:** 공개 저장소다. 간호사 이름·사번은 모두 가명이며, 실명 자료는 커밋하지 않는다([DECISIONS](DECISIONS.md) 2026-09-26).
 
+> 🏗️ **2-3 근무표 조회 구현 완료 → 승인 대기 (2026-09-27).** S3 격자(1c)·요약 카드 5개·월 이동·인쇄(A4 가로 1장) + 공통 셸 v2(메뉴 재구성,
+> 「내 휴가 잔여」). 이월 값은 마감 달 스냅샷 / 미마감 달 원장 + 앞선 확정 달 투영. 개발 시드에 종이 10월(가명) 확정본.
+> 단위 276·통합 47·E2E 15 그린, 편차 4건(Build Spec §7). 확인: `pnpm db:seed` → `/?ym=2026-10`.
+>
 > 🎨 **핸드오프 v2 반영 (2026-09-27).** 근무 조정을 모든 간호사에게 열고 간호사 간 교환 요청(3a) 추가, 휴가 신청을 근무 신청 팝오버에 통합(3b, 증빙 없음),
 > 메뉴 재구성(근무 조정이 일반 메뉴로), 사이드바 「내 휴가 잔여」, 휴가 칩 `휴`(#D8E6C3). 입력의 실명 16건은 가명 치환, 종이 사진은 제외했다.
 > 단계 조정: 2-5에 휴가 포함, 2-8 교환 요청 신설, 통합은 2-9. 2-3 Build Spec에 메뉴·잔여 카드·휴가 칩 반영.
@@ -69,7 +73,7 @@
 |---------|------|------|
 | 2-1 Foundation | [01-foundation.md](02-construction/01-foundation.md) · [Build Spec](02-construction/foundation/build-spec-index.md) (IMPLEMENTED) | HUMAN_APPROVED |
 | 2-2 Domain Core | [02-domain-core.md](02-construction/02-domain-core.md) · [Build Spec](02-construction/domain-core/build-spec-index.md) (IMPLEMENTED) | HUMAN_APPROVED |
-| 2-3 근무표 조회 (S3) | [03-schedule-view.md](02-construction/03-schedule-view.md) · [Build Spec](02-construction/schedule-view/build-spec-index.md) (READY) | AI_PROPOSED |
+| 2-3 근무표 조회 (S3) | [03-schedule-view.md](02-construction/03-schedule-view.md) · [Build Spec](02-construction/schedule-view/build-spec-index.md) (IMPLEMENTED) | AI_PROPOSED |
 | 2-4 관리자 설정 (S10·S11) | 02-construction/04-admin-settings.md | PENDING |
 | 2-5 근무 신청·휴가 (S4 + S5 팝오버 통합) | 02-construction/05-shift-requests.md | PENDING |
 | 2-6 솔버·듀티 생성 (S8) | 02-construction/06-solver-generation.md | PENDING |

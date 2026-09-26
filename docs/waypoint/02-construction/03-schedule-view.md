@@ -22,9 +22,9 @@ updated: 2026-09-27
 
 ## 체크리스트
 
-- [x] Build Spec 작성·질문 해소 → READY (2026-09-27, 구현 착수 승인 대기)
-- [ ] Build Spec §4 구현 체크리스트 전 항목 완료
-- [ ] Build Spec §5 검증 통과 → IMPLEMENTED
+- [x] Build Spec 작성·질문 해소 → READY (2026-09-27 승인)
+- [x] Build Spec §4 구현 체크리스트 전 항목 완료
+- [x] Build Spec §5 검증 통과 → IMPLEMENTED (2026-09-27)
 
 ## AI 제안 (AI Proposal)
 
@@ -41,6 +41,13 @@ Build Spec(standard, 4 아티팩트): [`schedule-view/build-spec-index.md`](sche
 - **기본 달(Q4):** 이번 달. 다음 달이 확정되면 헤더 링크.
 - **핸드오프 v2:** 메뉴 재구성(근무 조정을 일반 메뉴로, 휴가 신청 제거, 관리자 3개), 사이드바「내 휴가 잔여」(모든 화면), 휴가 칩 `휴`(#D8E6C3).
 - **개발 데이터:** 종이 2026-10(가명)을 확정 근무표·초기 원장으로 시드해 화면·E2E에서 쓴다.
+
+### 구현 결과 (2026-09-27)
+
+- 메인 저장소 `apps/web/src/server/schedule/`(month·balances·load·view), `components/schedule/`, `components/shell/LeaveBalanceCard.tsx`,
+  `app/(app)/page.tsx`·`adjust/page.tsx`, `server/seed/dev-schedule.ts`. 편차 4건은 Build Spec §7.
+- 검증: 단위 276 · 통합 47 · E2E 15 · 빌드. 종이 10월 누적 off 10명 일치, 인쇄 PDF 1쪽.
+- 확인 방법: `pnpm db:seed` → `pnpm dev` → 사번 `00103` 로그인 → `/?ym=2026-10`.
 
 ## 검토 게이트 (Human Gate)
 
