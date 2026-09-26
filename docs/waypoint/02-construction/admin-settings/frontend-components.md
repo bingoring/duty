@@ -1,7 +1,7 @@
 ---
 artifact: frontend-components
 build-spec: admin-settings
-status: DRAFT
+status: IMPLEMENTED
 updated: 2026-09-27
 ---
 

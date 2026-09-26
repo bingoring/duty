@@ -1,7 +1,7 @@
 ---
 artifact: business-rules
 build-spec: admin-settings
-status: DRAFT
+status: IMPLEMENTED
 updated: 2026-09-27
 ---
 
@@ -57,6 +57,7 @@ updated: 2026-09-27
 | R-YEAR-3 | 활성 사용자마다: 연차·특휴·개원오프·검진·병가를 `year_reset`(−현재 합)으로 0으로 만든 뒤 `year_grant`: 특휴 `specialLeaveDays(employedDaysInYear(올해, 입사일, null))`, 검진 0.5, 병가 60, 개원오프는 R-HOL-FOUND-1. 연차는 0으로 두고 관리자가 잔여치 조정으로 입력(원문 §11-1 "1월 1일마다 리셋") | 1-2 §4 |
 | R-YEAR-4 | 누적 OFF·잔여 N은 건드리지 않는다(연말 정산 없이 이월) | 원문 §14·§15 |
 | R-YEAR-5 | 한 트랜잭션 + `pg_advisory_xact_lock`으로 동시 요청에서도 한 번만 실행 | 멱등 |
+| R-YEAR-7 | 원장 항목이 모두 올해(서울) 생성됐으면 시스템 첫해로 보고 처리하지 않는다(초기 입력이 이미 올해 값) | 구현 중 추가 |
 | R-YEAR-6 | 미뤄진 동안 S10 상단에 안내: "{전년} 12월을 마감하면 {올해}년 잔여치가 자동으로 시작됩니다" | Q4 |
 
 ## 2. 검증 메시지
