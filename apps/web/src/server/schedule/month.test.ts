@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { parseYm, shiftYm, todaySeoul, ymOf } from './month'
+import { appToday, parseYm, shiftYm, todaySeoul, ymOf } from './month'
 
 describe('todaySeoul', () => {
   it('서울 기준 날짜: UTC 15시 이후는 다음 날', () => {
@@ -25,5 +25,17 @@ describe('shiftYm · ymOf', () => {
     expect(shiftYm({ year: 2026, month: 12 }, 1)).toEqual({ year: 2027, month: 1 })
     expect(shiftYm({ year: 2026, month: 1 }, -1)).toEqual({ year: 2025, month: 12 })
     expect(ymOf({ year: 2026, month: 3 })).toBe('2026-03')
+  })
+})
+
+describe('appToday — 개발·E2E용 날짜 고정', () => {
+  const now = new Date('2026-09-27T03:00:00Z')
+  it('DUTY_FAKE_TODAY가 올바른 날짜이고 운영이 아니면 그 날짜', () => {
+    expect(appToday({ DUTY_FAKE_TODAY: '2026-10-13', NODE_ENV: 'development' }, now)).toBe('2026-10-13')
+  })
+  it('운영이거나 값이 없거나 형식이 틀리면 서울 기준 오늘', () => {
+    expect(appToday({ DUTY_FAKE_TODAY: '2026-10-13', NODE_ENV: 'production' }, now)).toBe('2026-09-27')
+    expect(appToday({ NODE_ENV: 'development' }, now)).toBe('2026-09-27')
+    expect(appToday({ DUTY_FAKE_TODAY: '2026-02-30', NODE_ENV: 'test' }, now)).toBe('2026-09-27')
   })
 })

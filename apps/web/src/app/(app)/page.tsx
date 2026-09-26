@@ -4,7 +4,7 @@ import { SummaryCards } from '@/components/schedule/SummaryCards'
 import { requireUser } from '@/server/auth/guards'
 import { getDb } from '@/server/db/client'
 import { loadMonthView } from '@/server/schedule/load'
-import { parseYm, todaySeoul } from '@/server/schedule/month'
+import { parseYm, appToday } from '@/server/schedule/month'
 import { buildScheduleView } from '@/server/schedule/view'
 
 // S3 근무표 — 홈 (Build Spec 2-3). 서버 컴포넌트만으로 렌더링한다(클라이언트 JS는 인쇄 버튼뿐)
@@ -14,7 +14,7 @@ export default async function SchedulePage({
   searchParams: Promise<{ ym?: string | string[] }>
 }) {
   const session = await requireUser()
-  const today = todaySeoul()
+  const today = appToday()
   const { year, month } = parseYm((await searchParams).ym, today)
   const data = await loadMonthView(getDb(), { year, month, viewerId: session.user.id, today })
   const view = buildScheduleView(data)

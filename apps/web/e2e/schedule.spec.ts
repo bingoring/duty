@@ -38,19 +38,23 @@ test.describe('S3 근무표', () => {
     await expect(page.getByText('2026년 9월 근무표가 아직 확정되지 않았습니다.')).toBeVisible()
   })
 
-  test('잘못된 ym은 이번 달로 보여 준다', async ({ page }) => {
+  test('잘못된 ym은 이번 달(고정된 오늘 2026-10-13)로 보여 준다', async ({ page }) => {
     await login(page, NURSE.employeeNo)
     await page.goto('/?ym=2026-13')
-    const now = new Intl.DateTimeFormat('ko-KR', {
-      timeZone: 'Asia/Seoul',
-      year: 'numeric',
-      month: 'numeric',
-    })
-      .formatToParts(new Date())
-      .reduce<Record<string, string>>((a, p) => ({ ...a, [p.type]: p.value }), {})
-    await expect(
-      page.getByRole('heading', { name: `${now.year}년 ${now.month}월 · 응급실 근무표` }).last(),
-    ).toBeVisible()
+    await expect(page.getByRole('heading', { name: '2026년 10월 · 응급실 근무표' }).last()).toBeVisible()
+  })
+
+  test('오늘 열 강조 (핸드오프 v3): 이번 달에만, 헤더와 모든 행의 칸', async ({ page }) => {
+    await login(page, NURSE.employeeNo)
+    await expect(page.getByRole('grid').locator('[data-today-head]')).toHaveCount(2)
+    await expect(page.getByRole('grid').locator('[data-today="true"]')).toHaveCount(11)
+    await expect(page.getByRole('grid').locator('[data-today="true"]').first()).toHaveAttribute(
+      'data-date',
+      '2026-10-13',
+    )
+    await expect(page.getByLabel('내 요약').getByText('오늘 10/13 (화)')).toBeVisible()
+    await page.goto('/?ym=2026-09')
+    await expect(page.locator('[data-today-head]')).toHaveCount(0)
   })
 
   test('인쇄 모드: 사이드바·카드·헤더 컨트롤을 숨기고 격자만', async ({ page }) => {

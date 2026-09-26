@@ -186,6 +186,23 @@ describe('일자 헤더 (R-VIEW-8)', () => {
   })
 })
 
+describe('오늘 열 (핸드오프 v3)', () => {
+  it('보는 달이 이번 달이면 오늘 날짜의 헤더와 모든 행의 칸에 today 표시(주말이어도)', () => {
+    const v = buildScheduleView(data({ today: '2026-10-03' }))
+    expect(v.days.filter((d) => d.today).map((d) => d.date)).toEqual(['2026-10-03'])
+    for (const r of v.rows) {
+      expect(r.cells.filter((c) => c.today).map((c) => c.date)).toEqual(['2026-10-03'])
+      expect(r.cells[2]!.weekend).toBe(true)
+    }
+  })
+
+  it('이번 달이 아니면 표시하지 않는다', () => {
+    const v = buildScheduleView(data({ today: '2026-11-02' }))
+    expect(v.days.some((d) => d.today)).toBe(false)
+    expect(v.rows.some((r) => r.cells.some((c) => c.today))).toBe(false)
+  })
+})
+
 describe('우측 컬럼 (R-VIEW-9·10)', () => {
   it('누적 off는 부호, 특휴/개원은 개원 대상이 아니면 "-"', () => {
     const balances = new Map([

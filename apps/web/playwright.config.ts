@@ -4,6 +4,7 @@ import { defineConfig, devices } from '@playwright/test'
 if (existsSync('.env')) process.loadEnvFile('.env')
 const E2E_DB = process.env.E2E_DATABASE_URL ?? 'postgres://duty:duty@localhost:5433/duty_e2e'
 const PORT = 3100
+export const E2E_TODAY = '2026-10-13'
 
 export default defineConfig({
   testDir: './e2e',
@@ -20,6 +21,7 @@ export default defineConfig({
     url: `http://localhost:${PORT}/login`,
     reuseExistingServer: !process.env.CI,
     timeout: 120_000,
-    env: { DATABASE_URL: E2E_DB },
+    // 날짜에 따라 달라지는 화면(오늘 열·기본 달·잔여 카드)을 고정한다
+    env: { DATABASE_URL: E2E_DB, DUTY_FAKE_TODAY: E2E_TODAY },
   },
 })

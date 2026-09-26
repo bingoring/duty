@@ -20,6 +20,8 @@ export type DayHead = {
   weekday: string
   red: boolean
   color: 'sun' | 'sat' | 'plain'
+  // 핸드오프 v3 오늘 열 강조 — 보는 달이 이번 달일 때만
+  today: boolean
 }
 
 export type GridCellView = {
@@ -29,6 +31,7 @@ export type GridCellView = {
   outline: 'admin' | 'requested' | null
   checkupHalf: boolean
   weekend: boolean
+  today: boolean
   title: string
 }
 
@@ -95,9 +98,19 @@ export function signed(n: number): string {
   return r > 0 ? `+${r}` : r < 0 ? `−${-r}` : '0'
 }
 
-function cellView(c: ScheduleCellRow | undefined, date: IsoDate, weekend: boolean): GridCellView {
+function cellView(c: ScheduleCellRow | undefined, day: DayHead): GridCellView {
+  const { date, red: weekend, today } = day
   if (!c)
-    return { date, label: '', chip: null, outline: null, checkupHalf: false, weekend, title: withDay(date) }
+    return {
+      date,
+      label: '',
+      chip: null,
+      outline: null,
+      checkupHalf: false,
+      weekend,
+      today,
+      title: withDay(date),
+    }
   const leave = c.code === 'AL' || c.code === 'LEAVE'
   const label = c.code === 'OFF' ? 'off' : leave ? '휴' : c.code
   const chip = leave ? 'leave' : c.code === 'OFF' ? 'off' : (c.code.toLowerCase() as GridCellView['chip'])
@@ -119,7 +132,7 @@ function cellView(c: ScheduleCellRow | undefined, date: IsoDate, weekend: boolea
   ]
     .filter(Boolean)
     .join(' · ')
-  return { date, label, chip, outline, checkupHalf: c.checkupHalf, weekend, title }
+  return { date, label, chip, outline, checkupHalf: c.checkupHalf, weekend, today, title }
 }
 
 // R-VIEW-2
@@ -154,7 +167,14 @@ export function buildScheduleView(d: MonthViewData): ScheduleView {
     const isRed = isRedDay(date, red)
     const color =
       dow === 0 || (isRed && dow !== 6) || (dow === 6 && red.has(date)) ? 'sun' : dow === 6 ? 'sat' : 'plain'
-    return { date, day: Number(date.slice(8)), weekday: weekdayKo(date), red: isRed, color }
+    return {
+      date,
+      day: Number(date.slice(8)),
+      weekday: weekdayKo(date),
+      red: isRed,
+      color,
+      today: date === d.today,
+    }
   })
 
   const shown = d.plan && (d.plan.status === 'CONFIRMED' || d.plan.status === 'CLOSED')
@@ -194,7 +214,7 @@ export function buildScheduleView(d: MonthViewData): ScheduleView {
       kind: u.id === d.viewerId ? 'me' : u.rotation === 'fixed_weekday' ? 'head' : 'other',
       carryOff: num(b.offCarryBefore),
       carryN: num(b.nightBankBefore),
-      cells: days.map((day) => cellView(cellAt.get(`${u.id}|${day.date}`), day.date, day.red)),
+      cells: days.map((day) => cellView(cellAt.get(`${u.id}|${day.date}`), day)),
       accOff: signed(b.offCarryAfter),
       nLeft: num(b.nightBankAfter),
       special: `${num(b.special)}/${b.foundingEligible ? num(b.founding) : '-'}`,

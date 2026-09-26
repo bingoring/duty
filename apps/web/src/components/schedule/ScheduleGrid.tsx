@@ -15,6 +15,10 @@ const OUTLINE = {
   requested: 'shadow-[inset_0_0_0_1.5px_var(--color-danger)]',
 }
 const DAY_COLOR = { sun: 'text-danger', sat: 'text-admin', plain: 'text-ink-2' }
+// 핸드오프 v3 오늘 열: 헤더 청록·흰 글자, 데이터 칸 연청록 + 좌우 1px 청록 선 → 세로 띠. 주말 음영보다 우선
+const TODAY_CELL =
+  'bg-primary-soft shadow-[inset_1px_0_0_var(--color-primary),inset_-1px_0_0_var(--color-primary)]'
+const TODAY_HEAD = 'bg-primary text-white'
 
 const headFixed =
   'row-span-2 flex flex-col items-center justify-center border-r border-b border-line bg-panel text-center leading-[1.2] text-ink-2'
@@ -24,7 +28,10 @@ function Cell({ c }: { c: GridCellView }) {
     <div
       title={c.title}
       data-date={c.date}
-      className={`relative flex h-8 items-center justify-center border-r border-b border-line-soft ${c.weekend ? 'bg-weekend-cell' : ''}`}
+      data-today={c.today || undefined}
+      className={`relative flex h-8 items-center justify-center border-r border-b border-line-soft ${
+        c.today ? TODAY_CELL : c.weekend ? 'bg-weekend-cell' : ''
+      }`}
     >
       {c.chip && (
         <span
@@ -106,8 +113,9 @@ export function ScheduleGrid({ view }: { view: ScheduleView }) {
         {view.days.map((d) => (
           <div
             key={d.date}
+            data-today-head={d.today || undefined}
             className={`flex h-[18px] items-center justify-center border-r border-b border-line-soft ${
-              d.red ? 'bg-weekend-head font-bold' : 'bg-panel'
+              d.today ? `${TODAY_HEAD} font-extrabold` : d.red ? 'bg-weekend-head font-bold' : 'bg-panel'
             }`}
           >
             {d.day}
@@ -129,9 +137,12 @@ export function ScheduleGrid({ view }: { view: ScheduleView }) {
         {view.days.map((d) => (
           <div
             key={d.date}
+            data-today-head={d.today || undefined}
             className={`flex h-[18px] items-center justify-center border-r border-b border-r-line-soft border-b-line text-[10px] ${
-              d.red ? 'bg-weekend-head' : 'bg-panel'
-            } ${DAY_COLOR[d.color]}`}
+              d.today
+                ? `${TODAY_HEAD} font-bold`
+                : `${d.red ? 'bg-weekend-head' : 'bg-panel'} ${DAY_COLOR[d.color]}`
+            }`}
           >
             {d.weekday}
           </div>
