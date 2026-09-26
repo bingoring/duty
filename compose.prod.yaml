@@ -1,0 +1,40 @@
+# 운영 한 벌: db + web (+ 1회성 migrate). TLS(Caddy)·백업은 3-1 Deployment에서 추가한다.
+# 사용: docker compose -f compose.prod.yaml --env-file .env.prod up -d --build
+services:
+  db:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:-duty}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?POSTGRES_PASSWORD가 필요합니다}
+      POSTGRES_DB: ${POSTGRES_DB:-duty}
+    volumes:
+      - db-data:/var/lib/postgresql/data
+    healthcheck:
+      test: ['CMD-SHELL', 'pg_isready -U ${POSTGRES_USER:-duty} -d ${POSTGRES_DB:-duty}']
+      interval: 2s
+      timeout: 3s
+      retries: 30
+    restart: unless-stopped
+
+  migrate:
+    build: { context: ., dockerfile: apps/web/Dockerfile, target: tools }
+    environment:
+      DATABASE_URL: postgres://${POSTGRES_USER:-duty}:${POSTGRES_PASSWORD}@db:5432/${POSTGRES_DB:-duty}
+      ADMIN_EMPLOYEE_NO: ${ADMIN_EMPLOYEE_NO:-}
+      ADMIN_NAME: ${ADMIN_NAME:-}
+    depends_on:
+      db: { condition: service_healthy }
+    restart: 'no'
+
+  web:
+    build: { context: ., dockerfile: apps/web/Dockerfile, target: runner }
+    environment:
+      DATABASE_URL: postgres://${POSTGRES_USER:-duty}:${POSTGRES_PASSWORD}@db:5432/${POSTGRES_DB:-duty}
+    ports:
+      - '3000:3000'
+    depends_on:
+      migrate: { condition: service_completed_successfully }
+    restart: unless-stopped
+
+volumes:
+  db-data:
