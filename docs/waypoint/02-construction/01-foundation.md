@@ -2,7 +2,7 @@
 phase: 02-construction
 stage: 01-foundation
 status: AI_PROPOSED
-updated: 2026-09-26
+updated: 2026-09-27
 ---
 
 # [Stage 2-1] Foundation
@@ -22,9 +22,9 @@ updated: 2026-09-26
 
 ## 체크리스트
 
-- [ ] Build Spec 작성·질문 해소 → READY
-- [ ] Build Spec §4 구현 체크리스트 전 항목 완료
-- [ ] Build Spec §5 검증 통과 → IMPLEMENTED
+- [x] Build Spec 작성·질문 해소 → READY (2026-09-26 승인)
+- [x] Build Spec §4 구현 체크리스트 전 항목 완료
+- [x] Build Spec §5 검증 통과 → IMPLEMENTED (2026-09-27)
 
 ## AI 제안 (AI Proposal)
 
@@ -34,7 +34,7 @@ Build Spec(standard 티어 + 로직·화면 아티팩트 포함): [`foundation/b
 
 요지:
 - **구성:** pnpm workspace(`apps/web`, `packages/domain`) + Docker Compose(`db`, `web`). 솔버·계약 패키지는 2-6에서 추가한다.
-- **DB:** 1-2의 엔티티 15개를 한 번에 스키마로 만든다(후속 스테이지가 마이그레이션을 쪼개지 않도록). enum성 값은 FRAMEWORK
+- **DB:** 1-2의 엔티티 16개를 한 번에 스키마로 만든다(후속 스테이지가 마이그레이션을 쪼개지 않도록). enum성 값은 FRAMEWORK
   방침대로 DB CHECK가 아니라 `@duty/domain`의 allowed-set(zod)으로 검증하고, DB는 PK·FK·UNIQUE·NOT NULL만 강제한다.
 - **데이터:** 저장소 시드는 가명 11명, 실제 명단은 `.local/roster.csv`(gitignore)를 `pnpm db:import-roster`로 넣는다.
   운영 최초 부팅은 `pnpm db:bootstrap`이 관리자 1명을 만들고 임시 비밀번호를 한 번만 출력한다.
@@ -42,6 +42,12 @@ Build Spec(standard 티어 + 로직·화면 아티팩트 포함): [`foundation/b
   Next.js 16의 `proxy.ts`는 쿠키 유무로 리다이렉트만 하고, 실제 인증·권한 판정은 서버 레이아웃·액션에서 DB로 한다.
 - **화면:** S1 로그인(1d 픽셀 재현), 비밀번호 변경(핸드오프에 없음 → S1 스타일로 설계, 편차 기록), 공통 셸(사이드바·사용자 블록),
   이후 스테이지 화면은 셸 안의 자리표시 페이지.
+
+### 구현 결과 (2026-09-27)
+
+- 메인 저장소 `apps/web`·`packages/domain`·`compose*.yaml`·`.github/workflows/ci.yml`. 편차 11건은 Build Spec §7에 기록했다.
+- 검증: 단위 60 · 통합 35 · E2E 9 · 빌드 · 운영 compose 로그인 확인. 상세는 Build Spec §7 하단.
+- 로컬 실행: `docker compose up -d` → `pnpm install` → `pnpm db:migrate && pnpm db:seed` → `pnpm dev` → 사번 `00101`(관리자)/`00103`(간호사), 비밀번호 `duty-dev-1234`.
 
 ## 검토 게이트 (Human Gate)
 

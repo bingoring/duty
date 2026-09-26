@@ -1,7 +1,7 @@
 ---
 artifact: business-logic-model
 build-spec: foundation
-status: READY
+status: IMPLEMENTED
 updated: 2026-09-26
 ---
 

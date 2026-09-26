@@ -1,13 +1,13 @@
 ---
 artifact: domain-entities
 build-spec: foundation
-status: READY
+status: IMPLEMENTED
 updated: 2026-09-26
 ---
 
 # Domain & Entities — 2-1 Foundation
 
-> 1-2 §2의 엔티티를 **테이블 계약**으로 옮긴다. 2-1은 15개 테이블을 모두 만들되, 행을 실제로 쓰는 것은
+> 1-2 §2의 엔티티를 **테이블 계약**으로 옮긴다. 2-1은 16개 테이블을 모두 만들되, 행을 실제로 쓰는 것은
 > `wards`·`users`·`credentials`·`sessions`·`holidays`·`rule_versions`뿐이다. 나머지는 후속 스테이지가 채운다.
 >
 > **공통 방침**

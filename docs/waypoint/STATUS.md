@@ -4,10 +4,15 @@
 **Requirements:** [inputs/requirements_v3.md](inputs/requirements_v3.md) (근무 지침 원문 + 근무자 명단)
 **Design handoff:** [inputs/design-handoff_v1/](inputs/design-handoff_v1/README.md) (최신)
 **Decisions (audit):** [DECISIONS.md](DECISIONS.md)
-**Last updated:** 2026-09-26
+**Last updated:** 2026-09-27
 
 > 🔒 **개인정보:** 공개 저장소다. 간호사 이름·사번은 모두 가명이며, 실명 자료는 커밋하지 않는다([DECISIONS](DECISIONS.md) 2026-09-26).
 
+> 🏗️ **2-1 Foundation 구현 완료 → 승인 대기 (2026-09-27).** pnpm 모노레포(`apps/web` Next.js 16 + `packages/domain`),
+> 16 테이블 스키마·마이그레이션, 가명 시드·부트스트랩·실명 CSV 가져오기, argon2id·DB 세션·잠금·첫 로그인 비밀번호 변경,
+> S1 로그인·공통 셸(1d·1c 재현), Docker(운영 compose)·CI. 단위 60·통합 35·E2E 9 그린, 운영 빌드에서 로그인까지 확인.
+> 편차 11건(Build Spec §7) — 주요: 세션 연장을 Route Handler로, 강제 변경의 임시 비밀번호 재사용 차단 추가.
+>
 > 📝 **2-1 Foundation Build Spec READY (2026-09-26).** Inception 1-1~1-3 승인. 공개 저장소에 실명 자료를 올린 사고를 정리했다
 > (가명 치환 + 이 프로젝트 커밋을 1개로 다시 씀, 원본은 메인 저장소 `.local/`). 2-1 스펙: pnpm 모노레포 + 15 테이블 스키마 +
 > 가명 시드·실명 로컬 CSV 가져오기 + argon2id·DB 세션·5회 잠금·첫 로그인 비밀번호 변경 + S1·공통 셸. 구현 착수 승인 대기.
@@ -42,7 +47,7 @@
 
 | 스테이지 | 문서 | 상태 |
 |---------|------|------|
-| 2-1 Foundation | [01-foundation.md](02-construction/01-foundation.md) · [Build Spec](02-construction/foundation/build-spec-index.md) (READY) | AI_PROPOSED |
+| 2-1 Foundation | [01-foundation.md](02-construction/01-foundation.md) · [Build Spec](02-construction/foundation/build-spec-index.md) (IMPLEMENTED) | AI_PROPOSED |
 | 2-2 Domain Core | 02-construction/02-domain-core.md | PENDING |
 | 2-3 근무표 조회 (S3) | 02-construction/03-schedule-view.md | PENDING |
 | 2-4 관리자 설정 (S10·S11) | 02-construction/04-admin-settings.md | PENDING |
