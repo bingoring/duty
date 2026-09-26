@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useState } from 'react'
+import { useSyncExternalStore } from 'react'
 
 // 관리자 화면 공용 입력 요소 (핸드오프 1k·2b 스타일)
 export const inputCls = 'h-[42px] rounded-lg border border-line bg-surface px-3 text-sm'
@@ -59,8 +59,13 @@ export function Dialog({
 }
 
 // 하이드레이션이 끝났는지. 폼 루트에 data-hydrated로 달아 E2E가 입력 전에 기다린다(느린 환경에서 하이드레이션 전 입력이 사라짐)
+const subscribeNothing = () => () => {}
+
 export function useHydrated(): boolean {
-  const [h, setH] = useState(false)
-  useEffect(() => setH(true), [])
-  return h
+  // 서버·하이드레이션 중에는 false, 하이드레이션 뒤에는 true
+  return useSyncExternalStore(
+    subscribeNothing,
+    () => true,
+    () => false,
+  )
 }
