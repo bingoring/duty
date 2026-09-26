@@ -102,6 +102,47 @@ AI가 정한 사항(READY 승인으로 함께 확정):
 - [x] 브라우저 호환: `packages/domain`이 `node:*` 모듈을 import하지 않음(테스트로 소스 grep)
 - [x] 공개 저장소 점검: 실명 검사 스크립트 0건
 
+### 요구사항 원문 추적 (2026-09-27 점검)
+
+원문 절마다 검증 위치를 대조했다. 원문 문구·예시를 옮긴 테스트는 `requirements.test.ts`에 절 번호별로 모았다.
+
+| 원문 | 검증 | 위치 |
+|---|---|---|
+| 간호부 §1 D/E/N 시각, 응급실 §7 S | ✅ 12개 조합 휴식 시간 표 | requirements.test.ts |
+| 간호부 §2 D→E→N 순환 | ◐ 직접 역행은 금지 패턴·휴식으로 차단. 순환 선호는 2-6 솔버 | checker.test.ts |
+| 간호부 §3 주 5일 | ◐ 1-1 Q4대로 월 기준 OFF + 누적 OFF로 해석 | settlement.test.ts |
+| 간호부 §4 16시간 휴식 | ✅ | checker.test.ts H-REST |
+| 간호부 §5 금지 패턴 4개 | ✅ 4개 각각 | requirements.test.ts |
+| 간호부 §6 유급휴일 1)~6) | ✅ 종류별 기준 OFF, 개원기념일 제외 | requirements.test.ts |
+| 간호부 §6-7 특별휴가 구간표 | ✅ 경계값 13개 | leave.test.ts |
+| 간호부 §6-8 검진 반차 0.5 | ✅ 원장 −0.5, 잔여 초과 | settlement·checker.test.ts |
+| 간호부 §7 경조휴가 11종 | ✅ 일수 표·종료일(신청·승인 흐름은 2차 S5) | requirements.test.ts |
+| 간호부 §8 병가 연 60일 | ✅ 잔여 초과 H-BALANCE(연 부여는 원장) | checker.test.ts |
+| 간호부 §9 공가 | ◐ LEAVE official 코드만(신청은 2차 S5) | schemas.test.ts |
+| 간호부 §10·§11 본인 입력·연차 1/1 리셋 | ⏭ S2(2차)·S10(2-4) 원장 입력 | — |
+| 간호부 §12 관리자 생성·리롤·조정·추가·제거·사번 필수 | ◐ 사번 스키마·상태 전이(리롤)만. 화면·솔버는 2-4·2-6·2-7 | schemas·month-plan.test.ts |
+| 간호부 §13 서로의 오프·잔여 N 조회 | ⏭ 2-3 역할별 DTO | — |
+| 간호부 §14·응급실 §11 누적 OFF 이월 | ✅ 종이 10명 일치, 연말 미정산 | settlement·requirements.test.ts |
+| 간호부 §15·응급실 §12 6N → 슬리핑오프 | ✅ 원문 예시 2개 그대로 | requirements.test.ts |
+| 간호부 §15 "공평하게 1순위" | ◐ 공정성 경고(D/E/N 분포·반복 겹침·주말). 최적화는 2-6 솔버 | checker.test.ts |
+| 간호부 §16 야간 전담 없음 | ✅ 토글 기본 꺼짐 | rules-defaults.test.ts |
+| 야간 §1 월 6 목표·7 상한·전담 15/16 | ✅ 30일·31일 달 | checker·requirements.test.ts |
+| 야간 §2 연속 3일 | ✅ 월·연 경계 포함 | checker.test.ts |
+| 야간 §3 전담 기간 1~6개월 | ⏭ 간호사 등록 검증(2-4) | — |
+| 응급실 §1 K-tass 1명·§2 최소 2명 | ✅ 수간호사 보충 포함 | checker·staffing.test.ts |
+| 응급실 §3 저연차만 방지 | ✅ | checker.test.ts |
+| 응급실 §4 월 1회 주말 통 OFF, 다음 달 우선 | ✅ 달을 걸친 주말·연속 미배정 | checker·settlement.test.ts |
+| 응급실 §5 신청 표시·or 신청 | ✅ 셀 출처·복수 옵션(색 표시는 2-3·2-5 화면) | cell-source·schemas.test.ts |
+| 응급실 §6 트레이닝 3개월·프리셉터 동일·3인 | ✅ 기본 종료일·3주/2주·기간 뒤 N 3개 | staffing·checker·requirements.test.ts |
+| 응급실 §8 보수교육 OFF 연 1회 | ✅ H-EDU-LIMIT | checker.test.ts |
+| 응급실 §9 노조교육 연 2회 평일 | ✅ H-EDU-UNION·H-EDU-LIMIT | checker.test.ts |
+| 응급실 §10 신청 15일·수정 20일 | ✅ 기본 날짜·편집 가능 여부 | month-plan.test.ts |
+| 응급실 §13 반복 겹침(트레이닝 제외) | ✅ | checker.test.ts |
+| 응급실 §14 N 후 OFF 2개, N-OFF-E 허용 | ✅ 소프트/하드 구분 | requirements.test.ts |
+| 응급실 근무자 명단 | ✅ 가명 순서·K-tass·연차 구분·노조 | dev-roster.test.ts(web) |
+
+✅ 테스트로 검증 · ◐ 도메인 부분만(나머지는 표시한 스테이지) · ⏭ 이 스테이지 범위 밖
+
 ## §6. NFR · 성능
 
 | 항목 | 목표 | 측정 |
@@ -129,7 +170,7 @@ AI가 정한 사항(READY 승인으로 함께 확정):
 
 | 이월 입력 = 전월 꼬리·`weekendPairMissedLastMonth`(1개월)·잔여 N·누적 OFF | 이월 관점 확장: 다음 달 앞쪽 칸(`nextHead`)으로 앞 달 수정 시 경계 규칙 검사, 주말 미배정 연속 개월 수, D·E·N 3개월 누적, 교육 연간 횟수(`H-EDU-LIMIT`), 잔여 초과(`H-BALANCE`) | 2026-09-27 사용자 설명: "10·11월은 예시, 이월되는 것에 대해 많은 것을 고려" |
 
-**검증 결과 (2026-09-27, 이월 확장 후)**: format·typecheck·lint 0 · 단위 230(domain 192 + web 38) · 통합 35 · `next build` 성공 · E2E 9 · 실명 검사 0건.
+**검증 결과 (2026-09-27, 요구사항 추적 후)**: format·typecheck·lint 0 · 단위 255(domain 217 + web 38) · 통합 35 · `next build` 성공 · E2E 9 · 실명 검사 0건.
 - 종이 10월: 10명 누적 OFF 전원 일치, 하드 위반 0, 소프트 = 수간호사 보충 1(10/2 D)·N-OFF-E 2·나이트 7개 2·주말 미배정 2(10/31 OFF인 3명은 달성 예정)·반복 겹침 5쌍(기준 5)·D/E/N 분포 1(강도윤 D 4·E 7·N 6).
 - 속성 테스트(시드 200개): 입력 순서를 섞어도 결과 동일. 사용자 id 정렬을 일부러 지운 코드에서는 실패하는 것을 확인했다.
 - 성능: 11×31 검사 100회 평균 < 5ms(Node). 비테스트 소스에 `node:*` import 없음.
