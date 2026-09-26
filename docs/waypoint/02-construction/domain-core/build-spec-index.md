@@ -1,7 +1,7 @@
 ---
 build-spec: domain-core
 stage: 02-construction/02-domain-core
-status: READY
+status: IMPLEMENTED
 depth: comprehensive
 updated: 2026-09-27
 ---
@@ -71,36 +71,36 @@ AI가 정한 사항(READY 승인으로 함께 확정):
 ## §4. 구현 체크리스트
 
 **기반**
-- [ ] `DEFAULT_RULES.maxConsecutiveOff` 10 → 15 (Q2) + 기존 테스트 갱신. 개발 DB의 `rule_versions` v1은 이미 10이므로 README에 재시드 안내
-- [ ] `RuleParams`에 `experiencedTripleWeeks`(2)·`tripleNightCount`(3) 추가(zod 기본값으로 기존 v1 행도 읽힘), `TRAINEE_KINDS`, web `getCurrentRules`가 스키마로 파싱
-- [ ] DB 마이그레이션: `trainings.kind text not null default 'new_grad'`
-- [ ] `dates.ts` + 테스트(윤년, 월말, 2026-10-01 = 목, 문자열 비교 재직 판정)
-- [ ] `types.ts`·`grid.ts` + `requiredTailDays`·토큰 테스트
-- [ ] `fixtures/paper-2026-10.json`(가명) + 로더 테스트(31칸 × 10명, 합계가 evidence 스크립트와 일치)
+- [x] `DEFAULT_RULES.maxConsecutiveOff` 10 → 15 (Q2) + 기존 테스트 갱신. 개발 DB의 `rule_versions` v1은 이미 10이므로 README에 재시드 안내
+- [x] `RuleParams`에 `experiencedTripleWeeks`(2)·`tripleNightCount`(3) 추가(zod 기본값으로 기존 v1 행도 읽힘), `TRAINEE_KINDS`, web `getCurrentRules`가 스키마로 파싱
+- [x] DB 마이그레이션: `trainings.kind text not null default 'new_grad'`
+- [x] `dates.ts` + 테스트(윤년, 월말, 2026-10-01 = 목, 문자열 비교 재직 판정)
+- [x] `types.ts`·`grid.ts` + `requiredTailDays`·토큰 테스트
+- [x] `fixtures/paper-2026-10.json`(가명) + 로더 테스트(31칸 × 10명, 합계가 evidence 스크립트와 일치)
 
 **검사기**
-- [ ] `staffing.ts` + 테스트(3인 배정 기간 신규 3주·경력 2주, 3인 나이트 3개(떨어진 N·월 경계 `tripleNightsBefore`·트레이닝 종료), K-tass 제외, S 미집계, 퇴사자 제외)
-- [ ] 하드 규칙 12종 — 규칙마다 통과·위반·월 경계 케이스
-- [ ] 소프트 규칙 6종 + 토글 꺼짐 케이스
-- [ ] `checkSchedule` 정렬·결정성·입력 오류 throw
-- [ ] `formatViolation` 문구 스냅샷(핸드오프 S8·S9 예시 문구와 대조)
+- [x] `staffing.ts` + 테스트(3인 배정 기간 신규 3주·경력 2주, 3인 나이트 3개(떨어진 N·월 경계 `tripleNightsBefore`·트레이닝 종료), K-tass 제외, S 미집계, 퇴사자 제외)
+- [x] 하드 규칙 12종 — 규칙마다 통과·위반·월 경계 케이스
+- [x] 소프트 규칙 6종 + 토글 꺼짐 케이스
+- [x] `checkSchedule` 정렬·결정성·입력 오류 throw
+- [x] `formatViolation` 문구 스냅샷(핸드오프 S8·S9 예시 문구와 대조)
 
 **정산·기타**
-- [ ] `settlement.ts` + 종이 10명 `offCarryAfter` 일치, 원장 증감·역분개 합 0, 수간호사 0
-- [ ] `leave.ts` + 특휴 경계값 36/37·109/110·182/183·255/256·328/329·365·366, 연중 입사·퇴사
-- [ ] `cell-source.ts` + 1-2 §5 규칙별 케이스
-- [ ] `month-plan.ts` + 허용·거부 전이 전체, 기본 날짜(2월 말일 보정)
-- [ ] `index.ts` re-export, 기존 테스트 유지
+- [x] `settlement.ts` + 종이 10명 `offCarryAfter` 일치, 원장 증감·역분개 합 0, 수간호사 0
+- [x] `leave.ts` + 특휴 경계값 36/37·109/110·182/183·255/256·328/329·365·366, 연중 입사·퇴사
+- [x] `cell-source.ts` + 1-2 §5 규칙별 케이스
+- [x] `month-plan.ts` + 허용·거부 전이 전체, 기본 날짜(2월 말일 보정)
+- [x] `index.ts` re-export, 기존 테스트 유지
 
 ## §5. 검증 계획
 
-- [ ] `pnpm typecheck`·`pnpm lint`·`pnpm format:check` = 0
-- [ ] 단위(Vitest, `packages/domain`): 위 체크리스트의 규칙별 테스트. 규칙 테스트는 작은 격자 빌더(`grid('D E N O …')`)로 작성해 읽기 쉽게 한다
-- [ ] **종이 fixture 통합 테스트:** `settleMonth` 10명 누적 OFF = 종이 값, `checkSchedule` 결과가 business-rules §6의 사실과 일치(하드 0 / 소프트: 수간호사 보충 1(10/2 D), N-OFF-E 2, N 7개 2, 주말 미배정 5, 반복 겹침 5. 수간호사 행은 평일 D·빨간 날 빈칸으로 fixture에 넣는다)
-- [ ] 무작위 격자 속성 테스트(고정 시드 PRNG 200개): 예외 없음, 입력 순서를 섞어도 결과 동일(INV5), 역분개 합 0(INV4)
-- [ ] 성능: 11×31 격자 `checkSchedule` 100회 평균 < 5ms(Node) — 브라우저 50ms 목표의 여유 확인
-- [ ] 브라우저 호환: `packages/domain`이 `node:*` 모듈을 import하지 않음(테스트로 소스 grep)
-- [ ] 공개 저장소 점검: 실명 검사 스크립트 0건
+- [x] `pnpm typecheck`·`pnpm lint`·`pnpm format:check` = 0
+- [x] 단위(Vitest, `packages/domain`): 위 체크리스트의 규칙별 테스트. 규칙 테스트는 작은 격자 빌더(`grid('D E N O …')`)로 작성해 읽기 쉽게 한다
+- [x] **종이 fixture 통합 테스트:** `settleMonth` 10명 누적 OFF = 종이 값, `checkSchedule` 결과가 business-rules §6의 사실과 일치(하드 0 / 소프트: 수간호사 보충 1(10/2 D), N-OFF-E 2, N 7개 2, 주말 미배정 5, 반복 겹침 5. 수간호사 행은 평일 D·빨간 날 빈칸으로 fixture에 넣는다)
+- [x] 무작위 격자 속성 테스트(고정 시드 PRNG 200개): 예외 없음, 입력 순서를 섞어도 결과 동일(INV5), 역분개 합 0(INV4)
+- [x] 성능: 11×31 격자 `checkSchedule` 100회 평균 < 5ms(Node) — 브라우저 50ms 목표의 여유 확인
+- [x] 브라우저 호환: `packages/domain`이 `node:*` 모듈을 import하지 않음(테스트로 소스 grep)
+- [x] 공개 저장소 점검: 실명 검사 스크립트 0건
 
 ## §6. NFR · 성능
 
@@ -119,3 +119,19 @@ AI가 정한 사항(READY 승인으로 함께 확정):
 | 1-1 Q3 수간호사는 인원·K-tass에서 제외 | 교대 근무자만으로 모자랄 때만 수간호사 D를 세고 소프트 경고 `S-HEAD-FILL` | 2026-09-27 사용자 답변: "정말 안 되면 넣는" 최후의 수단 (Q1) |
 | 1-2 §9 전월 말 3일 | 전월 꼬리 `requiredTailDays`(기본값 기준 15일) | 연속 오프 상한을 월 경계에서 잡기 위해 |
 | 1-2 §2 Training `tripleStaffUntil` 기본 start+3주 | 신규 종류별 기본값(완전 신규 3주·경력자 2주) + 기간 뒤 첫 N 3개도 3인 | 2026-09-27 사용자 추가 설명 (Q5) |
+| business-rules S-OFF-AFTER-N·logic-model §2.4 "대상 월 안에서 끝나는 N 구간" | 전월 꼬리에서 끝난 N 구간도 본다(10/31 N → 11/1 OFF → 11/2 E를 11월에 경고) | 구현 중 사용자 설명: "다음 달이 되어도 이전 달을 많이 고려해야 한다". 11월 기준 월 경계 테스트 5건 추가 |
+| logic-model §2.6 `formatViolation(v, nameOf)` | `formatViolation(v, { nameOf, month })` | 주말 통 OFF 문구("9월도 미배정 → 11월 최우선")에 대상 월이 필요하다 |
+| business-rules H-CELL 단위 "사람·날짜" | 사람·종류(`missing`/`outside`)별 1건, 날짜 목록 | 칸 누락이 여러 날이면 경고가 수십 건으로 늘어난다 |
+| S-NIGHT-TARGET "N > 목표이면서 하드 상한 이하" | 야간 전담 적용 중인 사람에게는 내지 않는다 | 목표 6개는 비전담 기준(야간 지침 §1) |
+
+**검증 결과 (2026-09-27)**: format·typecheck·lint 0 · 단위 204(domain 166 + web 38) · 통합 35 · `next build` 성공 · E2E 9 · 실명 검사 0건.
+- 종이 10월: 10명 누적 OFF 전원 일치, 하드 위반 0, 소프트 = 수간호사 보충 1(10/2 D)·N-OFF-E 2·나이트 7개 2·주말 미배정 5·반복 겹침 5쌍(기준 5).
+- 속성 테스트(시드 200개): 입력 순서를 섞어도 결과 동일. 사용자 id 정렬을 일부러 지운 코드에서는 실패하는 것을 확인했다.
+- 성능: 11×31 검사 100회 평균 < 5ms(Node). 비테스트 소스에 `node:*` import 없음.
+
+**후속 스테이지로 넘기는 사항**
+- 2-4: S10 신규 등록에 신규 종류(완전 신규/경력자) 선택, `tripleStaffUntil` 기본값은 `defaultTripleStaffUntil`. S11에 `experiencedTripleWeeks`·`tripleNightCount` 항목 추가.
+- 2-5: S4 "기준 OFF + 이월 = 최대" 카드는 D1 부호(양수 = 더 쉼)와 반대이므로 `기준 − 누적 + 슬리핑오프 가능 수`로 다시 정한다. 노조교육 연 2회·보수교육 연 1회는 신청 단계에서 검증한다.
+- 2-6: 솔버는 `S-HEAD-FILL`에 큰 벌점을 주고, 3인 나이트는 `tripleNightsBefore`로 월을 넘어 이어 센다. 서버는 전월 확정본에서 `requiredTailDays`일의 꼬리와 `tripleNightsBefore`를 조립한다.
+- 2-7: `month_settlements`에 `edu_union` 컬럼이 없다(원장에는 기록). 휴가 승인 시 원장 차감(`leave_approved`)과 월 정산 차감이 겹치지 않도록 S5에서 한쪽만 쓴다.
+- 주말 통 OFF에서 월 경계에 걸친 주말(10/31 토·11/1 일)은 어느 달에도 세지 않는다(READY 결정). 운영 중 필요하면 일요일이 속한 달로 세는 방식으로 바꿀 수 있다.

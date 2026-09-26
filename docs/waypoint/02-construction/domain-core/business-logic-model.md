@@ -1,7 +1,7 @@
 ---
 artifact: business-logic-model
 build-spec: domain-core
-status: DRAFT
+status: IMPLEMENTED
 updated: 2026-09-27
 ---
 
@@ -109,7 +109,7 @@ for 인접 (a, b) in timeline:
 
 **N 후 OFF(`checkOffAfterNight`)**
 ```
-for 대상 월 안에서 끝나는 각 N 구간(마지막 N = 날짜 e):
+for 타임라인(전월 꼬리 포함)에서 끝나는 각 N 구간(마지막 N = 날짜 e), 구간 + 다음 근무가 대상 월에 닿는 것만:
   k = e 다음날부터 연속 쉬는 칸 수(칸 없음/월 밖에서 멈춤)
   다음 칸이 월 밖이거나 없으면 skip
   if k < offAfterNight → S-OFF-AFTER-N { rest: k, next: 다음 근무 코드 }   // k=0은 이미 H-PATTERN/H-REST

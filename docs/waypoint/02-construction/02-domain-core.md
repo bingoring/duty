@@ -23,9 +23,9 @@ fixture로 검증해 이후 모든 화면(2-3~2-7)과 솔버 교차 검증(2-6)�
 
 ## 체크리스트
 
-- [x] Build Spec 작성·질문 해소 → READY (2026-09-27, 구현 착수 승인 대기)
-- [ ] Build Spec §4 구현 체크리스트 전 항목 완료
-- [ ] Build Spec §5 검증 통과 → IMPLEMENTED
+- [x] Build Spec 작성·질문 해소 → READY (2026-09-27 승인)
+- [x] Build Spec §4 구현 체크리스트 전 항목 완료
+- [x] Build Spec §5 검증 통과 → IMPLEMENTED (2026-09-27)
 
 ## AI 제안 (AI Proposal)
 
@@ -44,6 +44,14 @@ Build Spec(comprehensive, frontend-components N/A): [`domain-core/build-spec-ind
 - **종이로 확인한 해석:** 16시간 휴식은 서로 다른 근무 코드 사이에만 적용한다(종이의 D-D·N-N). 10/2 D는 수간호사 보충(최후의 수단)이다.
 - **규칙 기본값 변경:** 최대 연속 오프 10 → 15(사용자 답변, 편차 기록).
 - **신규 3인 근무:** 3인 배정 기간은 완전 신규 3주·경력자 2주, 기간 뒤 신규의 첫 N 3개도 3인(신규 + 프리셉터 + 1명). `trainings.kind` 컬럼과 규칙 수치 2개를 추가한다.
+
+### 구현 결과 (2026-09-27)
+
+- 메인 저장소 `packages/domain/src/`(dates·types·grid·staffing·cell-source·checker/·settlement·leave·month-plan), `fixtures/paper-2026-10.json`,
+  web `rules.ts`(예전 규칙 버전 파싱)·마이그레이션 `0001_training_kind`. 편차 4건은 Build Spec §7에 기록했다.
+- 검증: 단위 204(domain 166 + web 38) · 통합 35 · E2E 9 · 빌드. 종이 10월 누적 OFF 10명 일치, 하드 위반 0.
+- 구현 중 추가 설명 반영: 다음 달 검사에서도 전월 말을 이어서 본다(10/31 N이면 11월 초 N은 2개까지, N 후 OFF도 월을 넘어 판단).
+- 개발 DB는 규칙 v1(최대 연속 오프 10)이 남아 있으므로 README 안내대로 다시 시드해야 한다.
 
 ## 검토 게이트 (Human Gate)
 

@@ -1,7 +1,7 @@
 ---
 artifact: business-rules
 build-spec: domain-core
-status: DRAFT
+status: IMPLEMENTED
 updated: 2026-09-27
 ---
 
@@ -44,7 +44,7 @@ updated: 2026-09-27
 | ID | 규칙 | 토글 | 근거 |
 |---|---|---|---|
 | S-NIGHT-TARGET | 한 달 N 수 > `targetNightPerMonth`(6)이면서 하드 상한 이하 | — | 야간 지침 §1 "6일 이상이 되지 않도록" |
-| S-OFF-AFTER-N | N 연속 구간이 끝난 뒤 다음 근무 전까지 쉬는 날 < `offAfterNight`(2). 다음 칸이 대상 월 밖(월말)이면 판단하지 않는다 | — | 응급실 지침 §14 |
+| S-OFF-AFTER-N | N 연속 구간이 끝난 뒤 다음 근무 전까지 쉬는 날 < `offAfterNight`(2). 전월 꼬리에서 끝난 N 구간도 본다. 다음 칸이 대상 월 밖(월말)이면 판단하지 않는다 | — | 응급실 지침 §14 |
 | S-WEEKEND-PAIR | 대상 월 안에 토·일이 **둘 다** 쉬는 칸인 주말이 없다. 토·일 중 하나가 월 밖인 주말은 세지 않는다. `weekendPairMissedLastMonth`이면 `data.consecutive = true`(문구 "전달도 미배정") | `weekendPairOffMonthly` | 응급실 지침 §4 |
 | S-HEAD-FILL | 교대 근무자만으로는 H-STAFF 또는 H-KTASS를 채우지 못하고 수간호사 보충으로 채운 날·듀티(수간호사 D는 최후의 수단) | — | 2026-09-27 답변 (Q1) |
 | S-JUNIOR-ONLY | 집계 인원(수간호사 보충 포함)이 1명 이상이고 전원 `junior` | `avoidJuniorOnly` | 응급실 지침 §3 |
