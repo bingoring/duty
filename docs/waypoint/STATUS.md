@@ -2,12 +2,15 @@
 
 **Framework:** [Waypoint](https://github.com/bingoring/waypoint)
 **Requirements:** [inputs/requirements_v3.md](inputs/requirements_v3.md) (근무 지침 원문 + 근무자 명단)
-**Design handoff:** [inputs/design-handoff_v2/](inputs/design-handoff_v2/README.md) (최신, 2026-09-27) · [v1](inputs/design-handoff_v1/README.md)
+**Design handoff:** [inputs/design-handoff_v3/](inputs/design-handoff_v3/README.md) (최신, 2026-09-27) · [v2](inputs/design-handoff_v2/README.md) · [v1](inputs/design-handoff_v1/README.md)
 **Decisions (audit):** [DECISIONS.md](DECISIONS.md)
 **Last updated:** 2026-09-27
 
 > 🔒 **개인정보:** 공개 저장소다. 간호사 이름·사번은 모두 가명이며, 실명 자료는 커밋하지 않는다([DECISIONS](DECISIONS.md) 2026-09-26).
 
+> 🎨 **핸드오프 v3 반영 (2026-09-27).** 변경 1건: S3 격자의 오늘 열 강조(헤더 청록·흰 글자, 열 전체 연청록 세로 띠, 이번 달만).
+> 2-3에 구현했고 E2E는 `DUTY_FAKE_TODAY=2026-10-13`으로 날짜를 고정했다(운영에서는 무시). 입력의 실명 16건 가명 치환·사진 제외.
+>
 > 🏗️ **2-3 근무표 조회 구현 완료 → 승인 대기 (2026-09-27).** S3 격자(1c)·요약 카드 5개·월 이동·인쇄(A4 가로 1장) + 공통 셸 v2(메뉴 재구성,
 > 「내 휴가 잔여」). 이월 값은 마감 달 스냅샷 / 미마감 달 원장 + 앞선 확정 달 투영. 개발 시드에 종이 10월(가명) 확정본.
 > 단위 276·통합 47·E2E 15 그린, 편차 4건(Build Spec §7). 확인: `pnpm db:seed` → `/?ym=2026-10`.

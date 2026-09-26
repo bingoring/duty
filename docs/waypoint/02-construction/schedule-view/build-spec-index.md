@@ -12,7 +12,7 @@ updated: 2026-09-27
 
 - **목표(한 줄):** 로그인 첫 화면 S3 — 병동 한 달 근무표 격자(1c 내 줄 강조형)·요약 카드 5개·월 이동·인쇄를, 원장과 `@duty/domain` 정산으로 계산한 이월 값과 함께 보여 준다. 핸드오프 v2의 공통 셸 변경(메뉴 재구성, 사이드바「내 휴가 잔여」)도 같은 잔여 계산을 쓰므로 여기서 함께 만든다.
 - **SoT:**
-  - 화면: 핸드오프 **v2** README「S3」「공통 셸」「S5 격자 표기」, 프로토타입 `id="1c"`(v1과 동일), 3b 사이드바「내 휴가 잔여」·`navMk`(v2 HTML 104~116·800~811행)
+  - 화면: 핸드오프 **v3**(v2 + 오늘 열 강조) README「S3」「공통 셸」「S5 격자 표기」, 프로토타입 `id="1c"`(v1과 동일), 3b 사이드바「내 휴가 잔여」·`navMk`(v2 HTML 104~116·800~811행)
   - 확정 사항: 핸드오프「확정된 결정 사항」2~5
   - 데이터·정산: [`02-domain-model.md`](../../01-inception/02-domain-model.md) §2 MonthPlan·ShiftCell·BalanceEntry·MonthSettlement, §4 종이 우측 컬럼 매핑, §8 권한
   - 계산: 2-2 `@duty/domain`(`settleMonth`, `baselineOff`, `redDaySet`, `foundingOffEligible`, `SHIFT_TIMES`, `defaultPlanDates`)
@@ -92,7 +92,9 @@ standard 티어 — 응답 시간 목표만 §5에서 측정한다.
 | frontend-components `Forbidden`은 셸만 그림 | `forbidden.tsx`도 「내 휴가 잔여」를 불러와 셸에 넘긴다 | v2 잔여 카드는 모든 화면에 표시 |
 | frontend-components §5 인쇄 | 셸 최상위·main 배경도 흰색으로 덮는다 | PDF 확인 결과 앱 배경색(#F6F4EF)이 인쇄됨 |
 
-**검증 결과 (2026-09-27)**: format·typecheck·lint 0 · 단위 276(domain 217 + web 59) · 통합 47 · `next build` 성공 · E2E 15 · 실명 검사 0건.
+| 핸드오프 v3 (구현 후 추가) | 오늘 열 강조(R-VIEW-18) + 개발·E2E 전용 `DUTY_FAKE_TODAY`(운영 무시)로 "오늘" 고정 | 사용자가 v3를 올림. 날짜 의존 화면을 E2E로 검증하기 위해 |
+
+**검증 결과 (2026-09-27, v3 반영 후)**: format·typecheck·lint 0 · 단위 280(domain 217 + web 63) · 통합 47 · `next build` 성공 · E2E 16(오늘 2026-10-13 고정) · 실명 검사 0건.
 - 종이 10월(가명 시드): 화면의 누적 off 10명이 종이 값과 같다(통합 테스트). 11월 확정·10월 미마감이면 11월 월초 = 10월 투영 월말(체인), 마감된 달은 스냅샷.
 - 1280×760 스크린샷(`test-results/schedule-1280x760.png`)을 1c와 비교: 컬럼 폭·칩·빨간 날·내 줄 강조·잔여 카드 일치.
 - 인쇄: `emulateMedia('print')`에서 사이드바·카드·컨트롤 숨김, PDF 1쪽(A4 가로)에 격자 전체.
