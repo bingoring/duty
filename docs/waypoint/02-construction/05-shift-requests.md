@@ -21,9 +21,9 @@ updated: 2026-09-27
 
 ## 체크리스트
 
-- [x] Build Spec 작성·질문 해소 → READY (2026-09-27, 구현 착수 승인 대기)
-- [ ] Build Spec §4 구현 체크리스트 전 항목 완료
-- [ ] Build Spec §5 검증 통과 → IMPLEMENTED
+- [x] Build Spec 작성·질문 해소 → READY (2026-09-27 승인)
+- [x] Build Spec §4 구현 체크리스트 전 항목 완료
+- [x] Build Spec §5 검증 통과 → IMPLEMENTED (2026-09-27)
 
 ## AI 제안 (AI Proposal)
 
@@ -39,6 +39,14 @@ Build Spec(standard, 4 아티팩트): [`shift-requests/build-spec-index.md`](shi
 - **OFF 목표(Q3):** 기준 OFF − 누적 OFF + 슬리핑오프. 넘으면 경고.
 - **달 계획:** 신청 기간(전월 1일 ~ 마감일)에 화면을 열면 자동 생성, 마감이 지나면 마감 상태로.
 - **스키마:** `shift_requests.submitted_at`, `leave_requests.comment`, 휴가 종류에 연차·상태에 임시 추가.
+
+### 구현 결과 (2026-09-27)
+
+- 메인 저장소 `packages/domain/src/requests.ts`, `apps/web/src/server/requests/`(plan·service·balance·load·dto·actions), `server/schedule/input.ts`,
+  `components/requests/`, `app/(app)/requests/page.tsx`, 마이그레이션 `0002`. 편차 5건은 Build Spec §7.
+- 검증: 단위 331 · 통합 104 · E2E 28 · 빌드.
+- 확인: `pnpm dev` → 사번 `00103`(간호사) → 근무 신청 / 사번 `00101`(관리자) → 근무 신청(우측 휴가 승인). 실제 날짜가 9월이면 대상은 10월이다(확정된 달이라 휴가만 신청).
+  11월 신청을 보려면 `DUTY_FAKE_TODAY=2026-10-13 pnpm dev`.
 
 ## 검토 게이트 (Human Gate)
 

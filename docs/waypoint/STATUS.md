@@ -8,6 +8,10 @@
 
 > 🔒 **개인정보:** 공개 저장소다. 간호사 이름·사번은 모두 가명이며, 실명 자료는 커밋하지 않는다([DECISIONS](DECISIONS.md) 2026-09-26).
 
+> 🏗️ **2-5 근무 신청·휴가 구현 완료 → 승인 대기 (2026-09-27).** 다음 달 격자 위 근무 신청(복수 옵션·교육, 임시 → 제출)·휴가 팝오버(경조사 종료일 자동,
+> 잔여 초과 차단)·관리자 휴가 승인 패널(4a: 접기, 월 배지, 인원 영향, 처리 이력, 코멘트 호버). 확정된 달 휴가는 신청·승인 즉시 칸 대체.
+> 단위 331·통합 104·E2E 28 그린, 편차 5건. 대체 지정·확정된 달 승인 취소는 2-7.
+>
 > 🎨 **핸드오프 v4 반영 (2026-09-27).** 4a 휴가 승인 패널(근무 신청 화면의 관리자 시점, 접기·펼치기, 확정된 달 인원 영향)과 S9 패널 접기(2-8).
 > 2-5 범위 조정(Q5): 확정된 달의 휴가도 신청·승인(칸 대체)까지 2-5, 대체 지정만 2-7. 입력의 실명 16건 가명 치환·사진 제외.
 >
@@ -93,7 +97,7 @@
 | 2-2 Domain Core | [02-domain-core.md](02-construction/02-domain-core.md) · [Build Spec](02-construction/domain-core/build-spec-index.md) (IMPLEMENTED) | HUMAN_APPROVED |
 | 2-3 근무표 조회 (S3) | [03-schedule-view.md](02-construction/03-schedule-view.md) · [Build Spec](02-construction/schedule-view/build-spec-index.md) (IMPLEMENTED) | HUMAN_APPROVED |
 | 2-4 관리자 설정 (S10·S11) | [04-admin-settings.md](02-construction/04-admin-settings.md) · [Build Spec](02-construction/admin-settings/build-spec-index.md) (IMPLEMENTED) | HUMAN_APPROVED |
-| 2-5 근무 신청·휴가 (S4 + S5 팝오버 통합) | [05-shift-requests.md](02-construction/05-shift-requests.md) · [Build Spec](02-construction/shift-requests/build-spec-index.md) (READY) | AI_PROPOSED |
+| 2-5 근무 신청·휴가 (S4 + S5 팝오버 통합) | [05-shift-requests.md](02-construction/05-shift-requests.md) · [Build Spec](02-construction/shift-requests/build-spec-index.md) (IMPLEMENTED) | AI_PROPOSED |
 | 2-6 솔버·듀티 생성 (S8) | 02-construction/06-solver-generation.md | PENDING |
 | 2-7 근무 조정·월 마감 (S9 관리자) | 02-construction/07-adjust-close.md | PENDING |
 | 2-8 근무 교환 요청 (S9 간호사, 3a) | 02-construction/08-swap-requests.md | PENDING |
