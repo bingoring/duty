@@ -244,6 +244,8 @@ export const shiftRequests = pgTable(
       .default(sql`'{}'::text[]`),
     special: text('special'),
     comment: text('comment'),
+    // 2-5 Q2: null = 임시 저장(본인만), 시각 = 제출
+    submittedAt: tstz('submitted_at'),
     createdAt: createdAt(),
     updatedAt: tstz('updated_at').notNull().defaultNow(),
   },
@@ -268,6 +270,7 @@ export const leaveRequests = pgTable('leave_requests', {
   decidedBy: uuid('decided_by').references(() => users.id),
   decidedAt: tstz('decided_at'),
   rejectReason: text('reject_reason'),
+  comment: text('comment'),
   createdAt: createdAt(),
 })
 

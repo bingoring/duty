@@ -25,8 +25,8 @@ export const MONTH_PLAN_STATUSES = [
   'CONFIRMED',
   'CLOSED',
 ] as const
-export const LEAVE_TYPES = ['family', 'sick', 'official', 'special', 'checkup'] as const
-export const LEAVE_STATUSES = ['SUBMITTED', 'APPROVED', 'REJECTED', 'CANCELLED'] as const
+export const LEAVE_TYPES = ['annual', 'family', 'sick', 'official', 'special', 'checkup'] as const
+export const LEAVE_STATUSES = ['DRAFT', 'SUBMITTED', 'APPROVED', 'REJECTED', 'CANCELLED'] as const
 export const BALANCE_ACCOUNTS = [
   'off_carry',
   'night_bank',
@@ -63,4 +63,6 @@ export type HolidayKind = (typeof HOLIDAY_KINDS)[number]
 export type MonthPlanStatus = (typeof MONTH_PLAN_STATUSES)[number]
 export type BalanceAccount = (typeof BALANCE_ACCOUNTS)[number]
 export type TraineeKind = (typeof TRAINEE_KINDS)[number]
+export type LeaveType = (typeof LEAVE_TYPES)[number]
+export type LeaveStatus = (typeof LEAVE_STATUSES)[number]
 export type BalanceReason = (typeof BALANCE_REASONS)[number]

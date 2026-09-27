@@ -1,4 +1,5 @@
 import {
+  DEFAULT_RULES,
   RULE_PARAM_LIMITS,
   RULE_TOGGLE_DEFS,
   RuleSetSchema,
@@ -103,4 +104,10 @@ export async function saveRules(
     })
     return { ok: true as const, version }
   })
+}
+
+// 최신 규칙(서버 전용 모듈에 기대지 않아 서비스·테스트에서 쓴다). 규칙이 없으면 기본값
+export async function latestRuleSet(db: Db): Promise<RuleSet> {
+  const [latest] = await db.select().from(ruleVersions).orderBy(desc(ruleVersions.version)).limit(1)
+  return latest ? parse(latest) : RuleSetSchema.parse({ ...DEFAULT_RULES })
 }
