@@ -1,5 +1,6 @@
 import { optionsSatisfied, specialSatisfied } from '../cell-source'
 import { addDays, dayOfWeek, isEmployed, isRedDay, type IsoDate } from '../dates'
+import { nightLimits } from '../generation'
 import { patternToken, type Grid } from '../grid'
 import { SHIFT_TIMES } from '../shift-times'
 import {
@@ -119,22 +120,15 @@ export function checkPerson(n: NurseProfile, ctx: PersonCtx): Violation[] {
   const monthCells = month.map(at).filter((c): c is GridCell => c !== undefined)
   const nightDates = monthCells.filter((c) => c.code === 'N').map((c) => c.date)
   const nights = nightDates.length
-  const dedicated =
-    input.rules.toggles.nightDedicated &&
-    n.nightDedicated !== null &&
-    n.nightDedicated.from <= grid.monthEnd &&
-    n.nightDedicated.to >= grid.monthStart
-  const nightMax = dedicated
-    ? month.length === 31
-      ? p.nightDedicatedMaxPerMonth31
-      : p.nightDedicatedMaxPerMonth
-    : p.maxNightPerMonth
+  const {
+    max: nightMax,
+    target: nightTarget,
+    dedicated,
+  } = nightLimits(n, input.rules, input.year, input.month)
   if (nights > nightMax)
     out.push(violation('H-NIGHT-MAX', [n.id], nightDates, { count: nights, max: nightMax }))
-  else if (!dedicated && nights > p.targetNightPerMonth)
-    out.push(
-      violation('S-NIGHT-TARGET', [n.id], nightDates, { count: nights, target: p.targetNightPerMonth }),
-    )
+  else if (nightTarget !== null && nights > nightTarget)
+    out.push(violation('S-NIGHT-TARGET', [n.id], nightDates, { count: nights, target: nightTarget }))
 
   const sleepingDates = monthCells.filter((c) => c.offKind === 'sleeping').map((c) => c.date)
   const allowed = Math.floor((n.nightBankBefore + nights) / p.sleepingOffPerN)

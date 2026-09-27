@@ -9,6 +9,7 @@ import {
   leaveDates,
   leaveDays,
   leaveEnd,
+  leaveToCell,
   type GridCell,
   type LeaveType,
   isRedDay,
@@ -326,22 +327,9 @@ type LeaveRow = typeof leaveRequests.$inferSelect
 
 // R-APPROVE-2: 휴가 종류 → 칸
 function applyLeave(cell: GridCell, type: LeaveType): GridCell {
-  const base: GridCell = {
-    userId: cell.userId,
-    date: cell.date,
-    code: cell.code,
-    checkupHalf: cell.checkupHalf,
-  }
-  switch (type) {
-    case 'annual':
-      return { ...base, code: 'AL' }
-    case 'special':
-      return { ...base, code: 'OFF', offKind: 'special' }
-    case 'checkup':
-      return { ...cell, checkupHalf: true }
-    default:
-      return { ...base, code: 'LEAVE', leaveKind: type }
-  }
+  const f = leaveToCell(type)
+  if (!f) return { ...cell, checkupHalf: true }
+  return { userId: cell.userId, date: cell.date, checkupHalf: cell.checkupHalf, ...f }
 }
 
 export async function decideLeave(
