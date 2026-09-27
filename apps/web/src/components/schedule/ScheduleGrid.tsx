@@ -29,6 +29,7 @@ function Cell({ c }: { c: GridCellView }) {
       title={c.title}
       data-date={c.date}
       data-today={c.today || undefined}
+      data-warn={c.warn || undefined}
       className={`relative flex h-8 items-center justify-center border-r border-b border-line-soft ${
         c.today ? TODAY_CELL : c.weekend ? 'bg-weekend-cell' : ''
       }`}
@@ -44,6 +45,9 @@ function Cell({ c }: { c: GridCellView }) {
             <span aria-hidden className="absolute -top-0.5 -right-0.5 h-1 w-1 rounded-full bg-ink-2" />
           )}
         </span>
+      )}
+      {c.warn && (
+        <span aria-hidden className="absolute bottom-0.5 left-0.5 h-1.5 w-1.5 rounded-full bg-warn-dot" />
       )}
     </div>
   )

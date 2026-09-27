@@ -379,3 +379,33 @@ export async function monthStartBalances(
   const ctx: Ctx = { db, users: allUsers.filter((u) => userIds.includes(u.id)), plans, rules, holidays: hol }
   return (await monthStart(ctx, ym)).sums
 }
+
+// Build Spec 2-6 frontend-components §1 PreviewGrid — 확정 전 생성안을 근무표 격자 원자료로.
+// 누적 OFF·잔여 N은 이 안을 정산했을 때의 값(월초 = 원장 + 앞선 확정 달 투영)
+export async function loadDraftView(
+  db: Db,
+  args: { plan: PlanRow; cells: ScheduleCellRow[]; today: IsoDate; warnCells: Set<string> },
+): Promise<MonthViewData> {
+  const { allUsers, plans, rules, holidays: hol } = await baseContext(db)
+  const { plan, cells } = args
+  const withCells = new Set(cells.map((c) => c.userId))
+  const rowUsers = allUsers.filter((u) => withCells.has(u.id))
+  const ctx: Ctx = { db, users: rowUsers, plans, rules, holidays: hol }
+  const balances = await monthBalances(ctx, { ...plan, status: 'DRAFTING' }, cells)
+  return {
+    year: plan.year,
+    month: plan.month,
+    today: args.today,
+    viewerId: '',
+    viewerRole: 'admin',
+    plan: null,
+    nextPlan: null,
+    rules: currentRules(rules),
+    users: rowUsers.map(stripActive),
+    cells,
+    holidays: hol.filter((h) => h.date.startsWith(`${plan.year}-`)),
+    balances,
+    todayCell: null,
+    preview: { warnCells: args.warnCells },
+  }
+}

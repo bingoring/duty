@@ -1,4 +1,4 @@
-# 운영 한 벌: db + web (+ 1회성 migrate). TLS(Caddy)·백업은 3-1 Deployment에서 추가한다.
+# 운영 한 벌: db + solver + web (+ 1회성 migrate). TLS(Caddy)·백업은 3-1 Deployment에서 추가한다.
 # 사용: docker compose -f compose.prod.yaml --env-file .env.prod up -d --build
 services:
   db:
@@ -32,10 +32,32 @@ services:
       DATABASE_URL: postgres://${POSTGRES_USER:-duty}:${POSTGRES_PASSWORD}@db:5432/${POSTGRES_DB:-duty}
       # 공공데이터포털 「한국천문연구원_특일 정보」 Decoding 인증키(선택). 없으면 공휴일 가져오기 버튼이 비활성
       HOLIDAY_API_KEY: ${HOLIDAY_API_KEY:-}
+      # 듀티 생성 솔버 (compose 내부망에서만 노출)
+      SOLVER_URL: http://solver:8100
     ports:
       - '3000:3000'
     depends_on:
       migrate: { condition: service_completed_successfully }
+      solver: { condition: service_healthy }
+    restart: unless-stopped
+
+  # CP-SAT 솔버 (Build Spec 2-6). 상태·DB 없음, 포트를 호스트에 공개하지 않는다
+  solver:
+    build: { context: services/solver }
+    environment:
+      SOLVER_WORKERS: ${SOLVER_WORKERS:-8}
+    mem_limit: 512m
+    healthcheck:
+      test:
+        [
+          'CMD',
+          'python',
+          '-c',
+          "import urllib.request; urllib.request.urlopen('http://127.0.0.1:8100/health')",
+        ]
+      interval: 5s
+      timeout: 3s
+      retries: 20
     restart: unless-stopped
 
 volumes:

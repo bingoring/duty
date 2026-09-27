@@ -16,12 +16,27 @@ export default defineConfig({
   projects: [
     { name: 'chromium', use: { ...devices['Desktop Chrome'], viewport: { width: 1280, height: 720 } } },
   ],
-  webServer: {
-    command: `next dev --port ${PORT}`,
-    url: `http://localhost:${PORT}/login`,
-    reuseExistingServer: !process.env.CI,
-    timeout: 120_000,
-    // 날짜에 따라 달라지는 화면(오늘 열·기본 달·잔여 카드)을 고정한다
-    env: { DATABASE_URL: E2E_DB, DUTY_FAKE_TODAY: E2E_TODAY },
-  },
+  webServer: [
+    {
+      // E2E 전용 솔버 (개발 8100·통합 테스트 8101과 따로)
+      command: 'uv run uvicorn solver.app:app --host 127.0.0.1 --port 8102',
+      cwd: '../../services/solver',
+      url: 'http://127.0.0.1:8102/health',
+      reuseExistingServer: !process.env.CI,
+      timeout: 120_000,
+    },
+    {
+      command: `next dev --port ${PORT}`,
+      url: `http://localhost:${PORT}/login`,
+      reuseExistingServer: !process.env.CI,
+      timeout: 120_000,
+      // 날짜에 따라 달라지는 화면(오늘 열·기본 달·잔여 카드)을 고정한다
+      env: {
+        DATABASE_URL: E2E_DB,
+        DUTY_FAKE_TODAY: E2E_TODAY,
+        SOLVER_URL: 'http://127.0.0.1:8102',
+        SOLVER_TIME_LIMIT_SEC: '4',
+      },
+    },
+  ],
 })

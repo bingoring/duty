@@ -492,8 +492,9 @@ def _solver(req: dict, time_limit: float) -> cp_model.CpSolver:
     s.parameters.interleave_search = True
     s.parameters.random_seed = req["seed"] % (2**31)
     # 결정성: 결정적 시간으로 멈춘다(벽시계로 멈추면 같은 시드라도 멈춘 지점이 달라진다).
-    # 개발 머신(12코어)에서 벽시계 1초 ≈ 결정적 시간 5.3. 느린 서버에서는 벽시계 1.5배가 안전장치다
-    s.parameters.max_deterministic_time = time_limit * float(os.environ.get("SOLVER_DET_PER_SEC", "5"))
+    # 개발 머신(12코어)에서 벽시계 1초 ≈ 결정적 시간 5.3. 모델 조립까지 20초 안팎이 되도록 4로 둔다.
+    # 느린 서버에서는 벽시계 1.5배가 안전장치다
+    s.parameters.max_deterministic_time = time_limit * float(os.environ.get("SOLVER_DET_PER_SEC", "4"))
     s.parameters.max_time_in_seconds = time_limit * 1.5
     return s
 

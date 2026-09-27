@@ -1,5 +1,19 @@
-import { Placeholder } from '@/components/Placeholder'
+import { GenerateScreen } from '@/components/generate/GenerateScreen'
+import { getDb } from '@/server/db/client'
+import { defaultGenerateYm, loadGenerateView } from '@/server/generate/view'
+import { appToday, parseYm } from '@/server/schedule/month'
 
-export default function Page() {
-  return <Placeholder title="듀티 생성" stage="2-6 솔버·듀티 생성" />
+// S8 관리자 · 듀티 생성·리롤 (Build Spec 2-6, 핸드오프 1i). 관리자 가드는 admin/layout.tsx
+export default async function GeneratePage({
+  searchParams,
+}: {
+  searchParams: Promise<{ ym?: string | string[]; c?: string | string[] }>
+}) {
+  const today = appToday()
+  const sp = await searchParams
+  const db = getDb()
+  const ym = sp.ym ? parseYm(sp.ym, today) : await defaultGenerateYm(db, today)
+  const c = typeof sp.c === 'string' ? sp.c : undefined
+  const view = await loadGenerateView(db, { ym, today, ...(c ? { candidateId: c } : {}) })
+  return <GenerateScreen view={view} />
 }

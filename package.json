@@ -6,7 +6,7 @@
     "node": ">=24"
   },
   "scripts": {
-    "dev": "pnpm --filter web dev",
+    "dev": "pnpm --parallel --filter web --filter @duty/solver dev",
     "build": "pnpm --filter web build",
     "typecheck": "pnpm -r typecheck",
     "lint": "pnpm -r lint",

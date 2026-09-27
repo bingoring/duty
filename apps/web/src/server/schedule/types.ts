@@ -68,6 +68,8 @@ export type MonthViewData = {
   holidays: HolidayDay[]
   balances: Map<string, RowBalance>
   todayCell: ScheduleCellRow | null
+  // 2-6 S8 생성안 미리보기: 확정 전 칸을 근무표 격자로 보여 준다
+  preview?: { warnCells: Set<string> }
 }
 
 export type LeaveBalanceSummary = {

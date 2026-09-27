@@ -33,6 +33,8 @@ export type GridCellView = {
   weekend: boolean
   today: boolean
   title: string
+  // 2-6 생성안 미리보기: 권고 미충족 칸
+  warn?: boolean
 }
 
 export type GridRow = {
@@ -177,7 +179,7 @@ export function buildScheduleView(d: MonthViewData): ScheduleView {
     }
   })
 
-  const shown = d.plan && (d.plan.status === 'CONFIRMED' || d.plan.status === 'CLOSED')
+  const shown = d.preview || (d.plan && (d.plan.status === 'CONFIRMED' || d.plan.status === 'CLOSED'))
   const nextDates = d.nextPlan ?? defaultPlanDates(next.year, next.month, d.rules.params)
   const footer =
     `근무 신청 마감 매월 ${d.rules.params.requestDeadlineDay}일 · ` +
@@ -214,7 +216,10 @@ export function buildScheduleView(d: MonthViewData): ScheduleView {
       kind: u.id === d.viewerId ? 'me' : u.rotation === 'fixed_weekday' ? 'head' : 'other',
       carryOff: num(b.offCarryBefore),
       carryN: num(b.nightBankBefore),
-      cells: days.map((day) => cellView(cellAt.get(`${u.id}|${day.date}`), day)),
+      cells: days.map((day) => {
+        const v = cellView(cellAt.get(`${u.id}|${day.date}`), day)
+        return d.preview?.warnCells.has(`${u.id}|${day.date}`) ? { ...v, warn: true } : v
+      }),
       accOff: signed(b.offCarryAfter),
       nLeft: num(b.nightBankAfter),
       special: `${num(b.special)}/${b.foundingEligible ? num(b.founding) : '-'}`,
@@ -240,6 +245,15 @@ export function buildScheduleView(d: MonthViewData): ScheduleView {
       }
     : null
 
+  if (d.preview)
+    return {
+      ...base,
+      title: `${d.year}년 ${d.month}월 · 생성안`,
+      badge: null,
+      empty: null,
+      rows,
+      cards: null,
+    }
   const who =
     d.plan!.status === 'CLOSED' ? (d.plan!.closedByName ?? d.plan!.confirmedByName) : d.plan!.confirmedByName
   const badge = {
