@@ -29,6 +29,11 @@ jobs:
         with:
           node-version-file: .nvmrc
       - run: corepack enable
+      # 솔버(services/solver): Python 3.12는 uv가 .python-version을 보고 받는다
+      - uses: astral-sh/setup-uv@v6
+        with:
+          enable-cache: true
+          cache-dependency-glob: services/solver/uv.lock
       - run: pnpm install --frozen-lockfile
       - run: pnpm format:check
       - run: pnpm typecheck

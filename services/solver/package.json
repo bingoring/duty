@@ -1,0 +1,12 @@
+{
+  "name": "@duty/solver",
+  "version": "0.1.0",
+  "private": true,
+  "scripts": {
+    "dev": "uv run uvicorn solver.app:app --port 8100 --reload",
+    "gen": "uv run datamodel-codegen --input ../../packages/contract/solver.schema.json --input-file-type jsonschema --output solver/contract.py --output-model-type pydantic_v2.BaseModel --use-annotated --use-standard-collections --use-union-operator --target-python-version 3.12 --disable-timestamp --use-title-as-name --formatters black isort",
+    "typecheck": "echo 'solver: ruff only'",
+    "lint": "uv run ruff check . && uv run ruff format --check .",
+    "test": "uv run pytest -q"
+  }
+}

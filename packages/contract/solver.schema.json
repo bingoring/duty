@@ -1,0 +1,723 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "DutySolverContract",
+  "$defs": {
+    "SolverRequest": {
+      "type": "object",
+      "properties": {
+        "contractVersion": {
+          "type": "number",
+          "const": 1
+        },
+        "seed": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 9007199254740991
+        },
+        "timeLimitSec": {
+          "type": "number",
+          "exclusiveMinimum": 0,
+          "maximum": 60
+        },
+        "days": {
+          "minItems": 28,
+          "maxItems": 31,
+          "type": "array",
+          "items": {
+            "type": "string",
+            "pattern": "^\\d{4}-\\d{2}-\\d{2}$"
+          }
+        },
+        "redDays": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "pattern": "^\\d{4}-\\d{2}-\\d{2}$"
+          }
+        },
+        "prevTail": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "properties": {
+              "userId": {
+                "type": "string"
+              },
+              "date": {
+                "type": "string",
+                "pattern": "^\\d{4}-\\d{2}-\\d{2}$"
+              },
+              "code": {
+                "type": "string",
+                "enum": [
+                  "D",
+                  "E",
+                  "N",
+                  "S",
+                  "OFF",
+                  "AL",
+                  "LEAVE"
+                ]
+              },
+              "offKind": {
+                "type": "string",
+                "enum": [
+                  "regular",
+                  "sleeping",
+                  "edu_cont",
+                  "edu_union",
+                  "special",
+                  "founding"
+                ]
+              }
+            },
+            "required": [
+              "userId",
+              "date",
+              "code"
+            ]
+          }
+        },
+        "nurses": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "properties": {
+              "id": {
+                "type": "string"
+              },
+              "kTass": {
+                "type": "boolean"
+              },
+              "junior": {
+                "type": "boolean"
+              },
+              "workDays": {
+                "type": "array",
+                "items": {
+                  "type": "string",
+                  "pattern": "^\\d{4}-\\d{2}-\\d{2}$"
+                }
+              },
+              "fixed": {
+                "type": "array",
+                "items": {
+                  "type": "object",
+                  "properties": {
+                    "date": {
+                      "type": "string",
+                      "pattern": "^\\d{4}-\\d{2}-\\d{2}$"
+                    },
+                    "code": {
+                      "type": "string",
+                      "enum": [
+                        "D",
+                        "E",
+                        "N",
+                        "S",
+                        "OFF",
+                        "AL",
+                        "LEAVE"
+                      ]
+                    },
+                    "offKind": {
+                      "type": "string",
+                      "enum": [
+                        "regular",
+                        "sleeping",
+                        "edu_cont",
+                        "edu_union",
+                        "special",
+                        "founding"
+                      ]
+                    }
+                  },
+                  "required": [
+                    "date",
+                    "code"
+                  ]
+                }
+              },
+              "requests": {
+                "type": "array",
+                "items": {
+                  "type": "object",
+                  "properties": {
+                    "date": {
+                      "type": "string",
+                      "pattern": "^\\d{4}-\\d{2}-\\d{2}$"
+                    },
+                    "options": {
+                      "minItems": 1,
+                      "type": "array",
+                      "items": {
+                        "type": "string",
+                        "enum": [
+                          "OFF",
+                          "D",
+                          "E",
+                          "N"
+                        ]
+                      }
+                    }
+                  },
+                  "required": [
+                    "date",
+                    "options"
+                  ]
+                }
+              },
+              "offTarget": {
+                "type": "number"
+              },
+              "nightBankBefore": {
+                "type": "integer",
+                "minimum": -9007199254740991,
+                "maximum": 9007199254740991
+              },
+              "nightMax": {
+                "type": "integer",
+                "minimum": 0,
+                "maximum": 9007199254740991
+              },
+              "nightTarget": {
+                "anyOf": [
+                  {
+                    "type": "integer",
+                    "minimum": 0,
+                    "maximum": 9007199254740991
+                  },
+                  {
+                    "type": "null"
+                  }
+                ]
+              },
+              "weekendMissedStreak": {
+                "type": "integer",
+                "minimum": 0,
+                "maximum": 9007199254740991
+              },
+              "weekendCarryIn": {
+                "type": "boolean"
+              },
+              "shiftCountsBefore": {
+                "type": "object",
+                "properties": {
+                  "D": {
+                    "type": "integer",
+                    "minimum": -9007199254740991,
+                    "maximum": 9007199254740991
+                  },
+                  "E": {
+                    "type": "integer",
+                    "minimum": -9007199254740991,
+                    "maximum": 9007199254740991
+                  },
+                  "N": {
+                    "type": "integer",
+                    "minimum": -9007199254740991,
+                    "maximum": 9007199254740991
+                  }
+                },
+                "required": [
+                  "D",
+                  "E",
+                  "N"
+                ]
+              },
+              "balanceShiftTypes": {
+                "type": "boolean"
+              },
+              "requestMissBefore": {
+                "type": "integer",
+                "minimum": 0,
+                "maximum": 9007199254740991
+              }
+            },
+            "required": [
+              "id",
+              "kTass",
+              "junior",
+              "workDays",
+              "fixed",
+              "requests",
+              "offTarget",
+              "nightBankBefore",
+              "nightMax",
+              "nightTarget",
+              "weekendMissedStreak",
+              "weekendCarryIn",
+              "shiftCountsBefore",
+              "balanceShiftTypes",
+              "requestMissBefore"
+            ]
+          }
+        },
+        "heads": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "properties": {
+              "id": {
+                "type": "string"
+              },
+              "kTass": {
+                "type": "boolean"
+              },
+              "junior": {
+                "type": "boolean"
+              },
+              "cells": {
+                "type": "array",
+                "items": {
+                  "type": "object",
+                  "properties": {
+                    "date": {
+                      "type": "string",
+                      "pattern": "^\\d{4}-\\d{2}-\\d{2}$"
+                    },
+                    "code": {
+                      "type": "string",
+                      "enum": [
+                        "D",
+                        "E",
+                        "N",
+                        "S",
+                        "OFF",
+                        "AL",
+                        "LEAVE"
+                      ]
+                    },
+                    "offKind": {
+                      "type": "string",
+                      "enum": [
+                        "regular",
+                        "sleeping",
+                        "edu_cont",
+                        "edu_union",
+                        "special",
+                        "founding"
+                      ]
+                    }
+                  },
+                  "required": [
+                    "date",
+                    "code"
+                  ]
+                }
+              }
+            },
+            "required": [
+              "id",
+              "kTass",
+              "junior",
+              "cells"
+            ]
+          }
+        },
+        "trainings": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "properties": {
+              "traineeId": {
+                "type": "string"
+              },
+              "preceptorId": {
+                "type": "string"
+              },
+              "startDate": {
+                "type": "string",
+                "pattern": "^\\d{4}-\\d{2}-\\d{2}$"
+              },
+              "endDate": {
+                "type": "string",
+                "pattern": "^\\d{4}-\\d{2}-\\d{2}$"
+              },
+              "tripleUntil": {
+                "type": "string",
+                "pattern": "^\\d{4}-\\d{2}-\\d{2}$"
+              },
+              "tripleNightsLeft": {
+                "type": "integer",
+                "minimum": 0,
+                "maximum": 9007199254740991
+              }
+            },
+            "required": [
+              "traineeId",
+              "preceptorId",
+              "startDate",
+              "endDate",
+              "tripleUntil",
+              "tripleNightsLeft"
+            ]
+          }
+        },
+        "rules": {
+          "type": "object",
+          "properties": {
+            "minStaff": {
+              "type": "integer",
+              "exclusiveMinimum": 0,
+              "maximum": 9007199254740991
+            },
+            "minKTass": {
+              "type": "integer",
+              "minimum": 0,
+              "maximum": 9007199254740991
+            },
+            "minRestHours": {
+              "type": "integer",
+              "exclusiveMinimum": 0,
+              "maximum": 9007199254740991
+            },
+            "maxConsecutiveNight": {
+              "type": "integer",
+              "exclusiveMinimum": 0,
+              "maximum": 9007199254740991
+            },
+            "maxConsecutiveOff": {
+              "type": "integer",
+              "exclusiveMinimum": 0,
+              "maximum": 9007199254740991
+            },
+            "offAfterNight": {
+              "type": "integer",
+              "minimum": 0,
+              "maximum": 9007199254740991
+            },
+            "sleepingOffPerN": {
+              "type": "integer",
+              "exclusiveMinimum": 0,
+              "maximum": 9007199254740991
+            },
+            "forbiddenPatterns": {
+              "type": "array",
+              "items": {
+                "type": "string"
+              }
+            },
+            "shiftBalanceTolerance": {
+              "type": "integer",
+              "minimum": 0,
+              "maximum": 9007199254740991
+            },
+            "shiftBalanceWindowMonths": {
+              "type": "integer",
+              "exclusiveMinimum": 0,
+              "maximum": 9007199254740991
+            }
+          },
+          "required": [
+            "minStaff",
+            "minKTass",
+            "minRestHours",
+            "maxConsecutiveNight",
+            "maxConsecutiveOff",
+            "offAfterNight",
+            "sleepingOffPerN",
+            "forbiddenPatterns",
+            "shiftBalanceTolerance",
+            "shiftBalanceWindowMonths"
+          ]
+        },
+        "restHours": {
+          "type": "object",
+          "propertyNames": {
+            "type": "string",
+            "enum": [
+              "D",
+              "E",
+              "N",
+              "S"
+            ]
+          },
+          "additionalProperties": {
+            "type": "object",
+            "propertyNames": {
+              "type": "string",
+              "enum": [
+                "D",
+                "E",
+                "N",
+                "S"
+              ]
+            },
+            "additionalProperties": {
+              "type": "number"
+            },
+            "required": [
+              "D",
+              "E",
+              "N",
+              "S"
+            ]
+          },
+          "required": [
+            "D",
+            "E",
+            "N",
+            "S"
+          ]
+        },
+        "priorities": {
+          "type": "object",
+          "properties": {
+            "requests": {
+              "type": "boolean"
+            },
+            "offAfterNight": {
+              "type": "boolean"
+            },
+            "weekendPair": {
+              "type": "boolean"
+            },
+            "avoidJuniorOnly": {
+              "type": "boolean"
+            },
+            "minimizeRepeatPairs": {
+              "type": "boolean"
+            }
+          },
+          "required": [
+            "requests",
+            "offAfterNight",
+            "weekendPair",
+            "avoidJuniorOnly",
+            "minimizeRepeatPairs"
+          ]
+        }
+      },
+      "required": [
+        "contractVersion",
+        "seed",
+        "timeLimitSec",
+        "days",
+        "redDays",
+        "prevTail",
+        "nurses",
+        "heads",
+        "trainings",
+        "rules",
+        "restHours",
+        "priorities"
+      ]
+    },
+    "SolverResponse": {
+      "oneOf": [
+        {
+          "type": "object",
+          "properties": {
+            "status": {
+              "type": "string",
+              "enum": [
+                "OPTIMAL",
+                "FEASIBLE"
+              ]
+            },
+            "cells": {
+              "type": "array",
+              "items": {
+                "type": "object",
+                "properties": {
+                  "userId": {
+                    "type": "string"
+                  },
+                  "date": {
+                    "type": "string",
+                    "pattern": "^\\d{4}-\\d{2}-\\d{2}$"
+                  },
+                  "code": {
+                    "type": "string",
+                    "enum": [
+                      "D",
+                      "E",
+                      "N",
+                      "S",
+                      "OFF",
+                      "AL",
+                      "LEAVE"
+                    ]
+                  },
+                  "offKind": {
+                    "type": "string",
+                    "enum": [
+                      "regular",
+                      "sleeping",
+                      "edu_cont",
+                      "edu_union",
+                      "special",
+                      "founding"
+                    ]
+                  }
+                },
+                "required": [
+                  "userId",
+                  "date",
+                  "code"
+                ],
+                "additionalProperties": false
+              }
+            },
+            "objective": {
+              "type": "object",
+              "properties": {
+                "total": {
+                  "type": "integer",
+                  "minimum": -9007199254740991,
+                  "maximum": 9007199254740991
+                },
+                "terms": {
+                  "type": "object",
+                  "propertyNames": {
+                    "type": "string",
+                    "enum": [
+                      "offShortMax",
+                      "offShort",
+                      "offOver",
+                      "requestMissMax",
+                      "requestMiss",
+                      "headFill",
+                      "weekendPair",
+                      "weekendCarry",
+                      "nightTarget",
+                      "offAfterNight",
+                      "sleepingShort",
+                      "shiftBalance",
+                      "juniorOnly",
+                      "repeatPair",
+                      "tieBreak"
+                    ]
+                  },
+                  "additionalProperties": {
+                    "type": "integer",
+                    "minimum": -9007199254740991,
+                    "maximum": 9007199254740991
+                  },
+                  "required": [
+                    "offShortMax",
+                    "offShort",
+                    "offOver",
+                    "requestMissMax",
+                    "requestMiss",
+                    "headFill",
+                    "weekendPair",
+                    "weekendCarry",
+                    "nightTarget",
+                    "offAfterNight",
+                    "sleepingShort",
+                    "shiftBalance",
+                    "juniorOnly",
+                    "repeatPair",
+                    "tieBreak"
+                  ]
+                }
+              },
+              "required": [
+                "total",
+                "terms"
+              ],
+              "additionalProperties": false
+            },
+            "wallTimeSec": {
+              "type": "number"
+            },
+            "seed": {
+              "type": "integer",
+              "minimum": -9007199254740991,
+              "maximum": 9007199254740991
+            },
+            "solverVersion": {
+              "type": "string"
+            }
+          },
+          "required": [
+            "status",
+            "cells",
+            "objective",
+            "wallTimeSec",
+            "seed",
+            "solverVersion"
+          ],
+          "additionalProperties": false
+        },
+        {
+          "type": "object",
+          "properties": {
+            "status": {
+              "type": "string",
+              "const": "INFEASIBLE"
+            },
+            "causes": {
+              "type": "array",
+              "items": {
+                "type": "object",
+                "properties": {
+                  "group": {
+                    "type": "string",
+                    "enum": [
+                      "STAFF",
+                      "KTASS",
+                      "NIGHT_MAX",
+                      "NIGHT_CONSEC",
+                      "OFF_CONSEC",
+                      "TRAINING",
+                      "FIXED",
+                      "SLEEPING"
+                    ]
+                  },
+                  "userId": {
+                    "type": "string"
+                  },
+                  "date": {
+                    "type": "string",
+                    "pattern": "^\\d{4}-\\d{2}-\\d{2}$"
+                  },
+                  "shift": {
+                    "type": "string",
+                    "enum": [
+                      "D",
+                      "E",
+                      "N"
+                    ]
+                  }
+                },
+                "required": [
+                  "group"
+                ],
+                "additionalProperties": false
+              }
+            },
+            "wallTimeSec": {
+              "type": "number"
+            }
+          },
+          "required": [
+            "status",
+            "causes",
+            "wallTimeSec"
+          ],
+          "additionalProperties": false
+        },
+        {
+          "type": "object",
+          "properties": {
+            "status": {
+              "type": "string",
+              "const": "UNKNOWN"
+            },
+            "wallTimeSec": {
+              "type": "number"
+            }
+          },
+          "required": [
+            "status",
+            "wallTimeSec"
+          ],
+          "additionalProperties": false
+        }
+      ]
+    }
+  }
+}

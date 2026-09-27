@@ -5,3 +5,6 @@ waypoint/
 **/migrations/
 **/node_modules/
 apps/web/next-env.d.ts
+packages/contract/solver.schema.json
+services/solver/solver/contract.py
+services/solver/.venv/
