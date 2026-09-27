@@ -3,7 +3,7 @@
 import {
   RULE_PARAM_LIMITS,
   RULE_TOGGLE_DEFS,
-  normalizePattern,
+  parsePatternInput,
   type RuleParams,
   type RuleSet,
   type RuleToggles,
@@ -66,6 +66,7 @@ function NumberInput({
 export function RulesForm({ editor }: { editor: RuleEditor }) {
   const [rules, setRules] = useState<RuleSet>(editor.rules)
   const [newPattern, setNewPattern] = useState<string | null>(null)
+  const [patternError, setPatternError] = useState('')
   const [errors, setErrors] = useState<Partial<Record<string, string>>>({})
   const [message, setMessage] = useState('')
   const [pending, start] = useTransition()
@@ -225,20 +226,27 @@ export function RulesForm({ editor }: { editor: RuleEditor }) {
                 placeholder="예: N-S"
                 className="h-7 w-24 rounded-md border border-line px-2 text-xs"
                 value={newPattern}
-                onChange={(e) => setNewPattern(e.target.value)}
+                onChange={(e) => (setNewPattern(e.target.value), setPatternError(''))}
                 onKeyDown={(e) => {
-                  if (e.key === 'Enter' && newPattern.trim()) {
-                    const p = normalizePattern(newPattern)
-                    if (!rules.forbiddenPatterns.includes(p))
-                      setRules({ ...rules, forbiddenPatterns: [...rules.forbiddenPatterns, p] })
+                  if (e.key === 'Enter') {
+                    // 금지 패턴은 D·E·N·S·OFF를 '-'로 이은 것만 (다른 문자·한글·중복은 막는다)
+                    const r = parsePatternInput(newPattern, rules.forbiddenPatterns)
+                    if (!r.ok) return setPatternError(r.message)
+                    setRules({ ...rules, forbiddenPatterns: [...rules.forbiddenPatterns, r.pattern] })
                     setNewPattern(null)
-                  } else if (e.key === 'Escape') setNewPattern(null)
+                    setPatternError('')
+                  } else if (e.key === 'Escape') {
+                    setNewPattern(null)
+                    setPatternError('')
+                  }
                 }}
               />
             )}
           </div>
-          {errors.forbiddenPatterns && (
-            <span className="text-xs text-danger">{errors.forbiddenPatterns}</span>
+          {(patternError || errors.forbiddenPatterns) && (
+            <span role="alert" className="text-xs text-danger">
+              {patternError || errors.forbiddenPatterns}
+            </span>
           )}
         </div>
         <div className="rounded-xl border border-dashed border-line bg-panel p-3.5 text-xs leading-[1.6] text-ink-2">

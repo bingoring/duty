@@ -66,6 +66,26 @@ test.describe('S11 규칙 설정', () => {
     await expect(page.getByRole('button', { name: '저장 · 규칙 안내 반영' })).toBeDisabled()
   })
 
+  test('금지 패턴 입력: D·E·N·S·OFF 외 문자는 막고, 올바른 패턴은 대문자 칩으로', async ({ page }) => {
+    await loginAndWait(page, ADMIN.employeeNo)
+    await page.goto('/admin/rules')
+    await waitHydrated(page)
+    for (const bad of ['a-b', 'ab', '한글', 'E-X']) {
+      await page.getByRole('button', { name: '+ 패턴 추가' }).click()
+      const input = page.getByLabel('새 금지 패턴')
+      await input.fill(bad)
+      await input.press('Enter')
+      await expect(page.getByText("D·E·N·S·OFF를 '-'로 두 개 이상 이어 주세요. 예: E-D")).toBeVisible()
+      await input.press('Escape')
+    }
+    for (const chip of ['A-B', 'AB', '한글', 'E-X'])
+      await expect(page.getByRole('button', { name: `${chip} 삭제` })).toHaveCount(0)
+    await page.getByRole('button', { name: '+ 패턴 추가' }).click()
+    await page.getByLabel('새 금지 패턴').fill('n-s')
+    await page.getByLabel('새 금지 패턴').press('Enter')
+    await expect(page.getByRole('button', { name: 'N-S 삭제' })).toBeVisible()
+  })
+
   test('범위를 벗어나면 저장되지 않고 항목에 오류', async ({ page }) => {
     await loginAndWait(page, ADMIN.employeeNo)
     await page.goto('/admin/rules')

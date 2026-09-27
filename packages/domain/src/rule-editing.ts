@@ -174,3 +174,16 @@ export function diffRuleSets(before: RuleSet, after: RuleSet): RuleDiff[] {
     })
   return out
 }
+
+const PATTERN_MESSAGE = "D·E·N·S·OFF를 '-'로 두 개 이상 이어 주세요. 예: E-D"
+
+// 금지 패턴 입력 검사: 정규화 후 문법·중복 확인. 화면에서 칩을 추가하기 전에 쓴다
+export function parsePatternInput(
+  raw: string,
+  existing: readonly string[] = [],
+): { ok: true; pattern: string } | { ok: false; message: string } {
+  const pattern = normalizePattern(raw)
+  if (!PATTERN_REGEX.test(pattern)) return { ok: false, message: PATTERN_MESSAGE }
+  if (existing.includes(pattern)) return { ok: false, message: '이미 있는 패턴입니다.' }
+  return { ok: true, pattern }
+}

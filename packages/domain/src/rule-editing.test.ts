@@ -1,7 +1,13 @@
 import { describe, expect, it } from 'vitest'
 import { HOLIDAY_SOURCES } from './allowed-sets'
 import { DEFAULT_RULES, type RuleSet } from './rules-defaults'
-import { RULE_PARAM_LIMITS, RULE_TOGGLE_DEFS, diffRuleSets, validateRuleSet } from './rule-editing'
+import {
+  RULE_PARAM_LIMITS,
+  RULE_TOGGLE_DEFS,
+  diffRuleSets,
+  parsePatternInput,
+  validateRuleSet,
+} from './rule-editing'
 
 const withParams = (p: Partial<RuleSet['params']>): RuleSet => ({
   ...DEFAULT_RULES,
@@ -83,5 +89,26 @@ describe('diffRuleSets (R-RULE-SAVE-1)', () => {
   it('금지 패턴 순서만 다르면 변경이 아니다', () => {
     const after = { ...DEFAULT_RULES, forbiddenPatterns: [...DEFAULT_RULES.forbiddenPatterns].reverse() }
     expect(diffRuleSets(DEFAULT_RULES, after)).toEqual([])
+  })
+})
+
+describe('parsePatternInput — 금지 패턴 입력 검사 (사용자 보고 2026-09-27)', () => {
+  it('D·E·N·S·OFF를 -로 두 개 이상 이은 것만 허용하고 대문자로 정규화', () => {
+    expect(parsePatternInput('n-s')).toEqual({ ok: true, pattern: 'N-S' })
+    expect(parsePatternInput(' N-off-E ')).toEqual({ ok: true, pattern: 'N-OFF-E' })
+  })
+
+  it.each(['a-b', 'ab', '한글', 'E', 'E-', '-E', 'E--D', 'E D', 'E-X', 'OF-D', 'E-D-한', ''])(
+    '%j는 거부',
+    (raw) => {
+      expect(parsePatternInput(raw)).toEqual({
+        ok: false,
+        message: "D·E·N·S·OFF를 '-'로 두 개 이상 이어 주세요. 예: E-D",
+      })
+    },
+  )
+
+  it('이미 있는 패턴은 거부', () => {
+    expect(parsePatternInput('e-d', ['E-D'])).toEqual({ ok: false, message: '이미 있는 패턴입니다.' })
   })
 })
