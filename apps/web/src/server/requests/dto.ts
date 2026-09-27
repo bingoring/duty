@@ -2,6 +2,11 @@ import {
   FAMILY_LEAVE_DAYS,
   OFFICIAL_LEAVE_REASONS,
   canNurseEditRequests,
+  dayOfWeek,
+  isRedDay,
+  redDaySet,
+  weekdayKo,
+  type HolidayKind,
   formatMD,
   leaveDates,
   monthDates,
@@ -83,6 +88,7 @@ export type RequestsRaw = {
   } | null
   pending: PendingLeave[]
   history: LeaveHistory[]
+  holidays?: { date: string; kind: HolidayKind }[]
 }
 
 export type LeaveCell = {
@@ -126,6 +132,7 @@ export type RequestsView = {
   negotiation: string | null
   editable: 'all' | 'leave' | 'none'
   isAdmin: boolean
+  days: { date: string; day: number; weekday: string; red: boolean; color: 'sun' | 'sat' | 'plain' }[]
   rows: RequestRowDTO[]
   offCounts: Record<string, number>
   cards: {
@@ -320,8 +327,17 @@ export function buildRequestsView(
     }
   }
 
+  const red = redDaySet(r.holidays ?? [])
+  const dayHeads = days.map((date) => {
+    const dow = dayOfWeek(date)
+    const isRed = isRedDay(date, red)
+    const color: 'sun' | 'sat' | 'plain' =
+      dow === 0 || (isRed && dow !== 6) || (dow === 6 && red.has(date)) ? 'sun' : dow === 6 ? 'sat' : 'plain'
+    return { date, day: Number(date.slice(8)), weekday: weekdayKo(date), red: isRed, color }
+  })
   const submitted = r.requests.filter((q) => q.submittedAt)
   return {
+    days: dayHeads,
     year: r.year,
     month: r.month,
     planStatus: status,

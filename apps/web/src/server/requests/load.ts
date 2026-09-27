@@ -63,11 +63,11 @@ export async function loadRequestsRaw(
         }))
       : []
 
+  const hol = await db.select({ date: holidays.date, kind: holidays.kind }).from(holidays)
   // 내 카드: 기준 OFF·월초 누적 OFF·잔여 N, 지난달 주말 통 OFF
   const me = people.find((u) => u.id === viewer.id)
   let viewerCard: RequestsRaw['viewerCard'] = null
   if (me) {
-    const hol = await db.select({ date: holidays.date, kind: holidays.kind }).from(holidays)
     const employment = {
       employedFrom: me.hireDate,
       employedUntil: me.deactivatedAt ? addDays(todaySeoul(me.deactivatedAt), -1) : null,
@@ -182,5 +182,6 @@ export async function loadRequestsRaw(
     viewerCard,
     pending,
     history,
+    holidays: hol.map((h) => ({ date: h.date, kind: h.kind as HolidayKind })),
   }
 }

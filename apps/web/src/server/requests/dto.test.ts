@@ -170,3 +170,22 @@ describe('buildRequestsView — 표시', () => {
     expect(buildRequestsView(confirmed, { id: 'me', role: 'nurse' }).editable).toBe('leave')
   })
 })
+
+describe('buildRequestsView — 날짜 머리', () => {
+  it('요일·빨간 날(토·일·공휴일, 개원기념일 제외)', () => {
+    const v = buildRequestsView(
+      raw({
+        holidays: [
+          { date: '2026-11-20', kind: 'founding_day' },
+          { date: '2026-11-03', kind: 'hospital' },
+        ],
+      }),
+      { id: 'me', role: 'nurse' },
+    )
+    expect(v.days).toHaveLength(30)
+    expect(v.days[0]).toEqual({ date: '2026-11-01', day: 1, weekday: '일', red: true, color: 'sun' })
+    expect(v.days[2]).toMatchObject({ date: '2026-11-03', red: true, color: 'sun' })
+    expect(v.days[6]).toMatchObject({ weekday: '토', red: true, color: 'sat' })
+    expect(v.days[19]).toMatchObject({ date: '2026-11-20', red: false })
+  })
+})
