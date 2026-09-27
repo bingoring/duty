@@ -1,6 +1,7 @@
 import './load-env'
 import postgres from 'postgres'
 import { runMigrations } from '../server/db/migrate'
+import { startSolver } from './solver'
 
 export default async function setup() {
   const url = process.env.TEST_DATABASE_URL
@@ -13,4 +14,5 @@ export default async function setup() {
   await sql`CREATE SCHEMA public`
   await sql.end()
   await runMigrations(url)
+  return await startSolver()
 }

@@ -48,7 +48,8 @@ const deny = (message: string) => ({ ok: false as const, message })
 // R-REQ-EDIT-1·2: 근무 신청을 바꿀 수 있는 계획인지
 export function canEditShiftRequests(plan: PlanRow | undefined, actor: Actor, today: string): boolean {
   if (!plan) return false
-  if (actor.role === 'admin') return PRE_GENERATION.includes(plan.status as (typeof PRE_GENERATION)[number])
+  // 관리자는 확정 전(생성안을 보는 DRAFTING 포함)까지 고친다. 바뀐 입력은 옛 생성안의 확정을 막는다(2-6 R-GEN-5)
+  if (actor.role === 'admin') return [...PRE_GENERATION, 'DRAFTING'].includes(plan.status)
   return canNurseEditRequests(plan.status as 'REQUESTING', plan.requestDeadline, today)
 }
 

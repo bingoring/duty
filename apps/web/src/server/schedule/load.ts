@@ -74,7 +74,7 @@ function currentRules(all: Map<number, RuleSet>): RuleSet {
   return all.get(latest) ?? DEFAULT_RULES
 }
 
-async function loadCells(db: Db, planIds: string[]): Promise<Map<string, ScheduleCellRow[]>> {
+export async function loadCells(db: Db, planIds: string[]): Promise<Map<string, ScheduleCellRow[]>> {
   const out = new Map<string, ScheduleCellRow[]>(planIds.map((id) => [id, []]))
   if (planIds.length === 0) return out
   const rows = await db
