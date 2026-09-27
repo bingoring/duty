@@ -1,8 +1,8 @@
 ---
 phase: 02-construction
 stage: 05-shift-requests
-status: AI_PROPOSED
-updated: 2026-09-27
+status: HUMAN_APPROVED
+updated: 2026-09-28
 ---
 
 # [Stage 2-5] 근무 신청·휴가 (S4 + S5 팝오버)
