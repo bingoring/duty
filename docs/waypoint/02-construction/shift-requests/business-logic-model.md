@@ -24,7 +24,18 @@ updated: 2026-09-27
 `submitRequestsAction(ym)` → 본인 → R-REQ-EDIT-1 → 그달 임시 근무 신청 `submitted_at = now`, 그달 시작 휴가 `DRAFT → SUBMITTED`
 
 ### 승인·반려
-`decideLeaveAction(id, 'approve' | 'reject', reason?)` → 관리자 → `SUBMITTED`만 → status·decidedBy·decidedAt·rejectReason
+`decideLeaveAction(id, 'approve' | 'reject', reason?)` → 관리자 → `SUBMITTED`만 → status·decidedBy·decidedAt·rejectReason.
+확정된 달이면 같은 트랜잭션에서 R-APPROVE-2 칸 대체 + `CellEditLog`.
+
+### 인원 영향 (확정된 달, 패널 카드마다)
+```
+leaveImpact(db, leave):
+  plan = 휴가 시작 달의 확정 계획; input = 2-7과 같은 ScheduleInput 조립(칸·전월 꼬리·신청·트레이닝·잔여)
+  before = checkSchedule(input).hardViolations
+  after  = checkSchedule(input with 휴가 칸 적용).hardViolations
+  new = after − before (ruleId·dates·shift·userIds 기준), 휴가 기간 날짜에 닿는 것만
+  return new.map(formatViolation)
+```
 
 ## 2. 알고리즘
 

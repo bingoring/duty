@@ -2,12 +2,15 @@
 
 **Framework:** [Waypoint](https://github.com/bingoring/waypoint)
 **Requirements:** [inputs/requirements_v3.md](inputs/requirements_v3.md) (근무 지침 원문 + 근무자 명단)
-**Design handoff:** [inputs/design-handoff_v3/](inputs/design-handoff_v3/README.md) (최신, 2026-09-27) · [v2](inputs/design-handoff_v2/README.md) · [v1](inputs/design-handoff_v1/README.md)
+**Design handoff:** [inputs/design-handoff_v4/](inputs/design-handoff_v4/README.md) (최신, 2026-09-27) · [v3](inputs/design-handoff_v3/README.md) · [v2](inputs/design-handoff_v2/README.md) · [v1](inputs/design-handoff_v1/README.md)
 **Decisions (audit):** [DECISIONS.md](DECISIONS.md)
 **Last updated:** 2026-09-27
 
 > 🔒 **개인정보:** 공개 저장소다. 간호사 이름·사번은 모두 가명이며, 실명 자료는 커밋하지 않는다([DECISIONS](DECISIONS.md) 2026-09-26).
 
+> 🎨 **핸드오프 v4 반영 (2026-09-27).** 4a 휴가 승인 패널(근무 신청 화면의 관리자 시점, 접기·펼치기, 확정된 달 인원 영향)과 S9 패널 접기(2-8).
+> 2-5 범위 조정(Q5): 확정된 달의 휴가도 신청·승인(칸 대체)까지 2-5, 대체 지정만 2-7. 입력의 실명 16건 가명 치환·사진 제외.
+>
 > 📝 **2-5 근무 신청·휴가 Build Spec READY (2026-09-27).** 다음 달 격자 위 근무 신청(복수 옵션·교육)·휴가 신청(3b 팝오버) — 임시 저장 후 제출(Q2),
 > 관리자는 같은 화면에서 편집·휴가 승인(Q1), OFF 목표 = 기준 − 누적 + 슬리핑오프(Q3), 대기 휴가 점선 '휴'(Q4). 확정된 달의 휴가는 2-7. 구현 착수 승인 대기.
 > 2-4 후속 수정: 금지 패턴 입력 검사(D·E·N·S·OFF 외 문자·한글·중복 차단).

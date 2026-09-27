@@ -15,7 +15,8 @@ updated: 2026-09-27
 requests/page.tsx (server) → RequestsScreen (client)
 ├── RequestsHeader   ‹ "{YYYY}년 {M}월 · 근무 신청" › · 상태 배지 · 범례
 ├── RequestCards     4열(2a)
-├── LeaveApprovals   관리자만: 승인 대기 목록
+├── LeaveApprovalPanel 관리자만(4a): 우측 260px ↔ 72px 레일, 대기 카드·인원 영향·처리 이력
+├── CommentBar       관리자만: 칸 호버 시 "{M/D} {이름} · {라벨}" + 코멘트 전문
 ├── RequestGrid      grid 96px repeat(n,30px) 56px · 행 36px · 하단 OFF 신청 인원 행
 ├── RequestPopover   320~340px, 선택 칸 아래
 │   ├── 근무 토글 OFF/D/E/N(복수)
@@ -36,7 +37,8 @@ requests/page.tsx (server) → RequestsScreen (client)
   교육 선택 시 라디오 보수교육 / 노조교육(노조원만). 휴가 종류 칩: 연차 · 경조사 · 병가 · 공가 · 특별휴가 · 검진. 사유 드롭다운 h38(경조사 "본인·배우자 부모 사망 · 7일", 일수 `primary` 700).
   시작일 · 종료일(자동이면 읽기 전용 bg `panel`). 하단 요약 11.5px `ink-2` "{M/D}–{D} · {n}일 · 유급" + 취소(보조) / 저장(bg `ink` 흰 글자).
 - 하단 바 12px `ink-2`: "휴가는 관리자 승인 후 근무표에 반영됩니다. 증빙 서류는 병원 공문으로 별도 제출." · 오른쪽 "마감 후 {협의 기간} 협의 수정" · "제출하지 않은 신청 {n}건"(warn) · "신청 제출"(h34 primary, 임시 0건이면 비활성).
-- 관리자 승인 패널: 흰 카드, 행마다 이름 600 · 종류(사유) · 기간 · 일수 · 코멘트 12px `ink-2` · 승인(primary) / 반려(보조 → 사유 입력).
+- 관리자 승인 패널(4a): 제목 15px/700 "휴가 승인" + 배지 `danger`, 「접기 ›」 h28 12px. 접힘: 72px 레일, 「‹ 펼치기」(같은 크기) + 세로 글자(`writing-mode: vertical-rl`) "휴가 승인" + 배지, 격자가 남는 폭을 채움. 카드 bg #fff border `line` radius 12 padding 12: 신청자 700 + 월 배지 · 종류 600 · 기간 · 코멘트 bg `panel` · 인원 영향 박스(없음 `primary-soft`/`primary-hover` "… 인원 영향 없음", 경고 `danger-bg`/`danger-ink`) · 반려(보조, 사유 입력) / 승인(primary). 처리 이력 12px.
+- 관리자 격자: 이름 70px, 날짜 24px(패널 자리 확보).
 
 ## 3. 상태
 
