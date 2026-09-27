@@ -22,9 +22,9 @@ updated: 2026-09-28
 
 ## 체크리스트
 
-- [x] Build Spec 작성·질문 해소 → READY (2026-09-28, 승인 대기)
-- [ ] Build Spec §4 구현 체크리스트 전 항목 완료
-- [ ] Build Spec §5 검증 통과 → IMPLEMENTED
+- [x] Build Spec 작성·질문 해소 → READY (2026-09-28 승인)
+- [x] Build Spec §4 구현 체크리스트 전 항목 완료
+- [x] Build Spec §5 검증 통과 → IMPLEMENTED (2026-09-28)
 
 ## AI 제안 (AI Proposal)
 
@@ -38,6 +38,13 @@ Build Spec(comprehensive, 4 아티팩트): [`solver-generation/build-spec-index.
 - **생성·리롤·확정(Q1·Q3·Q4):** 마감 뒤에만 생성, 리롤마다 n번째 안으로 보관, 우선 반영 체크박스는 그 안에만 적용. 신청·휴가가 바뀌면 옛 안은 확정할 수 없다.
 - **화면(Q2):** 1i 그대로 + 결과 아래 생성안 격자와 ‹ › 안 이동.
 - **교차 검증:** 11월·신규 3인 기간·연휴·인원 부족·종이 10월 시나리오에서 하드 위반 0을 CI가 확인한다.
+
+### 구현 결과 (2026-09-28)
+
+- 메인 저장소 `services/solver/`(CP-SAT·FastAPI·pytest), `packages/contract/`(zod → JSON Schema → pydantic), `apps/web/src/server/generate/`,
+  `components/generate/GenerateScreen.tsx`, `packages/domain/src/generation.ts`. 편차 8건은 Build Spec §7(주요: 결정적 병렬 탐색, DRAFTING 중 관리자 신청 편집).
+- 검증: 단위 343 · pytest 12 · 통합 117(교차 검증 5) · E2E 30 · 빌드 · CI.
+- 확인: `pnpm dev`(web + 솔버 8100) → 사번 `00101` → 듀티 생성. 11월은 10/15 마감 뒤 생성할 수 있다(개발 DB에서 오늘이 그 전이면 버튼이 비활성).
 
 ## 검토 게이트 (Human Gate)
 

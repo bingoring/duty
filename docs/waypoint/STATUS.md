@@ -8,6 +8,10 @@
 
 > 🔒 **개인정보:** 공개 저장소다. 간호사 이름·사번은 모두 가명이며, 실명 자료는 커밋하지 않는다([DECISIONS](DECISIONS.md) 2026-09-26).
 
+> 🏗️ **2-6 솔버·듀티 생성 구현 완료 → 승인 대기 (2026-09-28).** CP-SAT 솔버 서비스(`services/solver`)·계약 패키지·S8(1i + 생성안 격자·안 이동).
+> 생성 → TS 재검사 → n번째 안 보관 → 확정(입력이 바뀐 안은 차단) → 근무표 공개. 해가 없으면 원인 최대 5개. 교차 검증 5 시나리오 하드 위반 0.
+> 단위 343·pytest 12·통합 117·E2E 30 그린, 편차 8건. `pnpm dev`가 솔버도 함께 띄운다.
+>
 > 📝 **2-6 솔버·듀티 생성 Build Spec READY (2026-09-28).** CP-SAT 솔버 서비스(`services/solver`, Python) + 계약 패키지 + S8(1i + 생성안 격자).
 > 질문 Q1~Q4 해소 — 마감 뒤에만 생성, 결과 아래 격자·안 이동, 신청 충돌은 한 사람에게 몰리지 않게, 우선 반영은 생성마다. 공정성(목표 OFF 부족 최댓값)이 1순위.
 > 구현 착수 승인 대기.
@@ -104,7 +108,7 @@
 | 2-3 근무표 조회 (S3) | [03-schedule-view.md](02-construction/03-schedule-view.md) · [Build Spec](02-construction/schedule-view/build-spec-index.md) (IMPLEMENTED) | HUMAN_APPROVED |
 | 2-4 관리자 설정 (S10·S11) | [04-admin-settings.md](02-construction/04-admin-settings.md) · [Build Spec](02-construction/admin-settings/build-spec-index.md) (IMPLEMENTED) | HUMAN_APPROVED |
 | 2-5 근무 신청·휴가 (S4 + S5 팝오버 통합) | [05-shift-requests.md](02-construction/05-shift-requests.md) · [Build Spec](02-construction/shift-requests/build-spec-index.md) (IMPLEMENTED) | HUMAN_APPROVED |
-| 2-6 솔버·듀티 생성 (S8) | [06-solver-generation.md](02-construction/06-solver-generation.md) · [Build Spec](02-construction/solver-generation/build-spec-index.md) (READY) | AI_PROPOSED |
+| 2-6 솔버·듀티 생성 (S8) | [06-solver-generation.md](02-construction/06-solver-generation.md) · [Build Spec](02-construction/solver-generation/build-spec-index.md) (IMPLEMENTED) | AI_PROPOSED |
 | 2-7 근무 조정·월 마감 (S9 관리자) | 02-construction/07-adjust-close.md | PENDING |
 | 2-8 근무 교환 요청 (S9 간호사, 3a) | 02-construction/08-swap-requests.md | PENDING |
 | 2-9 통합·E2E | 02-construction/09-integration-e2e.md | PENDING |
