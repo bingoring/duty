@@ -3,6 +3,7 @@ import {
   OFFICIAL_LEAVE_REASONS,
   ShiftRequestInputSchema,
   checkSchedule,
+  formatMD,
   formatViolation,
   leaveAccount,
   leaveDates,
@@ -18,7 +19,7 @@ import {
   type RequestOption,
   type RequestSpecial,
 } from '@duty/domain'
-import { and, eq, gte, inArray, isNull, lte, ne, sql } from 'drizzle-orm'
+import { and, asc, eq, gte, inArray, isNull, lte, ne, sql } from 'drizzle-orm'
 import type { Db } from '../db/client'
 import {
   balanceEntries,
@@ -428,8 +429,10 @@ export async function decideLeave(
   return { ok: true }
 }
 
-// R-APPROVE-3: 확정된 달이면 승인으로 새로 생기는 하드 위반. 신청 중인 달이면 null
-export async function leaveImpact(db: Db, id: string): Promise<string[] | null> {
+// R-APPROVE-3: 확정된 달이면 승인으로 새로 생기는 하드 위반과 대체 후보(그날 OFF인 교대 근무자, 표 순서 최대 3명).
+// 신청 중인 달이면 null. 대체 지정 자체는 2-7 근무 조정에서 한다.
+export type LeaveImpact = { lines: string[]; candidates: string[] }
+export async function leaveImpact(db: Db, id: string): Promise<LeaveImpact | null> {
   const [l]: LeaveRow[] = await db.select().from(leaveRequests).where(eq(leaveRequests.id, id))
   if (!l) return null
   const plan = await findPlan(db, ymOfDate(l.startDate))
@@ -445,13 +448,43 @@ export async function leaveImpact(db: Db, id: string): Promise<string[] | null> 
   const key = (v: { ruleId: string; dates: string[]; shift?: string; userIds: string[]; data: unknown }) =>
     [v.ruleId, v.dates.join(), v.shift ?? '', v.userIds.join(), JSON.stringify(v.data)].join('|')
   const before = new Set(checkSchedule(input).hardViolations.map(key))
-  const names = new Map(
-    (await db.select({ id: users.id, name: users.name }).from(users)).map((u) => [u.id, u.name]),
-  )
-  return checkSchedule(applied)
-    .hardViolations.filter((v) => !before.has(key(v)) && v.dates.some((x) => dates.has(x)))
-    .map((v) => {
-      const f = formatViolation(v, { nameOf: (x) => names.get(x) ?? x, month: plan.month })
-      return f.detail ? `${f.title} · ${f.detail}` : f.title
+  const people = await db
+    .select({
+      id: users.id,
+      name: users.name,
+      rotation: users.rotation,
+      kTass: users.kTass,
+      active: users.active,
     })
+    .from(users)
+    .orderBy(asc(users.seniorityRank))
+  const names = new Map(people.map((u) => [u.id, u.name]))
+  const added = checkSchedule(applied).hardViolations.filter(
+    (v) => !before.has(key(v)) && v.dates.some((x) => dates.has(x)),
+  )
+  const lines = added.map((v) => {
+    const f = formatViolation(v, { nameOf: (x) => names.get(x) ?? x, month: plan.month })
+    return f.detail ? `${f.title} · ${f.detail}` : f.title
+  })
+  const hit = [...new Set(added.flatMap((v) => v.dates.filter((x) => dates.has(x))))].sort()
+  const off = new Set(
+    input.cells.filter((c) => c.code === 'OFF' && !c.leaveKind).map((c) => `${c.userId}|${c.date}`),
+  )
+  const candidates: string[] = []
+  const seen = new Set<string>()
+  for (const d of hit)
+    for (const u of people) {
+      if (candidates.length >= 3) break
+      if (
+        u.id === l.userId ||
+        u.rotation !== 'rotating' ||
+        !u.active ||
+        seen.has(u.id) ||
+        !off.has(`${u.id}|${d}`)
+      )
+        continue
+      seen.add(u.id)
+      candidates.push(`${u.name} (${formatMD(d)} OFF${u.kTass ? ', K-tass' : ''})`)
+    }
+  return { lines, candidates }
 }

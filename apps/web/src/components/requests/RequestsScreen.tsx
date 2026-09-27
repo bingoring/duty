@@ -89,6 +89,10 @@ function useCollapsed(): [boolean, (v: boolean) => void] {
   ]
 }
 
+// 4a 휴가 승인 패널 (핸드오프 v4 4a와 같은 치수·색)
+const toggleBtn =
+  'h-7 cursor-pointer whitespace-nowrap rounded-lg border border-line bg-surface px-2.5 text-xs text-ink-2'
+
 function ApprovalCard({ p }: { p: PendingLeave }) {
   const [rejecting, setRejecting] = useState(false)
   const [reason, setReason] = useState('')
@@ -99,17 +103,17 @@ function ApprovalCard({ p }: { p: PendingLeave }) {
       const r = await decideLeaveAction({ id: p.id, decision, ...(decision === 'reject' ? { reason } : {}) })
       if (!r.ok) setError(r.message)
     })
-  const impactOk = p.impact !== null && p.impact.length === 0
+  const warn = p.impact !== null && p.impact.length > 0
   return (
     <div
       role="article"
       aria-label={`${p.name} 휴가`}
-      className="flex flex-col gap-1.5 rounded-xl border border-line bg-surface p-3 text-[12.5px]"
+      className="flex flex-col gap-1.5 rounded-xl border border-line bg-surface p-3"
     >
-      <div className="flex items-center gap-2">
+      <div className="flex items-center justify-between">
         <span className="font-bold">{p.name}</span>
         <span
-          className={`rounded-full px-2 py-0.5 text-[11px] font-semibold ${
+          className={`rounded-full px-[7px] py-0.5 text-[11px] font-bold ${
             p.confirmedMonth ? 'bg-warn-bg text-warn-ink' : 'bg-primary-soft text-primary'
           }`}
         >
@@ -117,38 +121,42 @@ function ApprovalCard({ p }: { p: PendingLeave }) {
         </span>
       </div>
       <div className="font-semibold">{p.kindLabel}</div>
-      <div className="text-ink-2">
+      <div className="text-xs text-ink-2">
         {p.range} · {p.days}일 · 유급
       </div>
-      {p.comment && <div className="rounded-md bg-panel px-2 py-1.5 text-ink-2">{p.comment}</div>}
+      {p.comment && <div className="rounded-md bg-panel px-2 py-1.5 text-xs text-nav-ink">“{p.comment}”</div>}
       <div
-        className={`rounded-md px-2 py-1.5 text-xs ${impactOk || p.impact === null ? 'bg-primary-soft text-primary-hover' : 'bg-danger-bg text-danger-ink'}`}
+        className={`rounded-md px-2 py-1.5 text-xs leading-[1.5] ${warn ? 'bg-danger-bg text-danger-ink' : 'bg-primary-soft text-primary-hover'}`}
       >
         {p.impact === null
           ? `${p.monthLabel.split(' ')[0]} 듀티 생성 시 자동 반영 · 인원 영향 없음`
-          : impactOk
-            ? '승인하면 근무표에 바로 반영 · 인원 영향 없음'
-            : p.impact.join(' · ')}
+          : warn
+            ? `${p.impact.join(' · ')} → 대체 필요`
+            : '승인하면 근무표에 바로 반영 · 인원 영향 없음'}
       </div>
-      {p.impact && p.impact.length > 0 && (
-        <div className="text-[11px] text-ink-3">대체자 지정은 근무 조정에서 할 수 있습니다(준비 중).</div>
+      {warn && (
+        <div className="text-xs text-ink-2">
+          {p.candidates.length > 0
+            ? `대체 후보: ${p.candidates.join(' · ')}`
+            : '대체 후보: 그날 OFF인 교대 근무자가 없습니다'}
+        </div>
       )}
       {rejecting && (
         <input
           aria-label="반려 사유"
           autoFocus
           placeholder="반려 사유"
-          className="h-8 rounded-md border border-line px-2 text-xs"
+          className="h-8 rounded-lg border border-line px-2 text-xs"
           value={reason}
           onChange={(e) => setReason(e.target.value)}
         />
       )}
       {error && <div className="text-xs text-danger">{error}</div>}
-      <div className="flex justify-end gap-1.5">
+      <div className="flex gap-1.5">
         <button
           type="button"
           disabled={pending}
-          className="h-8 cursor-pointer rounded-lg border border-line bg-surface px-3 text-xs"
+          className="h-[34px] flex-1 cursor-pointer rounded-lg border border-line bg-surface text-xs"
           onClick={() => (rejecting ? decide('reject') : setRejecting(true))}
         >
           {rejecting ? '반려 확정' : '반려'}
@@ -156,50 +164,50 @@ function ApprovalCard({ p }: { p: PendingLeave }) {
         <button
           type="button"
           disabled={pending}
-          className="h-8 cursor-pointer rounded-lg bg-primary px-3 text-xs font-bold text-white"
+          className="h-[34px] flex-[1.4] cursor-pointer rounded-lg bg-primary text-xs font-bold text-white"
           onClick={() => decide('approve')}
         >
-          승인
+          {/* 확정된 달: 승인 후 대체 지정은 2-7 근무 조정 팝오버에서 */}
+          {p.confirmedMonth ? '승인 · 대체 지정' : '승인'}
         </button>
       </div>
     </div>
   )
 }
 
-function ApprovalPanel({ view }: { view: RequestsView }) {
-  const [collapsed, setCollapsed] = useCollapsed()
-  const badge = (
-    <span className="rounded-full bg-danger px-1.5 text-[11px] font-bold text-white">
-      {view.pending.length}
-    </span>
-  )
+function ApprovalPanel({
+  view,
+  collapsed,
+  setCollapsed,
+}: {
+  view: RequestsView
+  collapsed: boolean
+  setCollapsed: (v: boolean) => void
+}) {
   if (collapsed)
     return (
-      <aside
-        aria-label="휴가 승인"
-        className="flex w-[72px] flex-col items-center gap-3 rounded-xl border border-line bg-surface py-3"
-      >
-        <button
-          type="button"
-          className="h-7 cursor-pointer rounded-md border border-line px-2 text-xs"
-          onClick={() => setCollapsed(false)}
-        >
+      <aside aria-label="휴가 승인" className="flex flex-col items-center gap-2.5">
+        <button type="button" className={toggleBtn} onClick={() => setCollapsed(false)}>
           ‹ 펼치기
         </button>
-        <span className="text-[13px] font-bold [writing-mode:vertical-rl]">휴가 승인</span>
-        {badge}
+        <div className="relative mt-1.5">
+          <span className="text-xs font-bold tracking-[.08em] text-ink [writing-mode:vertical-rl]">
+            휴가 승인
+          </span>
+          <span className="absolute -top-1.5 -right-2.5 rounded-full bg-danger px-[5px] text-[10px] font-bold text-white">
+            {view.pending.length}
+          </span>
+        </div>
       </aside>
     )
   return (
-    <aside aria-label="휴가 승인" className="flex w-[260px] flex-col gap-2.5">
-      <div className="flex items-center gap-2">
+    <aside aria-label="휴가 승인" className="flex min-h-0 min-w-0 flex-col gap-2.5 text-[13px]">
+      <div className="flex items-center gap-1.5">
         <span className="text-[15px] font-bold">휴가 승인</span>
-        {badge}
-        <button
-          type="button"
-          className="ml-auto h-7 cursor-pointer rounded-md border border-line px-2 text-xs"
-          onClick={() => setCollapsed(true)}
-        >
+        <span className="rounded-full bg-danger px-1.5 text-[11px] font-bold text-white">
+          {view.pending.length}
+        </span>
+        <button type="button" className={`ml-auto ${toggleBtn}`} onClick={() => setCollapsed(true)}>
           접기 ›
         </button>
       </div>
@@ -207,18 +215,22 @@ function ApprovalPanel({ view }: { view: RequestsView }) {
       {view.pending.map((p) => (
         <ApprovalCard key={p.id} p={p} />
       ))}
-      <div className="mt-2 text-xs font-bold text-ink-2">처리 이력</div>
-      <div className="flex flex-col gap-1 text-xs">
+      <div className="px-0.5 pt-1 text-[11px] font-semibold tracking-[.06em] text-ink-3">처리 이력</div>
+      <div className="rounded-[10px] border border-line-soft bg-surface px-3 py-1">
+        {view.history.length === 0 && <div className="py-[7px] text-xs text-ink-3">아직 없습니다.</div>}
         {view.history.map((h, i) => (
-          <div key={i} className="flex flex-col gap-0.5 border-b border-line-soft pb-1.5">
-            <div className="flex gap-1.5">
-              <span className="font-semibold whitespace-nowrap">{h.name}</span>
-              <span className={h.status === 'APPROVED' ? 'text-primary' : 'text-danger'}>
-                {h.status === 'APPROVED' ? '승인' : `반려${h.reason ? ` · ${h.reason}` : ''}`}
-              </span>
-              <span className="ml-auto text-ink-3">{h.when}</span>
-            </div>
-            <span className="text-ink-2">{h.kindLabel}</span>
+          <div
+            key={i}
+            className="flex items-center gap-2 border-b border-line-soft py-[7px] text-xs last:border-b-0"
+          >
+            <span className="font-semibold whitespace-nowrap">{h.name}</span>
+            <span className="min-w-0 truncate text-ink-2">{h.kindLabel}</span>
+            <span
+              className={`text-[11px] font-bold whitespace-nowrap ${h.status === 'APPROVED' ? 'text-primary' : 'text-danger'}`}
+            >
+              {h.status === 'APPROVED' ? '승인' : `반려${h.reason ? ` · ${h.reason}` : ''}`}
+            </span>
+            <span className="ml-auto whitespace-nowrap text-ink-3">{h.when}</span>
           </div>
         ))}
       </div>
@@ -260,6 +272,7 @@ export function RequestsScreen({
 }) {
   const router = useRouter()
   const hydrated = useHydrated()
+  const [collapsed, setCollapsed] = useCollapsed()
   const [sel, setSel] = useState<{ userId: string; date: string; x: number; y: number } | null>(null)
   const [hover, setHover] = useState<string>('')
   const [msg, setMsg] = useState('')
@@ -327,7 +340,11 @@ export function RequestsScreen({
   return (
     <div
       data-hydrated={hydrated || undefined}
-      className={`grid gap-4 px-4 py-[18px] ${admin ? 'grid-cols-[1fr_auto]' : ''}`}
+      className={`grid px-4 py-[18px] ${
+        admin
+          ? `gap-3 transition-[grid-template-columns] duration-200 ${collapsed ? 'grid-cols-[minmax(0,1fr)_72px]' : 'grid-cols-[minmax(0,1fr)_260px]'}`
+          : 'gap-4'
+      }`}
     >
       <div ref={box} className="relative flex min-w-0 flex-col gap-3">
         <div className="flex items-center gap-3">
@@ -544,7 +561,7 @@ export function RequestsScreen({
           </div>
         )}
       </div>
-      {admin && <ApprovalPanel view={view} />}
+      {admin && <ApprovalPanel view={view} collapsed={collapsed} setCollapsed={setCollapsed} />}
     </div>
   )
 }

@@ -16,6 +16,7 @@ import {
   addDays,
   baselineOff,
   formatMD,
+  weekdayKo,
   monthDates,
   type HolidayKind,
   type LeaveType,
@@ -113,19 +114,19 @@ export async function loadRequestsRaw(
       queue.map(async (l) => {
         const confirmed = statusOf(l.startDate) === 'CONFIRMED'
         const m = Number(l.startDate.slice(5, 7))
+        const impact = confirmed ? await leaveImpact(db, l.id) : null
+        const day = (d: string) => `${formatMD(d)} (${weekdayKo(d)})`
         return {
           id: l.id,
           name: names.get(l.userId) ?? '',
           monthLabel: `${m}월 · ${confirmed ? '확정된 달' : '신청 중'}`,
           confirmedMonth: confirmed,
           kindLabel: leaveKindLabel(l.type as LeaveType, l.reasonCode),
-          range:
-            l.startDate === l.endDate
-              ? formatMD(l.startDate)
-              : `${formatMD(l.startDate)}–${formatMD(l.endDate)}`,
+          range: l.startDate === l.endDate ? day(l.startDate) : `${day(l.startDate)} – ${day(l.endDate)}`,
           days: Number(l.days),
           comment: l.comment,
-          impact: confirmed ? await leaveImpact(db, l.id) : null,
+          impact: impact?.lines ?? null,
+          candidates: impact?.candidates ?? [],
         }
       }),
     )
@@ -137,10 +138,17 @@ export async function loadRequestsRaw(
       .limit(10)
     history = done.map((l) => ({
       name: names.get(l.userId) ?? '',
-      kindLabel: `${leaveKindLabel(l.type as LeaveType, l.reasonCode)} ${formatMD(l.startDate)}`,
+      // 핸드오프 4a: '연차 · 11/6–7', 처리일 '09/24'
+      kindLabel: `${leaveKindLabel(l.type as LeaveType, l.reasonCode).split(' · ')[0]} · ${
+        l.startDate === l.endDate
+          ? formatMD(l.startDate)
+          : l.startDate.slice(0, 7) === l.endDate.slice(0, 7)
+            ? `${formatMD(l.startDate)}–${Number(l.endDate.slice(8))}`
+            : `${formatMD(l.startDate)}–${formatMD(l.endDate)}`
+      }`,
       status: l.status as 'APPROVED' | 'REJECTED',
       reason: l.rejectReason,
-      when: l.decidedAt ? formatMD(todaySeoul(l.decidedAt)) : '',
+      when: l.decidedAt ? todaySeoul(l.decidedAt).slice(5).replace('-', '/') : '',
     }))
   }
 

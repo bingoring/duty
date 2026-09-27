@@ -54,6 +54,8 @@ export type PendingLeave = {
   days: number
   comment: string | null
   impact: string[] | null
+  // 확정된 달 인원 영향이 있을 때 대체 후보 (핸드오프 v4 4a)
+  candidates: string[]
 }
 
 export type LeaveHistory = {

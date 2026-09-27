@@ -45,10 +45,20 @@ describe('loadRequestsRaw', () => {
     await submitRequests(db, who, { year: 2026, month: 10 }, TODAY)
     await submitRequests(db, who, { year: 2026, month: 11 }, TODAY)
     const r = await loadRequestsRaw(db, { ym: { year: 2026, month: 11 }, viewer: admin, today: TODAY })
-    expect(r.pending.map((p) => [p.monthLabel, p.confirmedMonth, p.kindLabel, p.impact])).toEqual([
-      ['10월 · 확정된 달', true, '병가', ['10/2 (금) D 인원 1명 · 최소 2명']],
-      ['11월 · 신청 중', false, '연차', null],
+    expect(
+      r.pending.map((p) => [p.monthLabel, p.confirmedMonth, p.kindLabel, p.range, p.impact, p.candidates]),
+    ).toEqual([
+      [
+        '10월 · 확정된 달',
+        true,
+        '병가',
+        '10/2 (금)',
+        ['10/2 (금) D 인원 1명 · 최소 2명'],
+        ['오민지 (10/2 OFF, K-tass)', '강도윤 (10/2 OFF)', '임소라 (10/2 OFF, K-tass)'],
+      ],
+      ['11월 · 신청 중', false, '연차', '11/4 (수)', null, []],
     ])
+    expect(r.history).toEqual([])
   })
 
   it('간호사에게는 승인 대기 목록을 싣지 않는다', async () => {

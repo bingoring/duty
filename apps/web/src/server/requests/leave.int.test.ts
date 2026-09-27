@@ -257,7 +257,11 @@ describe('leaveImpact (R-APPROVE-3)', () => {
     const id = idOf(
       await saveLeave(db, who, { userId: who.id, type: 'sick', startDate: '2026-10-02' }, TODAY),
     )
-    expect(await leaveImpact(db, id)).toEqual(['10/2 (금) D 인원 1명 · 최소 2명'])
+    // 대체 후보 = 그날 OFF인 교대 근무자(신청자 제외), 표 순서로 최대 3명 (핸드오프 v4 4a)
+    expect(await leaveImpact(db, id)).toEqual({
+      lines: ['10/2 (금) D 인원 1명 · 최소 2명'],
+      candidates: ['오민지 (10/2 OFF, K-tass)', '강도윤 (10/2 OFF)', '임소라 (10/2 OFF, K-tass)'],
+    })
   })
 
   it('영향이 없으면 빈 목록, 신청 중인 달은 계산하지 않는다(null)', async () => {
@@ -265,7 +269,7 @@ describe('leaveImpact (R-APPROVE-3)', () => {
     const oct = idOf(
       await saveLeave(db, me, { userId: me.id, type: 'annual', startDate: '2026-10-03' }, TODAY),
     ) // 10/3 정하늘 off
-    expect(await leaveImpact(db, oct)).toEqual([])
+    expect(await leaveImpact(db, oct)).toEqual({ lines: [], candidates: [] })
     const nov = idOf(
       await saveLeave(db, me, { userId: me.id, type: 'annual', startDate: '2026-11-02' }, TODAY),
     )
