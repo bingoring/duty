@@ -413,18 +413,16 @@ export async function decideLeave(
             eq(scheduleCells.date, date),
           ),
         )
-      await tx
-        .insert(cellEditLogs)
-        .values({
-          monthPlanId: plan.id,
-          userId: l.userId,
-          date,
-          before,
-          after,
-          editedBy: actor.id,
-          editedAt: now,
-          reason: 'leave_approved',
-        })
+      await tx.insert(cellEditLogs).values({
+        monthPlanId: plan.id,
+        userId: l.userId,
+        date,
+        before,
+        after,
+        editedBy: actor.id,
+        editedAt: now,
+        reason: 'leave_approved',
+      })
     }
   })
   return { ok: true }

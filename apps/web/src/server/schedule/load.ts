@@ -368,3 +368,14 @@ export async function loadLeaveBalance(
     nightBank,
   }
 }
+
+// 2-5: 대상 달의 월초 잔여(원장 + 앞선 확정·미마감 달 투영). OFF 목표·검증에 쓴다
+export async function monthStartBalances(
+  db: Db,
+  ym: YearMonth,
+  userIds: string[],
+): Promise<Map<string, Sums>> {
+  const { allUsers, plans, rules, holidays: hol } = await baseContext(db)
+  const ctx: Ctx = { db, users: allUsers.filter((u) => userIds.includes(u.id)), plans, rules, holidays: hol }
+  return (await monthStart(ctx, ym)).sums
+}
