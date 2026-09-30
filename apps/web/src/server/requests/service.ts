@@ -10,6 +10,7 @@ import {
   leaveDays,
   leaveEnd,
   leaveToCell,
+  replacementCandidates,
   type GridCell,
   type LeaveType,
   isRedDay,
@@ -34,6 +35,7 @@ import {
 } from '../db/schema'
 import { latestRuleSet } from '../rules/service'
 import type { YearMonth } from '../schedule/month'
+import { fillProfiles } from '../generate/input'
 import { buildScheduleInput } from '../schedule/input'
 import { projectedLeaveBalance } from './balance'
 import { PRE_GENERATION, findPlan, type PlanRow } from './plan'
@@ -545,27 +547,20 @@ export async function leaveImpact(db: Db, id: string): Promise<LeaveImpact | nul
     const f = formatViolation(v, { nameOf: (x) => names.get(x) ?? x, month: plan.month })
     return f.detail ? `${f.title} · ${f.detail}` : f.title
   })
-  const hit = [...new Set(added.flatMap((v) => v.dates.filter((x) => dates.has(x))))].sort()
-  const off = new Set(
-    input.cells.filter((c) => c.code === 'OFF' && !c.leaveKind).map((c) => `${c.userId}|${c.date}`),
-  )
-  const candidates: string[] = []
-  const seen = new Set<string>()
-  for (const d of hit)
-    for (const u of people) {
-      if (candidates.length >= 3) break
-      if (
-        u.id === l.userId ||
-        u.rotation !== 'rotating' ||
-        !u.active ||
-        seen.has(u.id) ||
-        !off.has(`${u.id}|${d}`)
-      )
-        continue
-      seen.add(u.id)
-      candidates.push(`${u.name} (${formatMD(d)} OFF${u.kTass ? ', K-tass' : ''})`)
-    }
   const staff = added.find((v) => (v.ruleId === 'H-STAFF' || v.ruleId === 'H-KTASS') && v.shift && v.dates[0])
   const focus = staff ? { date: staff.dates[0]!, shift: staff.shift as 'D' | 'E' | 'N' } : null
+  // 대체 후보: 2-7 S9 대체 지정과 같은 기준(그날 쉬는 교대 근무자, K-tass 부족이면 K-tass 먼저, 덜 일한 사람 먼저,
+  // 넣어도 새 필수 위반이 없는 사람) 상위 3명. 누적 OFF 비교를 위해 월초 잔여를 채운다
+  const candidates: string[] = []
+  if (focus) {
+    await fillProfiles(db, applied, applied.rules)
+    for (const c of replacementCandidates(applied, focus.date, focus.shift)) {
+      if (candidates.length >= 3) break
+      if (c.userId === l.userId || c.newHard.length) continue
+      candidates.push(
+        `${names.get(c.userId) ?? c.userId} (${formatMD(focus.date)} OFF${c.kTass ? ', K-tass' : ''})`,
+      )
+    }
+  }
   return { lines, candidates, focus }
 }

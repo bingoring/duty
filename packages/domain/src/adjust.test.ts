@@ -125,6 +125,24 @@ describe('replacementCandidates (R-ADJ-10)', () => {
     expect([...new Set(out[1]!.newHard.map((v) => v.ruleId))].sort()).toEqual(['H-PATTERN', 'H-REST'])
   })
 
+  it('K-tass 부족이 아니면 덜 일한 사람(이달 누적 OFF가 큰 사람) 먼저, 같으면 근무일이 적은 사람 (사용자 결정)', () => {
+    // 11/1~4. x·y·z 모두 11/4에 쉼. y는 누적 이월 +2(더 쉼) → 먼저, x·z는 같고 z가 근무일이 적다
+    const inp = input({
+      year: 2026,
+      month: 11,
+      rules: rules({ minStaffPerShift: 1, minKTass: 0 }),
+      nurses: [nurse('w'), nurse('x'), nurse('y', { offCarryBefore: 2 }), nurse('z')],
+      cells: [
+        ...row('w', '2026-11-01', 'D D D D'),
+        ...row('x', '2026-11-01', 'O D E O'),
+        ...row('y', '2026-11-01', 'O D E O'),
+        ...row('z', '2026-11-01', 'O O E O'),
+      ],
+    })
+    const out = replacementCandidates(inp, '2026-11-04', 'E')
+    expect(out.map((c) => c.userId)).toEqual(['y', 'z', 'x'])
+  })
+
   it('11×31 격자에서 편집 한 번 검사 < 50ms (1-3 §7)', () => {
     const ids = Array.from({ length: 11 }, (_, i) => `n${i}`)
     const days = '2026-11-01'
