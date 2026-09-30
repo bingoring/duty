@@ -36,6 +36,7 @@ import {
 import { latestRuleSet } from '../rules/service'
 import type { YearMonth } from '../schedule/month'
 import { fillProfiles } from '../generate/input'
+import { INVALID_BY_ADMIN, invalidateSwapsForCells } from '../swaps/invalidate'
 import { buildScheduleInput } from '../schedule/input'
 import { projectedLeaveBalance } from './balance'
 import { PRE_GENERATION, findPlan, type PlanRow } from './plan'
@@ -415,6 +416,7 @@ export async function decideLeave(
         editedAt: now,
         reason: 'leave_approved',
       })
+      await invalidateSwapsForCells(tx, plan.id, [{ userId: l.userId, date }], INVALID_BY_ADMIN)
     }
   })
   return { ok: true }
@@ -498,6 +500,7 @@ export async function cancelApprovedLeave(db: Db, actor: Actor, id: string): Pro
         editedAt: now,
         reason: 'leave_cancelled',
       })
+      await invalidateSwapsForCells(tx, plan.id, [{ userId: l.userId, date }], INVALID_BY_ADMIN)
       restored.push(date)
     }
     await tx.update(leaveRequests).set({ status: 'CANCELLED' }).where(eq(leaveRequests.id, id))

@@ -9,10 +9,12 @@ import { SessionKeeper } from './SessionKeeper'
 export function AppShell({
   session,
   leaveBalance,
+  swapCount = 0,
   children,
 }: {
   session: ValidSession
   leaveBalance: LeaveBalanceSummary | null
+  swapCount?: number
   children: React.ReactNode
 }) {
   const { user } = session
@@ -25,7 +27,7 @@ export function AppShell({
           벌써 근무표
           <br />짤 때가 됐어?
         </div>
-        <NavList isAdmin={isAdmin} />
+        <NavList isAdmin={isAdmin} badges={{ '/adjust': swapCount }} />
         <div className="mt-auto flex flex-col gap-2">
           {leaveBalance && <LeaveBalanceCard b={leaveBalance} />}
           <div className="flex flex-col gap-0.5 border-t border-line-nav px-2.5 pt-2.5">

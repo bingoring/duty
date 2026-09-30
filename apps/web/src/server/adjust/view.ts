@@ -13,7 +13,7 @@ import {
 } from '@duty/domain'
 import { and, eq, gte, isNotNull, lte } from 'drizzle-orm'
 import type { Db } from '../db/client'
-import { leaveRequests, shiftRequests, users } from '../db/schema'
+import { leaveRequests, monthPlans, shiftRequests, users } from '../db/schema'
 import { leaveKindLabel } from '../requests/dto'
 import { findPlan } from '../requests/plan'
 import { loadMonthView } from '../schedule/load'
@@ -21,6 +21,8 @@ import type { YearMonth } from '../schedule/month'
 import { buildScheduleView, type ScheduleView } from '../schedule/view'
 import { closeState } from './close'
 import { adjustCheckInput, editBlockReason } from './service'
+import { daysLeft, inNegotiation } from '@duty/domain'
+import { listSwaps, type SwapCard } from '../swaps/service'
 
 // Build Spec 2-7 domain-entities §4 — S9 근무 조정 화면 원자료 (관리자 1j / 간호사 읽기 전용)
 export type AdjustView = {
@@ -46,6 +48,14 @@ export type AdjustView = {
   close: { can: boolean; reason: string | null; canReopen: boolean; reopenReason: string | null } | null
   requestDeadlineDay: number
   focus: { date: IsoDate; shift: DutyCode | null } | null
+  // 2-8 교환 요청 (간호사 3a, 관리자는 현황 읽기 전용)
+  swap: {
+    window: { open: boolean; label: string }
+    selectable: string[]
+    received: SwapCard[]
+    sent: SwapCard[]
+    pendingByCell: Record<string, string[]>
+  } | null
 }
 
 const day = (d: IsoDate) => `${formatMD(d)} (${weekdayKo(d)})`
@@ -76,6 +86,22 @@ export async function loadAdjustView(
   )
 
   let checkInput: ScheduleInput | null = null
+  let swap: AdjustView['swap'] = null
+  if (plan?.status === 'CONFIRMED') {
+    const open = inNegotiation(plan, today)
+    const range = `${formatMD(plan.negotiationStart)} – ${formatMD(plan.negotiationEnd)}`
+    const list = await listSwaps(db, viewer, plan.id, today)
+    swap = {
+      window: {
+        open,
+        label: open ? `협의 기간 ${range} · ${daysLeft(plan, today)}일 남음` : `협의 기간 아님 (${range})`,
+      },
+      selectable: people.filter((u) => u.rotation === 'rotating').map((u) => u.id),
+      ...list,
+    }
+    // 간호사도 재배정 팝업에서 규칙을 바로 검사한다
+    if (!admin && open) checkInput = await adjustCheckInput(db, plan)
+  }
   const requests: AdjustView['requests'] = {}
   const leaveCells: AdjustView['leaveCells'] = {}
   if (admin && plan) {
@@ -156,5 +182,13 @@ export async function loadAdjustView(
     close: admin && plan ? await closeState(db, plan, today) : null,
     requestDeadlineDay: data.rules.params.requestDeadlineDay,
     focus: editable ? focus : null,
+    swap,
   }
+}
+
+// 2-8: 간호사 기본 달 = 오늘이 협의 기간인 확정된 달, 없으면 이번 달
+export async function defaultAdjustYm(db: Db, today: IsoDate): Promise<YearMonth | null> {
+  const plans = await db.select().from(monthPlans).where(eq(monthPlans.status, 'CONFIRMED'))
+  const p = plans.find((x) => inNegotiation(x, today))
+  return p ? { year: p.year, month: p.month } : null
 }

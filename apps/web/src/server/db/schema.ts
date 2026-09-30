@@ -323,3 +323,43 @@ export const monthSettlements = pgTable(
   },
   (t) => [primaryKey({ columns: [t.monthPlanId, t.userId] })],
 )
+
+// Build Spec 2-8 domain-entities §1 — 간호사 교환 요청 (한 요청 = 한 날짜)
+export const swapRequests = pgTable(
+  'swap_requests',
+  {
+    id: id(),
+    monthPlanId: uuid('month_plan_id')
+      .notNull()
+      .references(() => monthPlans.id),
+    date: day('date').notNull(),
+    requesterId: uuid('requester_id')
+      .notNull()
+      .references(() => users.id),
+    comment: text('comment'),
+    // SWAP_STATUSES
+    status: text('status').notNull(),
+    closedReason: text('closed_reason'),
+    createdAt: createdAt(),
+    closedAt: tstz('closed_at'),
+  },
+  (t) => [index('swap_requests_plan_idx').on(t.monthPlanId, t.status)],
+)
+
+export const swapRequestItems = pgTable(
+  'swap_request_items',
+  {
+    requestId: uuid('request_id')
+      .notNull()
+      .references(() => swapRequests.id, { onDelete: 'cascade' }),
+    userId: uuid('user_id')
+      .notNull()
+      .references(() => users.id),
+    before: jsonb('before').$type<{ code: string }>().notNull(),
+    after: jsonb('after').$type<{ code: string }>().notNull(),
+    // SWAP_RESPONSES
+    response: text('response').notNull(),
+    respondedAt: tstz('responded_at'),
+  },
+  (t) => [primaryKey({ columns: [t.requestId, t.userId] }), index('swap_items_user_idx').on(t.userId)],
+)

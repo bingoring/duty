@@ -244,11 +244,6 @@ export function AdjustScreen({ view }: { view: AdjustView }) {
           )}
         </div>
       )}
-      {!view.admin && (
-        <div className="rounded-lg bg-panel px-3 py-2 text-xs text-ink-2">
-          근무 교환 요청 기능은 준비 중입니다. 지금은 확정된 근무표를 볼 수 있습니다.
-        </div>
-      )}
       {msg && (
         <div
           role={msg.kind === 'err' ? 'alert' : 'status'}

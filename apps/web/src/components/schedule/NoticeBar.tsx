@@ -6,9 +6,26 @@ import { ackNoticesAction } from '@/server/notices/actions'
 import type { Notice } from '@/server/notices/service'
 
 // Build Spec 2-7 R-NOTICE-1·2 (Q3) — 근무표 상단 "내 근무가 바뀌었습니다" 띠
-export function NoticeBar({ items, more }: { items: Notice[]; more: number }) {
+export function NoticeBar({ items, more, swaps = 0 }: { items: Notice[]; more: number; swaps?: number }) {
   const [pending, start] = useTransition()
-  if (items.length === 0) return null
+  if (items.length === 0 && swaps === 0) return null
+  // 2-8 R-SWAP-12: 처리할 일(받은 교환 요청)은 근무 조정으로 보낸다
+  const swapLine = swaps > 0 && (
+    <Link href="/adjust" className="font-semibold text-ink underline-offset-2 hover:underline">
+      받은 교환 요청 {swaps}건 → 근무 조정
+    </Link>
+  )
+  if (items.length === 0)
+    return (
+      <div
+        role="status"
+        aria-label="받은 교환 요청"
+        data-print="hide"
+        className="flex items-center gap-3 rounded-[10px] border border-line bg-[#FFF9E8] px-3 py-2.5 text-[13px]"
+      >
+        {swapLine}
+      </div>
+    )
   return (
     <div
       role="status"
@@ -27,6 +44,7 @@ export function NoticeBar({ items, more }: { items: Notice[]; more: number }) {
           </span>
         ))}
         {more > 0 && <span className="text-xs text-ink-3">외 {more}건</span>}
+        {swapLine}
       </div>
       <button
         type="button"

@@ -131,6 +131,8 @@ export function cellView(c: ScheduleCellRow | undefined, day: DayHead): GridCell
     kind,
     c.checkupHalf ? '검진 반차' : undefined,
     outline === 'admin' ? '관리자 수정' : outline === 'requested' ? '신청 반영' : undefined,
+    // 2-8 R-SWAP-13: 교환 반영 칸은 외곽선 없이 설명만
+    c.source === 'swap' ? '교환 반영' : undefined,
   ]
     .filter(Boolean)
     .join(' · ')

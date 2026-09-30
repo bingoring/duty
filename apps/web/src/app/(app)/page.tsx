@@ -5,6 +5,7 @@ import { SummaryCards } from '@/components/schedule/SummaryCards'
 import { requireUser } from '@/server/auth/guards'
 import { getDb } from '@/server/db/client'
 import { loadNotices } from '@/server/notices/service'
+import { pendingReceivedCount } from '@/server/swaps/service'
 import { loadMonthView } from '@/server/schedule/load'
 import { parseYm, appToday } from '@/server/schedule/month'
 import { buildScheduleView } from '@/server/schedule/view'
@@ -22,10 +23,11 @@ export default async function SchedulePage({
   const data = await loadMonthView(db, { year, month, viewerId: session.user.id, today })
   const view = buildScheduleView(data)
   const notices = await loadNotices(db, session.user.id)
+  const swaps = await pendingReceivedCount(db, session.user.id, today)
   return (
     <div className="flex min-w-0 flex-col gap-3 px-4 py-[18px]">
       <h1 className="print-only text-sm font-bold">{view.title}</h1>
-      <NoticeBar items={notices.items} more={notices.more} />
+      <NoticeBar items={notices.items} more={notices.more} swaps={swaps} />
       <ScheduleHeader view={view} />
       {!view.empty && <SummaryCards cards={view.cards} />}
       <ScheduleGrid view={view} />

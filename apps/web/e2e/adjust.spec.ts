@@ -93,9 +93,10 @@ test('관리자 칸 편집: 필수 위반 차단 → 사유 입력 후 적용 �
   await me.reload()
   await expect(me.getByRole('status', { name: '바뀐 근무' })).toHaveCount(0)
 
-  // 간호사의 근무 조정 화면은 읽기 전용
+  // 간호사의 근무 조정 화면은 3a 교환 요청(직접 편집 칸 없음). 10월은 협의 기간이 지났다
   await me.goto('/adjust?ym=2026-10')
-  await expect(me.getByText('근무 교환 요청 기능은 준비 중입니다')).toBeVisible()
+  await waitHydrated(me)
+  await expect(me.getByRole('button', { name: '근무 조정' })).toBeDisabled()
   await expect(me.getByRole('button', { name: `${HONG.name} 2026-10-17` })).toHaveCount(0)
   await me.close()
 })

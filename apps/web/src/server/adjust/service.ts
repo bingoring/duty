@@ -14,6 +14,7 @@ import type { Db } from '../db/client'
 import { cellEditLogs, monthPlans, scheduleCells, users } from '../db/schema'
 import { fillProfiles } from '../generate/input'
 import { buildScheduleInput } from '../schedule/input'
+import { INVALID_BY_ADMIN, invalidateSwapsForCells } from '../swaps/invalidate'
 
 // Build Spec 2-7 business-logic-model §2 — 관리자 일괄 저장 · 협의 기간 변경
 type Actor = { id: string; role: 'nurse' | 'admin' }
@@ -138,6 +139,13 @@ export async function saveEdits(
         note: e.override?.reason.trim() ?? null,
       })
     }
+    // 2-8 R-SWAP-9: 바뀐 칸이 걸린 대기 교환 요청은 무효
+    await invalidateSwapsForCells(
+      tx,
+      plan.id,
+      edits.map((e) => ({ userId: e.userId, date: e.date })),
+      INVALID_BY_ADMIN,
+    )
   })
   return { ok: true, saved: edits.length }
 }

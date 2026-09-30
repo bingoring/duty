@@ -5,7 +5,7 @@ export const SENIORITY_TIERS = ['senior', 'mid', 'junior'] as const
 export const SHIFT_CODES = ['D', 'E', 'N', 'S', 'OFF', 'AL', 'LEAVE'] as const
 export const OFF_KINDS = ['regular', 'sleeping', 'edu_cont', 'edu_union', 'special', 'founding'] as const
 export const LEAVE_KINDS = ['family', 'sick', 'official'] as const
-export const CELL_SOURCES = ['auto', 'requested', 'admin'] as const
+export const CELL_SOURCES = ['auto', 'requested', 'admin', 'swap'] as const
 export const REQUEST_OPTIONS = ['OFF', 'D', 'E', 'N'] as const
 export const REQUEST_SPECIALS = ['AL', 'EDU_CONT', 'EDU_UNION'] as const
 export const HOLIDAY_KINDS = [
@@ -48,6 +48,9 @@ export const BALANCE_REASONS = [
   'leave_cancelled',
   'settlement_reversed',
 ] as const
+// 2-8 교환 요청
+export const SWAP_STATUSES = ['PENDING', 'APPLIED', 'REJECTED', 'CANCELLED', 'EXPIRED', 'INVALID'] as const
+export const SWAP_RESPONSES = ['PENDING', 'ACCEPTED', 'REJECTED'] as const
 export const TRAINEE_KINDS = ['new_grad', 'experienced'] as const
 export const EDIT_REASONS = ['manual', 'swap', 'leave_approved', 'leave_cancelled'] as const
 
@@ -66,4 +69,6 @@ export type BalanceAccount = (typeof BALANCE_ACCOUNTS)[number]
 export type TraineeKind = (typeof TRAINEE_KINDS)[number]
 export type LeaveType = (typeof LEAVE_TYPES)[number]
 export type LeaveStatus = (typeof LEAVE_STATUSES)[number]
+export type SwapStatus = (typeof SWAP_STATUSES)[number]
+export type SwapResponse = (typeof SWAP_RESPONSES)[number]
 export type BalanceReason = (typeof BALANCE_REASONS)[number]
