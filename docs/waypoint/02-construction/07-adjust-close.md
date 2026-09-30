@@ -21,9 +21,9 @@ updated: 2026-09-30
 
 ## 체크리스트
 
-- [x] Build Spec 작성·질문 해소 → READY (2026-09-30, 승인 대기)
-- [ ] Build Spec §4 구현 체크리스트 전 항목 완료
-- [ ] Build Spec §5 검증 통과 → IMPLEMENTED
+- [x] Build Spec 작성·질문 해소 → READY (2026-09-30 승인)
+- [x] Build Spec §4 구현 체크리스트 전 항목 완료
+- [x] Build Spec §5 검증 통과 → IMPLEMENTED (2026-09-30)
 
 ## AI 제안 (AI Proposal)
 
@@ -37,6 +37,13 @@ Build Spec(comprehensive, 4 아티팩트): [`adjust-close/build-spec-index.md`](
 - **월 마감(Q1):** 헤더 버튼 → 인당 정산 미리보기 → 스냅샷 + 원장 기록. 마감 취소 = 반대 항목. 앞 달부터 차례로.
 - **확정된 달 휴가:** 4a 「승인 · 대체 지정」 → S9 대체 지정 팝오버. 승인 취소는 이전 칸으로 복원(Q4).
 - **안내(Q3):** 근무표 상단 띠 "내 근무가 바뀌었습니다 · 10/13 E → OFF" + 확인. 위치 검토 결과는 Build Spec §3.
+
+### 구현 결과 (2026-09-30)
+
+- 메인 저장소 `packages/domain/src/adjust.ts`, `apps/web/src/server/{adjust,notices}/`, `components/adjust/AdjustScreen.tsx`, `components/schedule/NoticeBar.tsx`,
+  마이그레이션 `0003_adjust_note_changes_seen`. 편차 7건은 Build Spec §7(주요: 범례를 헤더 아래 줄로, 생성 때 고정된 휴가 칸은 취소해도 칸을 바꾸지 않음).
+- 검증: 단위 353 · pytest 12 · 통합 129 · E2E 32 · 빌드 · CI.
+- 확인: `pnpm dev` → 사번 `00101` → 근무 조정 → 10월 칸을 눌러 편집 → 저장 · 재배포 → 해당 간호사로 로그인하면 근무표 위에 "내 근무가 바뀌었습니다".
 
 ## 검토 게이트 (Human Gate)
 

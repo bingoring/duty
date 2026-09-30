@@ -8,6 +8,10 @@
 
 > 🔒 **개인정보:** 공개 저장소다. 간호사 이름·사번은 모두 가명이며, 실명 자료는 커밋하지 않는다([DECISIONS](DECISIONS.md) 2026-09-26).
 
+> 🏗️ **2-7 근무 조정·월 마감 구현 완료 → 승인 대기 (2026-09-30).** S9 관리자(1j) 칸 편집(즉시 검사·예외 적용·맞바꾸기·대체 지정)·저장 재배포,
+> 월 마감(종이 10월 마감 = 원장 누적 OFF 일치)·마감 취소, 확정된 달 휴가 대체 지정·승인 취소, 근무표 "바뀐 근무" 안내.
+> 단위 353·pytest 12·통합 129·E2E 32 그린, 편차 7건.
+>
 > 📝 **2-7 근무 조정·월 마감 Build Spec READY (2026-09-30).** S9 관리자(1j): 칸 편집 팝오버·즉시 검사·맞바꾸기·대체 지정·저장·재배포,
 > 월 마감(정산 원장)·마감 취소, 확정된 달 휴가 대체 지정·승인 취소, 근무표 상단 "바뀐 근무" 안내. Q1~Q4 해소(Q3 안내 위치는 검토 뒤 근무표로). 구현 착수 승인 대기.
 >
@@ -114,7 +118,7 @@
 | 2-4 관리자 설정 (S10·S11) | [04-admin-settings.md](02-construction/04-admin-settings.md) · [Build Spec](02-construction/admin-settings/build-spec-index.md) (IMPLEMENTED) | HUMAN_APPROVED |
 | 2-5 근무 신청·휴가 (S4 + S5 팝오버 통합) | [05-shift-requests.md](02-construction/05-shift-requests.md) · [Build Spec](02-construction/shift-requests/build-spec-index.md) (IMPLEMENTED) | HUMAN_APPROVED |
 | 2-6 솔버·듀티 생성 (S8) | [06-solver-generation.md](02-construction/06-solver-generation.md) · [Build Spec](02-construction/solver-generation/build-spec-index.md) (IMPLEMENTED) | HUMAN_APPROVED |
-| 2-7 근무 조정·월 마감 (S9 관리자) | [07-adjust-close.md](02-construction/07-adjust-close.md) · [Build Spec](02-construction/adjust-close/build-spec-index.md) (READY) | AI_PROPOSED |
+| 2-7 근무 조정·월 마감 (S9 관리자) | [07-adjust-close.md](02-construction/07-adjust-close.md) · [Build Spec](02-construction/adjust-close/build-spec-index.md) (IMPLEMENTED) | AI_PROPOSED |
 | 2-8 근무 교환 요청 (S9 간호사, 3a) | 02-construction/08-swap-requests.md | PENDING |
 | 2-9 통합·E2E | 02-construction/09-integration-e2e.md | PENDING |
 
