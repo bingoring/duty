@@ -56,6 +56,8 @@ export type PendingLeave = {
   impact: string[] | null
   // 확정된 달 인원 영향이 있을 때 대체 후보 (핸드오프 v4 4a)
   candidates: string[]
+  // 2-7 「승인 · 대체 지정」 → /adjust?ym=&focus=&shift=
+  focus: { ym: string; date: string; shift: 'D' | 'E' | 'N' } | null
 }
 
 export type LeaveHistory = {

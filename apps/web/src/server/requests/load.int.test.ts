@@ -46,7 +46,15 @@ describe('loadRequestsRaw', () => {
     await submitRequests(db, who, { year: 2026, month: 11 }, TODAY)
     const r = await loadRequestsRaw(db, { ym: { year: 2026, month: 11 }, viewer: admin, today: TODAY })
     expect(
-      r.pending.map((p) => [p.monthLabel, p.confirmedMonth, p.kindLabel, p.range, p.impact, p.candidates]),
+      r.pending.map((p) => [
+        p.monthLabel,
+        p.confirmedMonth,
+        p.kindLabel,
+        p.range,
+        p.impact,
+        p.candidates,
+        p.focus,
+      ]),
     ).toEqual([
       [
         '10월 · 확정된 달',
@@ -55,8 +63,9 @@ describe('loadRequestsRaw', () => {
         '10/2 (금)',
         ['10/2 (금) D 인원 1명 · 최소 2명'],
         ['오민지 (10/2 OFF, K-tass)', '강도윤 (10/2 OFF)', '임소라 (10/2 OFF, K-tass)'],
+        { ym: '2026-10', date: '2026-10-02', shift: 'D' },
       ],
-      ['11월 · 신청 중', false, '연차', '11/4 (수)', null, []],
+      ['11월 · 신청 중', false, '연차', '11/4 (수)', null, [], null],
     ])
     expect(r.history).toEqual([])
   })

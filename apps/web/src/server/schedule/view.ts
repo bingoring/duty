@@ -100,7 +100,7 @@ export function signed(n: number): string {
   return r > 0 ? `+${r}` : r < 0 ? `−${-r}` : '0'
 }
 
-function cellView(c: ScheduleCellRow | undefined, day: DayHead): GridCellView {
+export function cellView(c: ScheduleCellRow | undefined, day: DayHead): GridCellView {
   const { date, red: weekend, today } = day
   if (!c)
     return {

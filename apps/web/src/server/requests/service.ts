@@ -505,7 +505,12 @@ export async function cancelApprovedLeave(db: Db, actor: Actor, id: string): Pro
 
 // R-APPROVE-3: 확정된 달이면 승인으로 새로 생기는 하드 위반과 대체 후보(그날 OFF인 교대 근무자, 표 순서 최대 3명).
 // 신청 중인 달이면 null. 대체 지정 자체는 2-7 근무 조정에서 한다.
-export type LeaveImpact = { lines: string[]; candidates: string[] }
+// focus: 2-7 「승인 · 대체 지정」이 여는 S9 대체 지정의 날짜·듀티(첫 인원·K-tass 부족)
+export type LeaveImpact = {
+  lines: string[]
+  candidates: string[]
+  focus: { date: string; shift: 'D' | 'E' | 'N' } | null
+}
 export async function leaveImpact(db: Db, id: string): Promise<LeaveImpact | null> {
   const [l]: LeaveRow[] = await db.select().from(leaveRequests).where(eq(leaveRequests.id, id))
   if (!l) return null
@@ -560,5 +565,7 @@ export async function leaveImpact(db: Db, id: string): Promise<LeaveImpact | nul
       seen.add(u.id)
       candidates.push(`${u.name} (${formatMD(d)} OFF${u.kTass ? ', K-tass' : ''})`)
     }
-  return { lines, candidates }
+  const staff = added.find((v) => (v.ruleId === 'H-STAFF' || v.ruleId === 'H-KTASS') && v.shift && v.dates[0])
+  const focus = staff ? { date: staff.dates[0]!, shift: staff.shift as 'D' | 'E' | 'N' } : null
+  return { lines, candidates, focus }
 }

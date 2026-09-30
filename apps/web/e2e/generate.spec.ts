@@ -71,7 +71,7 @@ test('12월: 생성 → 결과·요약·격자 → 리롤 → 이전 안 → 입
   await expect(result.getByText('생성 결과 · 3번째 안')).toBeVisible({ timeout: 60_000 })
   page.once('dialog', (d) => d.accept())
   await page.getByRole('button', { name: '이 안으로 확정' }).click()
-  await expect(page.getByText('12월 근무표를 확정했습니다')).toBeVisible()
+  await expect(page.getByRole('link', { name: '근무표 보기 →' })).toBeVisible()
 
   // 간호사 근무표(S3)에 공개, 신청 반영 칸은 빨간 외곽선(title '신청 반영')
   const me = await browser.newPage()

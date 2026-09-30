@@ -261,6 +261,8 @@ describe('leaveImpact (R-APPROVE-3)', () => {
     expect(await leaveImpact(db, id)).toEqual({
       lines: ['10/2 (금) D 인원 1명 · 최소 2명'],
       candidates: ['오민지 (10/2 OFF, K-tass)', '강도윤 (10/2 OFF)', '임소라 (10/2 OFF, K-tass)'],
+      // 2-7 R-LEAVE-C1: 「승인 · 대체 지정」이 여는 S9 대체 지정 날짜·듀티
+      focus: { date: '2026-10-02', shift: 'D' },
     })
   })
 
@@ -269,7 +271,7 @@ describe('leaveImpact (R-APPROVE-3)', () => {
     const oct = idOf(
       await saveLeave(db, me, { userId: me.id, type: 'annual', startDate: '2026-10-03' }, TODAY),
     ) // 10/3 정하늘 off
-    expect(await leaveImpact(db, oct)).toEqual({ lines: [], candidates: [] })
+    expect(await leaveImpact(db, oct)).toEqual({ lines: [], candidates: [], focus: null })
     const nov = idOf(
       await saveLeave(db, me, { userId: me.id, type: 'annual', startDate: '2026-11-02' }, TODAY),
     )

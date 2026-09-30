@@ -127,6 +127,7 @@ export async function loadRequestsRaw(
           comment: l.comment,
           impact: impact?.lines ?? null,
           candidates: impact?.candidates ?? [],
+          focus: impact?.focus ? { ym: impact.focus.date.slice(0, 7), ...impact.focus } : null,
         }
       }),
     )

@@ -23,37 +23,78 @@ const TODAY_HEAD = 'bg-primary text-white'
 const headFixed =
   'row-span-2 flex flex-col items-center justify-center border-r border-b border-line bg-panel text-center leading-[1.2] text-ink-2'
 
-function Cell({ c }: { c: GridCellView }) {
-  return (
-    <div
-      title={c.title}
-      data-date={c.date}
-      data-today={c.today || undefined}
-      data-warn={c.warn || undefined}
-      className={`relative flex h-8 items-center justify-center border-r border-b border-line-soft ${
-        c.today ? TODAY_CELL : c.weekend ? 'bg-weekend-cell' : ''
-      }`}
-    >
-      {c.chip && (
+// 2-7 근무 조정: 관리자 편집용 선택 props (근무표·생성안 미리보기에서는 쓰지 않음)
+export type GridInteraction = {
+  onCell?: (userId: string, date: string, el: HTMLElement) => void
+  // 저장 전 편집 칸 (칸 보기를 덮어쓴다)
+  pending?: ReadonlyMap<string, GridCellView>
+  focusDate?: string | null
+}
+
+function Cell({
+  c,
+  name,
+  userId,
+  ui,
+}: {
+  c: GridCellView
+  name: string
+  userId: string
+  ui?: GridInteraction
+}) {
+  const pending = ui?.pending?.get(`${userId}|${c.date}`)
+  const v = pending ?? c
+  const focus = ui?.focusDate === c.date
+  const body = (
+    <>
+      {v.chip && (
         <span
           className={`relative flex h-5 w-5 items-center justify-center rounded-[5px] font-bold text-ink ${
-            c.label === 'off' ? 'text-[8.5px]' : 'text-[10.5px]'
-          } ${CHIP[c.chip]} ${c.outline ? OUTLINE[c.outline] : ''}`}
+            v.label === 'off' ? 'text-[8.5px]' : 'text-[10.5px]'
+          } ${CHIP[v.chip]} ${pending ? 'shadow-[inset_0_0_0_2px_var(--color-admin)] outline-1 outline-offset-1 outline-admin outline-dashed' : v.outline ? OUTLINE[v.outline] : ''}`}
         >
-          {c.label}
-          {c.checkupHalf && (
+          {v.label}
+          {v.checkupHalf && (
             <span aria-hidden className="absolute -top-0.5 -right-0.5 h-1 w-1 rounded-full bg-ink-2" />
           )}
         </span>
       )}
-      {c.warn && (
+      {v.warn && (
         <span aria-hidden className="absolute bottom-0.5 left-0.5 h-1.5 w-1.5 rounded-full bg-warn-dot" />
       )}
+    </>
+  )
+  const cls = `relative flex h-8 items-center justify-center border-r border-b border-line-soft ${
+    focus ? 'bg-warn-bg' : c.today ? TODAY_CELL : c.weekend ? 'bg-weekend-cell' : ''
+  }`
+  if (ui?.onCell)
+    return (
+      <button
+        type="button"
+        title={v.title}
+        data-date={c.date}
+        data-pending={pending ? true : undefined}
+        aria-label={`${name} ${c.date}`}
+        className={`${cls} cursor-pointer hover:bg-line-soft`}
+        onClick={(e) => ui.onCell!(userId, c.date, e.currentTarget)}
+      >
+        {body}
+      </button>
+    )
+  return (
+    <div
+      title={v.title}
+      data-date={c.date}
+      data-today={c.today || undefined}
+      data-warn={v.warn || undefined}
+      className={cls}
+    >
+      {body}
     </div>
   )
 }
 
-function Row({ r }: { r: GridRow }) {
+function Row({ r, ui }: { r: GridRow; ui?: GridInteraction }) {
   const me = r.kind === 'me'
   const num = `flex h-8 items-center justify-center border-r border-b border-line border-b-line-soft text-ink-2 ${me ? 'bg-primary-soft' : ''}`
   return (
@@ -68,7 +109,7 @@ function Row({ r }: { r: GridRow }) {
       <div className={num}>{r.carryOff}</div>
       <div className={num}>{r.carryN}</div>
       {r.cells.map((c) => (
-        <Cell key={c.date} c={c} />
+        <Cell key={c.date} c={c} name={r.name} userId={r.userId} {...(ui ? { ui } : {})} />
       ))}
       <div className={`${num} border-l font-bold text-ink`} data-col="acc">
         {r.accOff}
@@ -81,7 +122,7 @@ function Row({ r }: { r: GridRow }) {
   )
 }
 
-export function ScheduleGrid({ view }: { view: ScheduleView }) {
+export function ScheduleGrid({ view, ui }: { view: ScheduleView; ui?: GridInteraction }) {
   if (view.empty)
     return (
       <div className="flex flex-col items-center gap-3 rounded-[10px] border border-line bg-surface p-8 text-sm text-ink-2">
@@ -152,7 +193,7 @@ export function ScheduleGrid({ view }: { view: ScheduleView }) {
           </div>
         ))}
         {view.rows.map((r) => (
-          <Row key={r.userId} r={r} />
+          <Row key={r.userId} r={r} ui={ui} />
         ))}
       </div>
     </div>

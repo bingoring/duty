@@ -105,11 +105,32 @@ test.describe('S4-A 확정된 달 휴가', () => {
     await expect(card).toContainText('10/2 (금) D 인원 1명 · 최소 2명')
     await expect(card).toContainText('대체 후보: 오민지 (10/2 OFF, K-tass)')
     await card.getByRole('button', { name: '승인 · 대체 지정' }).click()
-    await expect(admin.getByRole('article', { name: `${CHAE.name} 휴가` })).toHaveCount(0)
+
+    // 2-7 R-LEAVE-C1: 승인 뒤 근무 조정의 대체 지정으로 이동 → 후보 지정 → 저장
+    await admin.waitForURL('/adjust?ym=2026-10&focus=2026-10-02&shift=D')
+    await waitHydrated(admin)
+    const rep = admin.getByRole('dialog', { name: '10/2 D 대체 지정' })
+    await expect(rep).toContainText('10/2 (금) D 인원 1명')
+    await rep.getByRole('button', { name: '지정' }).and(admin.locator(':enabled')).first().click()
+    await expect(admin.getByText('변경 1건 미저장')).toBeVisible()
+    await admin.getByRole('button', { name: '저장 · 재배포' }).click()
+    await expect(admin.getByRole('status')).toContainText('1건을 저장했습니다')
 
     await admin.goto('/?ym=2026-10')
     const row = admin.getByRole('grid').getByRole('row', { name: CHAE.name })
     await expect(row.locator('[data-date="2026-10-02"]')).toHaveAttribute('title', /휴 · 병가/)
+
+    // 2-7 Q4: 확정된 달의 승인 휴가 취소 → 승인 전 칸(D)으로 복원
+    await admin.goto('/adjust?ym=2026-10')
+    await waitHydrated(admin)
+    await admin.getByRole('button', { name: `${CHAE.name} 2026-10-02` }).click()
+    admin.once('dialog', (d) => d.accept())
+    await admin
+      .getByRole('dialog', { name: `${CHAE.name} 10/2 근무 편집` })
+      .getByRole('button', { name: '휴가 취소' })
+      .click()
+    await expect(admin.getByRole('status')).toContainText('휴가를 취소했습니다. 1일을 되돌렸습니다.')
+    await expect(admin.getByRole('button', { name: `${CHAE.name} 2026-10-02` })).toHaveAttribute('title', /D/)
     await Promise.all([me.close(), admin.close()])
   })
 })

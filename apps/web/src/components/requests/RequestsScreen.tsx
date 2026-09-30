@@ -94,6 +94,7 @@ const toggleBtn =
   'h-7 cursor-pointer whitespace-nowrap rounded-lg border border-line bg-surface px-2.5 text-xs text-ink-2'
 
 function ApprovalCard({ p }: { p: PendingLeave }) {
+  const router = useRouter()
   const [rejecting, setRejecting] = useState(false)
   const [reason, setReason] = useState('')
   const [error, setError] = useState('')
@@ -101,7 +102,10 @@ function ApprovalCard({ p }: { p: PendingLeave }) {
   const decide = (decision: 'approve' | 'reject') =>
     start(async () => {
       const r = await decideLeaveAction({ id: p.id, decision, ...(decision === 'reject' ? { reason } : {}) })
-      if (!r.ok) setError(r.message)
+      if (!r.ok) return setError(r.message)
+      // 2-7 R-LEAVE-C1: 확정된 달에 인원이 모자라면 S9 대체 지정으로
+      if (decision === 'approve' && p.focus)
+        router.push(`/adjust?ym=${p.focus.ym}&focus=${p.focus.date}&shift=${p.focus.shift}`)
     })
   const warn = p.impact !== null && p.impact.length > 0
   return (
