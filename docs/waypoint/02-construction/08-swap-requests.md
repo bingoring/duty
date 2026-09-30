@@ -19,9 +19,9 @@ updated: 2026-09-30
 
 ## 체크리스트
 
-- [x] Build Spec 작성·질문 해소 → READY (2026-09-30, 승인 대기)
-- [ ] Build Spec §4 구현 체크리스트 전 항목 완료
-- [ ] Build Spec §5 검증 통과 → IMPLEMENTED
+- [x] Build Spec 작성·질문 해소 → READY (2026-09-30 승인)
+- [x] Build Spec §4 구현 체크리스트 전 항목 완료
+- [x] Build Spec §5 검증 통과 → IMPLEMENTED (2026-09-30)
 
 ## AI 제안 (AI Proposal)
 
@@ -34,6 +34,13 @@ Build Spec(comprehensive, 4 아티팩트): [`swap-requests/build-spec-index.md`]
 - **응답:** 받은 요청 수락·거절, 보낸 요청 철회. 전원 수락 = 재검사 뒤 즉시 반영(Q1), 누구든 거절 = 종료, 협의 기간 끝 = 만료.
 - **동시성:** 겹치는 요청은 경고, 먼저 반영된 쪽만 적용. 관리자 편집·휴가 승인으로 칸이 바뀌면 걸린 요청은 무효.
 - **알림:** 근무 조정 메뉴·패널 배지, 근무표 띠 "받은 교환 요청 N건", 반영되면 "바뀐 근무" 안내.
+
+### 구현 결과 (2026-09-30)
+
+- 메인 저장소 `packages/domain/src/swap.ts`, `apps/web/src/server/swaps/`, `components/adjust/NurseAdjust.tsx`, 마이그레이션 `0004_swap_requests`,
+  2-7 관리자 저장·휴가 승인/취소에 무효 처리 연결. 편차 4건은 Build Spec §7(주요: 관리자 현황 패널 생략, 31일 달 열 22px).
+- 검증: 단위 361 · pytest 12 · 통합 136 · E2E 34 · 빌드.
+- 확인: 협의 기간에 간호사로 로그인 → 근무 조정 → 「근무 조정」 → 사람 체크 → 날짜 → 칩 두 개 맞바꾸기 → 요청 보내기 → 상대가 수락.
 
 ## 검토 게이트 (Human Gate)
 

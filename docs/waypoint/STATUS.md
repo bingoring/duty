@@ -8,6 +8,9 @@
 
 > 🔒 **개인정보:** 공개 저장소다. 간호사 이름·사번은 모두 가명이며, 실명 자료는 커밋하지 않는다([DECISIONS](DECISIONS.md) 2026-09-26).
 
+> 🏗️ **2-8 근무 교환 요청 구현 완료 → 승인 대기 (2026-09-30).** 3a 간호사 교환 요청(체크·재배정 팝업·받은/보낸 패널 접기), 전원 수락 시 재검사 뒤 즉시 반영,
+> 겹침·관리자 편집 무효, 만료, 메뉴 배지·근무표 띠. 단위 361·통합 136·E2E 34 그린, 편차 4건.
+>
 > 📝 **2-8 근무 교환 요청 Build Spec READY (2026-09-30).** 3a 간호사 교환 요청(하루 단위, 칩 두 개 맞바꾸기, 즉시 규칙 검사) → 전원 수락 시 재검사 뒤 즉시 반영(Q1·Q2),
 > 겹침·관리자 편집 무효 처리, 받은 요청 배지·근무표 띠. 구현 착수 승인 대기.
 >
@@ -127,7 +130,7 @@
 | 2-5 근무 신청·휴가 (S4 + S5 팝오버 통합) | [05-shift-requests.md](02-construction/05-shift-requests.md) · [Build Spec](02-construction/shift-requests/build-spec-index.md) (IMPLEMENTED) | HUMAN_APPROVED |
 | 2-6 솔버·듀티 생성 (S8) | [06-solver-generation.md](02-construction/06-solver-generation.md) · [Build Spec](02-construction/solver-generation/build-spec-index.md) (IMPLEMENTED) | HUMAN_APPROVED |
 | 2-7 근무 조정·월 마감 (S9 관리자) | [07-adjust-close.md](02-construction/07-adjust-close.md) · [Build Spec](02-construction/adjust-close/build-spec-index.md) (IMPLEMENTED) | HUMAN_APPROVED |
-| 2-8 근무 교환 요청 (S9 간호사, 3a) | [08-swap-requests.md](02-construction/08-swap-requests.md) · [Build Spec](02-construction/swap-requests/build-spec-index.md) (READY) | AI_PROPOSED |
+| 2-8 근무 교환 요청 (S9 간호사, 3a) | [08-swap-requests.md](02-construction/08-swap-requests.md) · [Build Spec](02-construction/swap-requests/build-spec-index.md) (IMPLEMENTED) | AI_PROPOSED |
 | 2-9 통합·E2E | 02-construction/09-integration-e2e.md | PENDING |
 
 ## Phase R — Independent Code Review 🔍 (Construction → Operations 게이트)
