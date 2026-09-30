@@ -16,7 +16,7 @@ import {
   type ShiftCode,
   type TraineeKind,
 } from '@duty/domain'
-import { and, eq, gte, inArray, isNotNull, lte } from 'drizzle-orm'
+import { and, asc, eq, gte, inArray, isNotNull, lte } from 'drizzle-orm'
 import type { Db } from '../db/client'
 import { holidays, monthPlans, scheduleCells, shiftRequests, trainings, users } from '../db/schema'
 import { latestRuleSet } from '../rules/service'
@@ -60,6 +60,7 @@ async function neighborCells(db: Db, ym: { year: number; month: number }, from: 
     .where(
       and(eq(scheduleCells.monthPlanId, p.id), gte(scheduleCells.date, from), lte(scheduleCells.date, to)),
     )
+    .orderBy(asc(scheduleCells.userId), asc(scheduleCells.date))
   return rows.map(toCell)
 }
 
@@ -71,9 +72,13 @@ export async function buildScheduleInput(
   const ym = { year: plan.year, month: plan.month }
   const days = monthDates(ym.year, ym.month)
   const tail = requiredTailDays(rules)
-  const cells = (await db.select().from(scheduleCells).where(eq(scheduleCells.monthPlanId, plan.id))).map(
-    toCell,
-  )
+  const cells = (
+    await db
+      .select()
+      .from(scheduleCells)
+      .where(eq(scheduleCells.monthPlanId, plan.id))
+      .orderBy(asc(scheduleCells.userId), asc(scheduleCells.date))
+  ).map(toCell)
   const prevTail = await neighborCells(db, shiftYm(ym, -1), addDays(days[0]!, -tail), addDays(days[0]!, -1))
   const nextHead = await neighborCells(
     db,
@@ -82,7 +87,10 @@ export async function buildScheduleInput(
     addDays(days.at(-1)!, tail),
   )
   const ids = new Set([...cells, ...prevTail, ...nextHead].map((c) => c.userId))
-  const people = (await db.select().from(users)).filter((u) => u.active || ids.has(u.id))
+  // 행 순서는 입력 해시·솔버 결정성에 들어가므로 모든 조회에 정렬을 둔다 (2-7 CI에서 확정이 간헐적으로 막힘)
+  const people = (await db.select().from(users).orderBy(asc(users.seniorityRank), asc(users.id))).filter(
+    (u) => u.active || ids.has(u.id),
+  )
   const nurses: NurseProfile[] = people.map((u) => ({
     id: u.id,
     rotation: u.rotation as Rotation,
@@ -108,6 +116,7 @@ export async function buildScheduleInput(
     .select()
     .from(trainings)
     .where(and(lte(trainings.startDate, days.at(-1)!), gte(trainings.endDate, days[0]!)))
+    .orderBy(asc(trainings.startDate), asc(trainings.id))
   const req = await db
     .select()
     .from(shiftRequests)
@@ -118,7 +127,11 @@ export async function buildScheduleInput(
         isNotNull(shiftRequests.submittedAt),
       ),
     )
-  const hol = await db.select({ date: holidays.date, kind: holidays.kind }).from(holidays)
+    .orderBy(asc(shiftRequests.userId), asc(shiftRequests.date))
+  const hol = await db
+    .select({ date: holidays.date, kind: holidays.kind })
+    .from(holidays)
+    .orderBy(asc(holidays.date))
   const input: ScheduleInput = {
     ...ym,
     rules,

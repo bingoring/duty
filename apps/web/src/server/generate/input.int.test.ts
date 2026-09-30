@@ -1,6 +1,6 @@
 import { SolverRequest } from '@duty/contract'
 import { DEFAULT_RULES } from '@duty/domain'
-import { eq } from 'drizzle-orm'
+import { eq, sql } from 'drizzle-orm'
 import { beforeEach, describe, expect, it } from 'vitest'
 import { resetDb, setupTestDb } from '../../test/db'
 import { leaveRequests, users } from '../db/schema'
@@ -104,5 +104,14 @@ describe('buildGenerationInput (business-logic-model §2)', () => {
       { date: '2026-11-12', code: 'OFF', offKind: 'edu_cont' },
       { date: '2026-11-20', code: 'AL' },
     ])
+  })
+
+  it('입력 해시는 DB가 행을 돌려주는 순서에 흔들리지 않는다 (CI에서 확정이 간헐적으로 막힘)', async () => {
+    const plan = await novPlan()
+    const before = (await buildGenerationInput(db, plan)).inputHash
+    // 같은 값으로 갱신하면 행이 힙 뒤로 옮겨져 순차 스캔 순서가 바뀐다
+    await db.execute(sql`UPDATE schedule_cells SET source = source WHERE date >= '2026-10-25'`)
+    await db.execute(sql`UPDATE users SET name = name WHERE employee_no IN ('00102', '00105')`)
+    expect((await buildGenerationInput(db, plan)).inputHash).toBe(before)
   })
 })

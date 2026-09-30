@@ -24,7 +24,7 @@ import {
   type ScheduleInput,
   type Violation,
 } from '@duty/domain'
-import { and, eq, gte, lte } from 'drizzle-orm'
+import { and, asc, eq, gte, lte } from 'drizzle-orm'
 import type { Db } from '../db/client'
 import { leaveRequests, monthPlans, shiftRequests } from '../db/schema'
 import { buildScheduleInput } from '../schedule/input'
@@ -194,6 +194,7 @@ export async function buildGenerationInput(db: Db, plan: PlanRow): Promise<Gener
         gte(leaveRequests.endDate, days[0]!),
       ),
     )
+    .orderBy(asc(leaveRequests.startDate), asc(leaveRequests.id))
   const specials = input.requests.flatMap((r) =>
     r.special ? [{ userId: r.userId, date: r.date, special: r.special }] : [],
   )
