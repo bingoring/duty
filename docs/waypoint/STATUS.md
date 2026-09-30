@@ -2,12 +2,15 @@
 
 **Framework:** [Waypoint](https://github.com/bingoring/waypoint)
 **Requirements:** [inputs/requirements_v3.md](inputs/requirements_v3.md) (근무 지침 원문 + 근무자 명단)
-**Design handoff:** [inputs/design-handoff_v4/](inputs/design-handoff_v4/README.md) (최신, 2026-09-27) · [v3](inputs/design-handoff_v3/README.md) · [v2](inputs/design-handoff_v2/README.md) · [v1](inputs/design-handoff_v1/README.md)
+**Design handoff:** [inputs/design-handoff_v5/](inputs/design-handoff_v5/README.md) (최신, 2026-09-30) · [v4](inputs/design-handoff_v4/README.md) · [v3](inputs/design-handoff_v3/README.md) · [v2](inputs/design-handoff_v2/README.md) · [v1](inputs/design-handoff_v1/README.md)
 **Decisions (audit):** [DECISIONS.md](DECISIONS.md)
 **Last updated:** 2026-09-30
 
 > 🔒 **개인정보:** 공개 저장소다. 간호사 이름·사번은 모두 가명이며, 실명 자료는 커밋하지 않는다([DECISIONS](DECISIONS.md) 2026-09-26).
 
+> 🎨 **핸드오프 v5 반영 (2026-09-30).** 근무 조정 관리자 셀 편집을 하단 편집 도크(5a·5b)로 교체 — 손잡이·리사이즈·최소화·최대화·닫기, 칩 클릭 즉시 적용,
+> 위반 시에만 ↔ 대체자·사유·그래도 적용. 호버·선택 행열 강조, 월 마감, 덜 일한 사람 먼저 후보 순서는 유지(DECISIONS). 입력의 실명 141곳 가명 치환·사진 제외.
+>
 > 🏗️ **2-7 근무 조정·월 마감 구현 완료 → 승인 대기 (2026-09-30).** S9 관리자(1j) 칸 편집(즉시 검사·예외 적용·맞바꾸기·대체 지정)·저장 재배포,
 > 월 마감(종이 10월 마감 = 원장 누적 OFF 일치)·마감 취소, 확정된 달 휴가 대체 지정·승인 취소, 근무표 "바뀐 근무" 안내.
 > 단위 353·pytest 12·통합 129·E2E 32 그린, 편차 7건.
