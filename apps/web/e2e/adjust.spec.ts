@@ -24,6 +24,14 @@ test('관리자 칸 편집: 필수 위반 차단 → 사유 입력 후 적용 �
   await expect(page.getByText('변경 0건 미저장')).toBeVisible()
 
   // 홍다은 10/16 E → 10/17 off를 D로: E-D 금지 패턴
+  // 마우스를 올리면 그 사람의 행과 그 날짜의 열을 연하게 칠한다
+  await page.getByRole('button', { name: `${HONG.name} 2026-10-17` }).hover()
+  await expect(page.getByRole('button', { name: `${HONG.name} 2026-10-05` })).toHaveClass(/bg-admin-soft/)
+  await expect(page.getByRole('button', { name: `${ADMIN.name} 2026-10-17` })).toHaveClass(/bg-admin-soft/)
+  await expect(page.getByRole('button', { name: `${ADMIN.name} 2026-10-05` })).not.toHaveClass(
+    /bg-admin-soft/,
+  )
+
   await page.getByRole('button', { name: `${HONG.name} 2026-10-17` }).click()
   // 편집 중인 칸·열·행을 표시한다 (3a 선택 색)
   await expect(page.getByRole('button', { name: `${HONG.name} 2026-10-17` })).toHaveAttribute(
@@ -33,6 +41,10 @@ test('관리자 칸 편집: 필수 위반 차단 → 사유 입력 후 적용 �
   await expect(page.getByRole('button', { name: `${HONG.name} 2026-10-18` })).toHaveClass(/bg-\[#FFF9E8\]/)
   await expect(page.getByRole('button', { name: `${ADMIN.name} 2026-10-17` })).toHaveClass(/bg-warn-bg/)
   const pop = page.getByRole('dialog', { name: `${HONG.name} 10/17 근무 편집` })
+  // 편집 패널은 격자 아래에 붙어 격자를 가리지 않는다 (사용자 요청)
+  const gridBox = (await page.getByRole('grid').boundingBox())!
+  const popBox = (await pop.boundingBox())!
+  expect(popBox.y).toBeGreaterThanOrEqual(gridBox.y + gridBox.height)
   await pop.getByRole('button', { name: 'D', exact: true }).click()
   await expect(pop.getByText('D로 변경 불가')).toBeVisible()
   await expect(pop.getByRole('button', { name: '적용', exact: true })).toHaveCount(0)

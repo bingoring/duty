@@ -31,8 +31,12 @@ export type GridInteraction = {
   focusDate?: string | null
   // 편집 중인 칸 (3a 선택 색: 행 #FFF9E8 · 열 #FBE7B5 · 칸 2px 외곽선)
   selected?: { userId: string; date: string } | null
+  // 마우스가 올라간 칸: 행·열을 연하게 칠한다(선택 표시가 우선)
+  hover?: { userId: string; date: string } | null
+  onHover?: (cell: { userId: string; date: string } | null) => void
 }
 const SELECTED_ROW = 'bg-[#FFF9E8]'
+const HOVER = 'bg-admin-soft'
 
 function Cell({
   c,
@@ -50,6 +54,8 @@ function Cell({
   const selected = ui?.selected?.userId === userId && ui.selected.date === c.date
   const focus = ui?.focusDate === c.date || ui?.selected?.date === c.date
   const inRow = ui?.selected?.userId === userId
+  const hovered = ui?.hover?.userId === userId && ui.hover.date === c.date
+  const hoverLine = ui?.hover?.userId === userId || ui?.hover?.date === c.date
   const body = (
     <>
       {v.chip && (
@@ -70,8 +76,18 @@ function Cell({
     </>
   )
   const cls = `relative flex h-8 items-center justify-center border-r border-b border-line-soft ${
-    focus ? 'bg-warn-bg' : inRow ? SELECTED_ROW : c.today ? TODAY_CELL : c.weekend ? 'bg-weekend-cell' : ''
-  } ${selected ? 'z-10 outline-2 -outline-offset-2 outline-ink' : ''}`
+    focus
+      ? 'bg-warn-bg'
+      : inRow
+        ? SELECTED_ROW
+        : hoverLine
+          ? HOVER
+          : c.today
+            ? TODAY_CELL
+            : c.weekend
+              ? 'bg-weekend-cell'
+              : ''
+  } ${selected ? 'z-10 outline-2 -outline-offset-2 outline-ink' : hovered ? 'z-10 outline-1 -outline-offset-1 outline-admin' : ''}`
   if (ui?.onCell)
     return (
       <button
@@ -81,7 +97,9 @@ function Cell({
         data-pending={pending ? true : undefined}
         aria-label={`${name} ${c.date}`}
         aria-pressed={selected || undefined}
-        className={`${cls} cursor-pointer hover:bg-line-soft`}
+        className={`${cls} cursor-pointer`}
+        onMouseEnter={() => ui.onHover?.({ userId, date: c.date })}
+        onFocus={() => ui.onHover?.({ userId, date: c.date })}
         onClick={(e) => ui.onCell!(userId, c.date, e.currentTarget)}
       >
         {body}
@@ -103,7 +121,8 @@ function Cell({
 function Row({ r, ui }: { r: GridRow; ui?: GridInteraction }) {
   const me = r.kind === 'me'
   const sel = ui?.selected?.userId === r.userId
-  const num = `flex h-8 items-center justify-center border-r border-b border-line border-b-line-soft text-ink-2 ${me ? 'bg-primary-soft' : sel ? SELECTED_ROW : ''}`
+  const hov = !sel && ui?.hover?.userId === r.userId
+  const num = `flex h-8 items-center justify-center border-r border-b border-line border-b-line-soft text-ink-2 ${me ? 'bg-primary-soft' : sel ? SELECTED_ROW : hov ? HOVER : ''}`
   return (
     <div role="row" aria-label={r.name} data-kind={r.kind} className="contents">
       <div
@@ -135,6 +154,7 @@ function Row({ r, ui }: { r: GridRow; ui?: GridInteraction }) {
 
 export function ScheduleGrid({ view, ui }: { view: ScheduleView; ui?: GridInteraction }) {
   const colOn = (date: string) => ui?.selected?.date === date || ui?.focusDate === date
+  const colHover = (date: string) => !colOn(date) && ui?.hover?.date === date
   if (view.empty)
     return (
       <div className="flex flex-col items-center gap-3 rounded-[10px] border border-line bg-surface p-8 text-sm text-ink-2">
@@ -153,6 +173,8 @@ export function ScheduleGrid({ view, ui }: { view: ScheduleView; ui?: GridIntera
     <div className="schedule-grid overflow-hidden rounded-[10px] border border-line bg-surface">
       <div
         role="grid"
+        // 서버 컴포넌트(근무표)에서는 함수를 넘길 수 없으므로 호버를 쓰는 화면에서만 붙인다
+        {...(ui?.onHover ? { onMouseLeave: () => ui.onHover!(null) } : {})}
         aria-label={view.title}
         className="grid text-[11px]"
         style={{ gridTemplateColumns: view.gridTemplate }}
@@ -204,9 +226,11 @@ export function ScheduleGrid({ view, ui }: { view: ScheduleView; ui?: GridIntera
             className={`flex h-[18px] items-center justify-center border-r border-b border-r-line-soft border-b-line text-[10px] ${
               colOn(d.date)
                 ? `bg-warn-bg font-bold ${DAY_COLOR[d.color]}`
-                : d.today
-                  ? `${TODAY_HEAD} font-bold`
-                  : `${d.red ? 'bg-weekend-head' : 'bg-panel'} ${DAY_COLOR[d.color]}`
+                : colHover(d.date)
+                  ? `${HOVER} font-bold ${DAY_COLOR[d.color]}`
+                  : d.today
+                    ? `${TODAY_HEAD} font-bold`
+                    : `${d.red ? 'bg-weekend-head' : 'bg-panel'} ${DAY_COLOR[d.color]}`
             }`}
           >
             {d.weekday}

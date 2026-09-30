@@ -15,7 +15,7 @@ import {
 } from '@duty/domain'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
-import { useEffect, useMemo, useState, useTransition } from 'react'
+import { useEffect, useMemo, useRef, useState, useTransition } from 'react'
 import { ScheduleGrid } from '@/components/schedule/ScheduleGrid'
 import {
   cancelApprovedLeaveAction,
@@ -66,8 +66,7 @@ const codeLabel = (c: GridCell | undefined) =>
         : c.code
 
 type Popover =
-  | { kind: 'cell'; userId: string; date: string; x: number; y: number }
-  | { kind: 'replace'; date: string; shift: DutyCode }
+  { kind: 'cell'; userId: string; date: string } | { kind: 'replace'; date: string; shift: DutyCode }
 
 export function AdjustScreen({ view }: { view: AdjustView }) {
   const router = useRouter()
@@ -79,6 +78,7 @@ export function AdjustScreen({ view }: { view: AdjustView }) {
   )
   const [msg, setMsg] = useState<{ kind: 'ok' | 'err'; text: string; list?: string[] } | null>(null)
   const [closing, setClosing] = useState(false)
+  const [hover, setHover] = useState<{ userId: string; date: string } | null>(null)
   const input = view.checkInput
   const nameOf = (id: string) => view.names[id]?.name ?? id
   const base = useMemo(() => (input ? applyEdits(input.cells, edits) : []), [input, edits])
@@ -293,15 +293,9 @@ export function AdjustScreen({ view }: { view: AdjustView }) {
                 pending: pendingViews,
                 focusDate: pop?.kind === 'replace' ? pop.date : null,
                 selected: pop?.kind === 'cell' ? { userId: pop.userId, date: pop.date } : null,
-                onCell: (userId, date, el) => {
-                  // 팝오버는 화면 컨테이너(relative) 기준 좌표. 아래에 자리가 없으면 칸 위에 띄운다
-                  const r = el.getBoundingClientRect()
-                  const box = el.closest('[data-adjust-root]')!.getBoundingClientRect()
-                  const x = Math.min(box.width - 308, Math.max(0, r.left - box.left - 140))
-                  const below = r.bottom + 380 <= window.innerHeight || r.top - 380 < 0
-                  const y = below ? r.bottom - box.top + 6 : r.top - box.top - 376
-                  setPop({ kind: 'cell', userId, date, x, y })
-                },
+                hover,
+                onHover: setHover,
+                onCell: (userId, date) => setPop({ kind: 'cell', userId, date }),
               }
             : undefined
         }
@@ -314,7 +308,6 @@ export function AdjustScreen({ view }: { view: AdjustView }) {
           base={base}
           userId={pop.userId}
           date={pop.date}
-          style={{ left: pop.x, top: pop.y }}
           nameOf={nameOf}
           onClose={() => setPop(null)}
           onApply={addEdits}
@@ -412,7 +405,6 @@ function CellPopover(props: {
   base: GridCell[]
   userId: string
   date: string
-  style: React.CSSProperties
   nameOf: (id: string) => string
   onClose: () => void
   onApply: (e: CellEdit[]) => void
@@ -426,6 +418,11 @@ function CellPopover(props: {
   const [reason, setReason] = useState('')
   const [pending, run] = useTransition()
   const leave = view.leaveCells[key(userId, date)]
+  // 격자 아래 패널이 화면 밖이면 보이도록 스크롤한다 (격자는 가리지 않는다)
+  const dockRef = useRef<HTMLDivElement>(null)
+  useEffect(() => {
+    dockRef.current?.scrollIntoView({ block: 'nearest', behavior: 'smooth' })
+  }, [])
   const req = view.requests[key(userId, date)]
 
   const unchanged =
@@ -474,8 +471,8 @@ function CellPopover(props: {
     <div
       role="dialog"
       aria-label={`${nameOf(userId)} ${md(date)} 근무 편집`}
-      style={props.style}
-      className="absolute z-20 flex w-[300px] flex-col gap-2.5 rounded-xl border border-ink bg-surface p-3.5 text-[13px] shadow-[0_16px_40px_rgba(0,0,0,.18)]"
+      ref={dockRef}
+      className="flex flex-col gap-2.5 rounded-xl border border-ink bg-surface p-3.5 text-[13px] shadow-[0_4px_16px_rgba(0,0,0,.08)]"
       onKeyDown={(e) => e.key === 'Escape' && props.onClose()}
     >
       <div className="flex items-center justify-between">
@@ -527,106 +524,121 @@ function CellPopover(props: {
           )}
         </>
       ) : (
-        <>
-          <div className="grid grid-cols-5 gap-1.5">
-            {CHIPS.map((c) => {
-              const isCur = cur?.code === c.code
-              return (
-                <button
-                  key={c.code}
-                  type="button"
-                  aria-pressed={pick === c.code}
-                  onClick={() => (setPick(c.code), setReason(''))}
-                  className={`h-9 cursor-pointer rounded-lg border-2 font-bold text-ink ${c.cls} ${
-                    pick === c.code ? 'border-ink' : isCur ? 'border-admin' : 'border-transparent'
-                  }`}
-                >
-                  {c.code}
-                </button>
-              )
-            })}
+        <div className="grid grid-cols-[300px_minmax(0,1fr)_260px] gap-4">
+          <div className="flex flex-col gap-2">
+            <div className="grid grid-cols-5 gap-1.5">
+              {CHIPS.map((c) => {
+                const isCur = cur?.code === c.code
+                return (
+                  <button
+                    key={c.code}
+                    type="button"
+                    aria-pressed={pick === c.code}
+                    onClick={() => (setPick(c.code), setReason(''))}
+                    className={`h-9 cursor-pointer rounded-lg border-2 font-bold text-ink ${c.cls} ${
+                      pick === c.code ? 'border-ink' : isCur ? 'border-admin' : 'border-transparent'
+                    }`}
+                  >
+                    {c.code}
+                  </button>
+                )
+              })}
+            </div>
+            {pick === 'OFF' && (
+              <label className="flex items-center gap-1.5 text-xs text-ink-2">
+                <input type="checkbox" checked={sleeping} onChange={(e) => setSleeping(e.target.checked)} />
+                슬리핑오프로
+              </label>
+            )}
+            {req && (
+              <div className="flex flex-wrap items-center gap-1.5 text-xs text-ink-2">
+                신청: <b className="text-ink">{req.label}</b>
+                {req.comment && (
+                  <>
+                    · 코멘트 <span className="text-ink">&ldquo;{req.comment}&rdquo;</span>
+                  </>
+                )}
+              </div>
+            )}
           </div>
-          {pick === 'OFF' && (
-            <label className="flex items-center gap-1.5 text-xs text-ink-2">
-              <input type="checkbox" checked={sleeping} onChange={(e) => setSleeping(e.target.checked)} />
-              슬리핑오프로
-            </label>
-          )}
-          {req && (
-            <div className="flex flex-wrap items-center gap-1.5 text-xs text-ink-2">
-              신청: <b className="text-ink">{req.label}</b>
-              {req.comment && (
-                <>
-                  · 코멘트 <span className="text-ink">&ldquo;{req.comment}&rdquo;</span>
-                </>
+          <div className="flex min-w-0 flex-col gap-2">
+            {!pick && (
+              <div className="text-xs text-ink-3">바꿀 근무를 고르면 규칙 검사 결과가 여기에 보입니다.</div>
+            )}
+            {pick && !hard.length && !(diff && diff.d.softWarnings.length) && trialEdit && (
+              <div className="rounded-lg bg-primary-soft px-2.5 py-2 text-xs text-primary-hover">
+                규칙 검사 통과
+              </div>
+            )}
+            {others.length > 0 && (
+              <div className="rounded-lg bg-danger-bg px-2.5 py-2 text-xs leading-[1.5] text-danger-ink">
+                <b>{ro(pick ?? '')} 변경 불가</b> ·{' '}
+                {others.map((v) => violationText(v, nameOf, view.month)).join(' · ')}
+              </div>
+            )}
+            {staffing.length > 0 && (
+              <div className="rounded-lg bg-panel px-2.5 py-2 text-xs leading-[1.5] text-ink-2">
+                {ro(pick ?? '')} 변경 시{' '}
+                {staffing.map((v) => violationText(v, nameOf, view.month)).join(' · ')}.{' '}
+                <b className="text-ink">최소 인원 미달</b>
+                {candidate
+                  ? `, 대체자 필요: ${nameOf(candidate.userId)} (OFF${candidate.kTass ? ', K-tass' : ''})`
+                  : ', 그날 쉬는 사람 중 대체할 수 있는 사람이 없습니다'}
+              </div>
+            )}
+            {diff && diff.d.softWarnings.length > 0 && (
+              <div className="text-xs text-warn-ink">
+                권고 · {diff.d.softWarnings.map((v) => violationText(v, nameOf, view.month)).join(' · ')}
+              </div>
+            )}
+          </div>
+          <div className="flex flex-col justify-end gap-2">
+            {hard.length > 0 && (
+              <textarea
+                aria-label="예외 사유"
+                placeholder="사유 (필수 규칙을 어기고 적용하는 이유)"
+                maxLength={200}
+                value={reason}
+                onChange={(e) => setReason(e.target.value)}
+                className="h-14 rounded-lg border border-line p-2 text-xs"
+              />
+            )}
+            <div className="flex justify-end gap-1.5">
+              {swap && (
+                <button
+                  type="button"
+                  className="h-8 cursor-pointer rounded-lg border border-line bg-surface px-3 text-xs"
+                  onClick={() => props.onApply(swap)}
+                >
+                  {pick === 'OFF'
+                    ? `${withJosa(nameOf(candidate!.userId), '과', '와')} 맞바꾸기`
+                    : `${withJosa(nameOf(candidate!.userId), '을', '를')} ${ro(shortShift ?? '')} 대체`}
+                </button>
+              )}
+              {hard.length > 0 ? (
+                <button
+                  type="button"
+                  disabled={!reason.trim()}
+                  onClick={() =>
+                    trialEdit && props.onApply([{ ...trialEdit, override: { reason: reason.trim() } }])
+                  }
+                  className="h-8 cursor-pointer rounded-lg bg-danger px-3 text-xs font-semibold text-white disabled:cursor-default disabled:opacity-40"
+                >
+                  그래도 적용
+                </button>
+              ) : (
+                <button
+                  type="button"
+                  disabled={!trialEdit}
+                  onClick={() => trialEdit && props.onApply([trialEdit])}
+                  className="h-8 cursor-pointer rounded-lg bg-ink px-3 text-xs font-semibold text-white disabled:cursor-default disabled:opacity-40"
+                >
+                  적용
+                </button>
               )}
             </div>
-          )}
-          {others.length > 0 && (
-            <div className="rounded-lg bg-danger-bg px-2.5 py-2 text-xs leading-[1.5] text-danger-ink">
-              <b>{ro(pick ?? '')} 변경 불가</b> ·{' '}
-              {others.map((v) => violationText(v, nameOf, view.month)).join(' · ')}
-            </div>
-          )}
-          {staffing.length > 0 && (
-            <div className="rounded-lg bg-panel px-2.5 py-2 text-xs leading-[1.5] text-ink-2">
-              {ro(pick ?? '')} 변경 시 {staffing.map((v) => violationText(v, nameOf, view.month)).join(' · ')}
-              . <b className="text-ink">최소 인원 미달</b>
-              {candidate
-                ? `, 대체자 필요: ${nameOf(candidate.userId)} (OFF${candidate.kTass ? ', K-tass' : ''})`
-                : ', 그날 쉬는 사람 중 대체할 수 있는 사람이 없습니다'}
-            </div>
-          )}
-          {diff && diff.d.softWarnings.length > 0 && (
-            <div className="text-xs text-warn-ink">
-              권고 · {diff.d.softWarnings.map((v) => violationText(v, nameOf, view.month)).join(' · ')}
-            </div>
-          )}
-          {hard.length > 0 && (
-            <textarea
-              aria-label="예외 사유"
-              placeholder="사유 (필수 규칙을 어기고 적용하는 이유)"
-              maxLength={200}
-              value={reason}
-              onChange={(e) => setReason(e.target.value)}
-              className="h-14 rounded-lg border border-line p-2 text-xs"
-            />
-          )}
-          <div className="flex justify-end gap-1.5">
-            {swap && (
-              <button
-                type="button"
-                className="h-8 cursor-pointer rounded-lg border border-line bg-surface px-3 text-xs"
-                onClick={() => props.onApply(swap)}
-              >
-                {pick === 'OFF'
-                  ? `${withJosa(nameOf(candidate!.userId), '과', '와')} 맞바꾸기`
-                  : `${withJosa(nameOf(candidate!.userId), '을', '를')} ${ro(shortShift ?? '')} 대체`}
-              </button>
-            )}
-            {hard.length > 0 ? (
-              <button
-                type="button"
-                disabled={!reason.trim()}
-                onClick={() =>
-                  trialEdit && props.onApply([{ ...trialEdit, override: { reason: reason.trim() } }])
-                }
-                className="h-8 cursor-pointer rounded-lg bg-danger px-3 text-xs font-semibold text-white disabled:cursor-default disabled:opacity-40"
-              >
-                그래도 적용
-              </button>
-            ) : (
-              <button
-                type="button"
-                disabled={!trialEdit}
-                onClick={() => trialEdit && props.onApply([trialEdit])}
-                className="h-8 cursor-pointer rounded-lg bg-ink px-3 text-xs font-semibold text-white disabled:cursor-default disabled:opacity-40"
-              >
-                적용
-              </button>
-            )}
           </div>
-        </>
+        </div>
       )}
     </div>
   )
@@ -655,7 +667,7 @@ function ReplacementPopover(props: {
     <div
       role="dialog"
       aria-label={`${md(date)} ${shift} 대체 지정`}
-      className="absolute top-16 right-4 z-20 flex w-[300px] flex-col gap-2.5 rounded-xl border border-ink bg-surface p-3.5 text-[13px] shadow-[0_16px_40px_rgba(0,0,0,.18)]"
+      className="flex max-w-[640px] flex-col gap-2.5 rounded-xl border border-ink bg-surface p-3.5 text-[13px] shadow-[0_4px_16px_rgba(0,0,0,.08)]"
     >
       <div className="flex items-center justify-between">
         <span className="font-bold">
