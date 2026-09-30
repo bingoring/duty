@@ -409,3 +409,17 @@ export async function loadDraftView(
     preview: { warnCells: args.warnCells },
   }
 }
+
+// Build Spec 2-7 R-CLOSE-2 — 월 마감 미리보기·기록용 인당 정산 (월초 = 원장 + 앞선 확정 달 투영)
+export async function planSettlements(db: Db, plan: PlanRow) {
+  const { allUsers, plans, rules, holidays: hol } = await baseContext(db)
+  const cells = (await loadCells(db, [plan.id])).get(plan.id)!
+  const withCells = new Set(cells.map((c) => c.userId))
+  const ctx: Ctx = { db, users: allUsers.filter((u) => withCells.has(u.id)), plans, rules, holidays: hol }
+  const { sums } = await monthStart(ctx, plan)
+  return [...settleAll(ctx, plan, cells, sums)].map(([userId, result]) => ({
+    userId,
+    name: ctx.users.find((u) => u.id === userId)!.name,
+    result,
+  }))
+}

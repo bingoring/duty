@@ -46,9 +46,10 @@ export const BALANCE_REASONS = [
   'year_reset',
   'leave_approved',
   'leave_cancelled',
+  'settlement_reversed',
 ] as const
 export const TRAINEE_KINDS = ['new_grad', 'experienced'] as const
-export const EDIT_REASONS = ['manual', 'swap', 'leave_approved'] as const
+export const EDIT_REASONS = ['manual', 'swap', 'leave_approved', 'leave_cancelled'] as const
 
 export type Role = (typeof ROLES)[number]
 export type Rotation = (typeof ROTATIONS)[number]

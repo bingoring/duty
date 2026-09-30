@@ -20,7 +20,7 @@ import {
   type RequestOption,
   type RequestSpecial,
 } from '@duty/domain'
-import { and, asc, eq, gte, inArray, isNull, lte, ne, sql } from 'drizzle-orm'
+import { and, asc, desc, eq, gte, inArray, isNull, lte, ne, sql } from 'drizzle-orm'
 import type { Db } from '../db/client'
 import {
   balanceEntries,
@@ -416,6 +416,91 @@ export async function decideLeave(
     }
   })
   return { ok: true }
+}
+
+// Build Spec 2-7 R-LEAVE-C2·Q4: 확정된 달의 승인 휴가 취소 = 승인 전 칸으로 복원.
+// 승인 뒤 그 칸을 다시 고쳤거나(현재 칸 ≠ 승인 이력의 after) 이력이 없으면(생성 때 고정 칸) 되돌리지 않고 알린다
+export type CancelApprovedResult =
+  | { ok: true; restored: string[]; skipped: { date: string; reason: string }[] }
+  | { ok: false; message: string }
+
+type CellSnapshot = { code: string; offKind: string | null; leaveKind: string | null; checkupHalf: boolean }
+const sameCell = (a: CellSnapshot, b: CellSnapshot) =>
+  a.code === b.code &&
+  (a.offKind ?? null) === (b.offKind ?? null) &&
+  (a.leaveKind ?? null) === (b.leaveKind ?? null) &&
+  a.checkupHalf === b.checkupHalf
+
+export async function cancelApprovedLeave(db: Db, actor: Actor, id: string): Promise<CancelApprovedResult> {
+  if (actor.role !== 'admin') return deny('권한이 없습니다.')
+  const [l] = await db.select().from(leaveRequests).where(eq(leaveRequests.id, id))
+  if (!l || l.status !== 'APPROVED') return deny('승인된 휴가만 취소할 수 있습니다.')
+  const dates = leaveDates(l.startDate, l.endDate)
+  const plans = await db.select().from(monthPlans)
+  const planOf = (date: string) =>
+    plans.find((p) => p.year === Number(date.slice(0, 4)) && p.month === Number(date.slice(5, 7)))
+  if (dates.some((d) => planOf(d)?.status === 'CLOSED'))
+    return deny('마감한 달이 포함된 휴가입니다. 마감 취소 후 취소하세요.')
+
+  const restored: string[] = []
+  const skipped: { date: string; reason: string }[] = []
+  await db.transaction(async (tx) => {
+    const now = new Date()
+    for (const date of dates) {
+      const plan = planOf(date)
+      if (plan?.status !== 'CONFIRMED') continue
+      const where = and(
+        eq(scheduleCells.monthPlanId, plan.id),
+        eq(scheduleCells.userId, l.userId),
+        eq(scheduleCells.date, date),
+      )
+      const [c] = await tx.select().from(scheduleCells).where(where)
+      if (!c) continue
+      const [log] = await tx
+        .select()
+        .from(cellEditLogs)
+        .where(
+          and(
+            eq(cellEditLogs.monthPlanId, plan.id),
+            eq(cellEditLogs.userId, l.userId),
+            eq(cellEditLogs.date, date),
+            eq(cellEditLogs.reason, 'leave_approved'),
+          ),
+        )
+        .orderBy(desc(cellEditLogs.editedAt))
+        .limit(1)
+      const now_ = { code: c.code, offKind: c.offKind, leaveKind: c.leaveKind, checkupHalf: c.checkupHalf }
+      if (!log) {
+        skipped.push({
+          date,
+          reason: `${formatMD(date)}은 근무표를 만들 때 들어간 휴가라 근무 조정에서 칸을 정해 주세요.`,
+        })
+        continue
+      }
+      if (!sameCell(log.after as CellSnapshot, now_)) {
+        skipped.push({ date, reason: `${formatMD(date)}은 승인 뒤 다시 바뀌어 되돌리지 않았습니다.` })
+        continue
+      }
+      const before = log.before as CellSnapshot
+      await tx
+        .update(scheduleCells)
+        .set({ ...before, source: 'admin', editedBy: actor.id, editedAt: now })
+        .where(where)
+      await tx.insert(cellEditLogs).values({
+        monthPlanId: plan.id,
+        userId: l.userId,
+        date,
+        before: now_,
+        after: before,
+        editedBy: actor.id,
+        editedAt: now,
+        reason: 'leave_cancelled',
+      })
+      restored.push(date)
+    }
+    await tx.update(leaveRequests).set({ status: 'CANCELLED' }).where(eq(leaveRequests.id, id))
+  })
+  return { ok: true, restored, skipped }
 }
 
 // R-APPROVE-3: 확정된 달이면 승인으로 새로 생기는 하드 위반과 대체 후보(그날 OFF인 교대 근무자, 표 순서 최대 3명).

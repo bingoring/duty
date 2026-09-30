@@ -63,7 +63,7 @@ async function shownPlans(db: Db, target: YearMonth, months: number): Promise<Pl
 }
 
 // 월초 잔여를 채운다 (2-5까지는 0·null). 확정·마감된 앞 달의 칸에서 센다
-async function fillProfiles(db: Db, input: ScheduleInput, rules: ScheduleInput['rules']) {
+export async function fillProfiles(db: Db, input: ScheduleInput, rules: ScheduleInput['rules']) {
   const ym = { year: input.year, month: input.month }
   const ids = input.nurses.map((n) => n.id)
   const sums = await monthStartBalances(db, ym, ids)

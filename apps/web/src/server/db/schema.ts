@@ -47,6 +47,8 @@ export const users = pgTable('users', {
   active: boolean('active').notNull().default(true),
   deactivatedAt: tstz('deactivated_at'),
   onboardedYear: integer('onboarded_year'),
+  // 2-7 Q3: 근무표 "바뀐 근무" 안내를 마지막으로 확인한 시각
+  changesSeenAt: tstz('changes_seen_at'),
   createdAt: createdAt(),
   updatedAt: tstz('updated_at').notNull().defaultNow(),
 })
@@ -226,6 +228,8 @@ export const cellEditLogs = pgTable('cell_edit_logs', {
     .references(() => users.id),
   editedAt: tstz('edited_at').notNull().defaultNow(),
   reason: text('reason').notNull(),
+  // 2-7 Q2: 필수 규칙을 어기고 적용한 사유
+  note: text('note'),
 })
 
 export const shiftRequests = pgTable(
