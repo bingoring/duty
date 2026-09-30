@@ -4,10 +4,15 @@
 **Requirements:** [inputs/requirements_v3.md](inputs/requirements_v3.md) (근무 지침 원문 + 근무자 명단)
 **Design handoff:** [inputs/design-handoff_v4/](inputs/design-handoff_v4/README.md) (최신, 2026-09-27) · [v3](inputs/design-handoff_v3/README.md) · [v2](inputs/design-handoff_v2/README.md) · [v1](inputs/design-handoff_v1/README.md)
 **Decisions (audit):** [DECISIONS.md](DECISIONS.md)
-**Last updated:** 2026-09-28
+**Last updated:** 2026-09-30
 
 > 🔒 **개인정보:** 공개 저장소다. 간호사 이름·사번은 모두 가명이며, 실명 자료는 커밋하지 않는다([DECISIONS](DECISIONS.md) 2026-09-26).
 
+> 📝 **2-7 근무 조정·월 마감 Build Spec READY (2026-09-30).** S9 관리자(1j): 칸 편집 팝오버·즉시 검사·맞바꾸기·대체 지정·저장·재배포,
+> 월 마감(정산 원장)·마감 취소, 확정된 달 휴가 대체 지정·승인 취소, 근무표 상단 "바뀐 근무" 안내. Q1~Q4 해소(Q3 안내 위치는 검토 뒤 근무표로). 구현 착수 승인 대기.
+>
+> ✅ **2-6 솔버·듀티 생성 승인 (2026-09-29).**
+>
 > 🏗️ **2-6 솔버·듀티 생성 구현 완료 → 승인 대기 (2026-09-28).** CP-SAT 솔버 서비스(`services/solver`)·계약 패키지·S8(1i + 생성안 격자·안 이동).
 > 생성 → TS 재검사 → n번째 안 보관 → 확정(입력이 바뀐 안은 차단) → 근무표 공개. 해가 없으면 원인 최대 5개. 교차 검증 5 시나리오 하드 위반 0.
 > 단위 343·pytest 12·통합 117·E2E 30 그린, 편차 8건. `pnpm dev`가 솔버도 함께 띄운다.
@@ -108,8 +113,8 @@
 | 2-3 근무표 조회 (S3) | [03-schedule-view.md](02-construction/03-schedule-view.md) · [Build Spec](02-construction/schedule-view/build-spec-index.md) (IMPLEMENTED) | HUMAN_APPROVED |
 | 2-4 관리자 설정 (S10·S11) | [04-admin-settings.md](02-construction/04-admin-settings.md) · [Build Spec](02-construction/admin-settings/build-spec-index.md) (IMPLEMENTED) | HUMAN_APPROVED |
 | 2-5 근무 신청·휴가 (S4 + S5 팝오버 통합) | [05-shift-requests.md](02-construction/05-shift-requests.md) · [Build Spec](02-construction/shift-requests/build-spec-index.md) (IMPLEMENTED) | HUMAN_APPROVED |
-| 2-6 솔버·듀티 생성 (S8) | [06-solver-generation.md](02-construction/06-solver-generation.md) · [Build Spec](02-construction/solver-generation/build-spec-index.md) (IMPLEMENTED) | AI_PROPOSED |
-| 2-7 근무 조정·월 마감 (S9 관리자) | 02-construction/07-adjust-close.md | PENDING |
+| 2-6 솔버·듀티 생성 (S8) | [06-solver-generation.md](02-construction/06-solver-generation.md) · [Build Spec](02-construction/solver-generation/build-spec-index.md) (IMPLEMENTED) | HUMAN_APPROVED |
+| 2-7 근무 조정·월 마감 (S9 관리자) | [07-adjust-close.md](02-construction/07-adjust-close.md) · [Build Spec](02-construction/adjust-close/build-spec-index.md) (READY) | AI_PROPOSED |
 | 2-8 근무 교환 요청 (S9 간호사, 3a) | 02-construction/08-swap-requests.md | PENDING |
 | 2-9 통합·E2E | 02-construction/09-integration-e2e.md | PENDING |
 
