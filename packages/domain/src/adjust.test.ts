@@ -1,6 +1,8 @@
 import { describe, expect, it } from 'vitest'
 import {
   applyEdits,
+  dayCounts,
+  monthCarry,
   newViolations,
   replacementCandidates,
   swapEdits,
@@ -160,5 +162,17 @@ describe('replacementCandidates (R-ADJ-10)', () => {
       newViolations(checkSchedule(big), checkSchedule(trial))
     }
     expect((performance.now() - t0) / 20).toBeLessThan(50)
+  })
+})
+
+describe('dayCounts · monthCarry (v5 도크 결과 둘째 줄)', () => {
+  it('그날 D·E·N 인원(수간호사 포함)과 이달 누적 OFF 변화', () => {
+    const inp = base()
+    expect(dayCounts(inp.cells, '2026-11-01')).toEqual({ D: 1, E: 1, N: 1 })
+    // d: 11/1 OFF 하나. 11월 기준 OFF = 주말 9일(칸이 3일뿐이어도 달 전체 기준)
+    const cells = inp.cells.filter((c) => c.date <= '2026-11-03')
+    expect(monthCarry({ ...inp, cells }, cells, 'd')).toBe(0 + 1 - 9)
+    const moreOff = applyEdits(cells, [edit('d', '2026-11-02', 'OFF', 'D')])
+    expect(monthCarry({ ...inp, cells }, moreOff, 'd')).toBe(0 + 2 - 9)
   })
 })

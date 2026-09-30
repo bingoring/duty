@@ -120,20 +120,11 @@ export function replacementCandidates(
   }
   // 사용자 결정(2026-09-30): 덜 일한 사람 먼저 = 이달 지금까지의 누적 OFF(월초 이월 + 실제 OFF − 기준 OFF)가 큰 사람,
   // 같으면 이달 근무일이 적은 사람, 그다음 표 순서. K-tass가 모자라면 K-tass 보유자를 먼저 둔다
-  const byId = new Map(input.nurses.map((n) => [n.id, n]))
   const order = new Map(input.nurses.map((n, i) => [n.id, i]))
   const stat = new Map(
     out.map((c) => {
-      const n = byId.get(c.userId)!
-      const mine = input.cells.filter((x) => x.userId === c.userId && x.date.startsWith(date.slice(0, 7)))
-      const actual = mine.filter(
-        (x) =>
-          x.code === 'OFF' &&
-          (!x.offKind || x.offKind === 'regular' || x.offKind === 'edu_cont' || x.offKind === 'edu_union'),
-      ).length
-      const carry = n.offCarryBefore + actual - baselineOff(n, input.year, input.month, input.holidays)
-      const work = mine.filter((x) => isWorkCode(x.code)).length
-      return [c.userId, { carry, work }]
+      const work = input.cells.filter((x) => x.userId === c.userId && isWorkCode(x.code)).length
+      return [c.userId, { carry: monthCarry(input, input.cells, c.userId), work }]
     }),
   )
   const sorted = [...out].sort((a, b) => {
@@ -142,4 +133,27 @@ export function replacementCandidates(
     return sb.carry - sa.carry || sa.work - sb.work || order.get(a.userId)! - order.get(b.userId)!
   })
   return kTassShort ? [...sorted.filter((c) => c.kTass), ...sorted.filter((c) => !c.kTass)] : sorted
+}
+
+const COUNTED_OFF = new Set([undefined, 'regular', 'edu_cont', 'edu_union'])
+
+// 이달 누적 OFF = 월초 이월 + 이달 실제 OFF(regular·교육) − 기준 OFF (정산 R-SETTLE-1·2와 같은 식, 칸은 주어진 것 기준)
+export function monthCarry(input: ScheduleInput, cells: readonly GridCell[], userId: string): number {
+  const n = input.nurses.find((x) => x.id === userId)
+  if (!n) return 0
+  const actual = cells.filter(
+    (x) => x.userId === userId && x.code === 'OFF' && COUNTED_OFF.has(x.offKind),
+  ).length
+  return (
+    Math.round((n.offCarryBefore + actual - baselineOff(n, input.year, input.month, input.holidays)) * 10) /
+    10
+  )
+}
+
+// 그날 D·E·N 인원(수간호사 포함, v5 도크 "10/14 인원 D 3 · E 2 · N 2")
+export function dayCounts(cells: readonly GridCell[], date: IsoDate): Record<DutyCode, number> {
+  const out: Record<DutyCode, number> = { D: 0, E: 0, N: 0 }
+  for (const c of cells)
+    if (c.date === date && (c.code === 'D' || c.code === 'E' || c.code === 'N')) out[c.code]++
+  return out
 }

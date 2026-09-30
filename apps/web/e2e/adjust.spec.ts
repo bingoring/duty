@@ -40,18 +40,27 @@ test('관리자 칸 편집: 필수 위반 차단 → 사유 입력 후 적용 �
   )
   await expect(page.getByRole('button', { name: `${HONG.name} 2026-10-18` })).toHaveClass(/bg-\[#FFF9E8\]/)
   await expect(page.getByRole('button', { name: `${ADMIN.name} 2026-10-17` })).toHaveClass(/bg-warn-bg/)
-  const pop = page.getByRole('dialog', { name: `${HONG.name} 10/17 근무 편집` })
-  // 편집 패널은 격자 아래에 붙어 격자를 가리지 않는다 (사용자 요청)
+  // 핸드오프 v5: 격자 아래 하단 도크. 격자를 가리지 않는다
+  const dock = page.getByRole('region', { name: `${HONG.name} 10/17 근무 편집` })
   const gridBox = (await page.getByRole('grid').boundingBox())!
-  const popBox = (await pop.boundingBox())!
-  expect(popBox.y).toBeGreaterThanOrEqual(gridBox.y + gridBox.height)
-  await pop.getByRole('button', { name: 'D', exact: true }).click()
-  await expect(pop.getByText('D로 변경 불가')).toBeVisible()
-  await expect(pop.getByRole('button', { name: '적용', exact: true })).toHaveCount(0)
-  await expect(pop.getByRole('button', { name: '그래도 적용' })).toBeDisabled()
-  await pop.getByLabel('예외 사유').fill('당일 결원 교체')
-  await pop.getByRole('button', { name: '그래도 적용' }).click()
+  const dockBox = (await dock.boundingBox())!
+  expect(dockBox.y).toBeGreaterThanOrEqual(gridBox.y + gridBox.height)
+  await expect(dock).toContainText('전일 E')
+  // 칩을 누르면 규칙을 통과할 때 즉시 적용, 위반이면 사유 입력과 「그래도 적용」
+  await dock.getByRole('button', { name: 'D', exact: true }).click()
+  await expect(dock.getByText('D로 변경 불가')).toBeVisible()
+  await expect(page.getByText('변경 0건 미저장')).toBeVisible()
+  await expect(dock.getByRole('button', { name: '그래도 적용' })).toBeDisabled()
+  await dock.getByLabel('예외 사유').fill('당일 결원 교체')
+  await dock.getByRole('button', { name: '그래도 적용' }).click()
   await expect(page.getByText('변경 1건 미저장')).toBeVisible()
+  await expect(dock).toContainText('적용됨 · off → D')
+  await expect(dock.getByRole('button', { name: '이 변경 되돌리기' })).toBeVisible()
+  // 최소화 → 미니 바 요약 → 펼치기
+  await dock.getByRole('button', { name: '최소화' }).click()
+  await expect(dock).toContainText(`${HONG.name} · 10/17 · off → D 적용됨`)
+  await dock.getByRole('button', { name: '펼치기' }).click()
+  await expect(dock.getByRole('button', { name: '이 변경 되돌리기' })).toBeVisible()
 
   await page.getByRole('button', { name: '저장 · 재배포' }).click()
   await expect(page.getByRole('status')).toContainText('1건을 저장했습니다')
@@ -60,15 +69,17 @@ test('관리자 칸 편집: 필수 위반 차단 → 사유 입력 후 적용 �
     /D.*관리자 수정/,
   )
 
-  // 인원이 모자라지는 변경이면 대체 후보와 맞바꾸기를 제안한다 (적용하지 않고 닫음)
+  // 인원이 모자라지는 변경이면 대체 후보를 제안한다(↔). 적용하지 않고 닫는다(Esc)
   await page.getByRole('button', { name: '윤채원 2026-10-02' }).click()
-  const pop2 = page.getByRole('dialog', { name: '윤채원 10/2 근무 편집' })
-  await pop2.getByRole('button', { name: 'OFF', exact: true }).click()
-  await expect(pop2).toContainText('10/2 (금) D 인원')
+  const dock2 = page.getByRole('region', { name: '윤채원 10/2 근무 편집' })
+  await dock2.getByRole('button', { name: 'OFF', exact: true }).click()
+  await expect(dock2.getByText('OFF로 변경 불가')).toBeVisible()
+  await expect(dock2).toContainText('10/2 (금) D 인원')
   await expect(
-    pop2.getByRole('button', { name: /맞바꾸기$/ }).or(pop2.getByText('대체할 수 있는 사람이 없습니다')),
+    dock2.getByRole('button', { name: /^↔ / }).or(dock2.getByText('대체할 수 있는 사람이 없습니다')),
   ).toBeVisible()
-  await pop2.getByRole('button', { name: '닫기' }).click()
+  await page.keyboard.press('Escape')
+  await expect(dock2).toHaveCount(0)
   await expect(page.getByText('변경 0건 미저장')).toBeVisible()
 
   const me = await browser.newPage()

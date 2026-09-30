@@ -1,24 +1,11 @@
 'use client'
 
-import {
-  applyEdits,
-  checkSchedule,
-  formatMD,
-  formatViolation,
-  newViolations,
-  replacementCandidates,
-  weekdayKo,
-  type CellEdit,
-  type DutyCode,
-  type GridCell,
-  type Violation,
-} from '@duty/domain'
+import { applyEdits, type CellEdit } from '@duty/domain'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
-import { useEffect, useMemo, useRef, useState, useTransition } from 'react'
+import { useEffect, useMemo, useState, useTransition } from 'react'
 import { ScheduleGrid } from '@/components/schedule/ScheduleGrid'
 import {
-  cancelApprovedLeaveAction,
   closeMonthAction,
   previewCloseAction,
   reopenMonthAction,
@@ -28,54 +15,25 @@ import {
 import type { AdjustView } from '@/server/adjust/view'
 import { cellView, type GridCellView } from '@/server/schedule/view'
 import { useHydrated } from '../admin/ui'
+import { CellBody, DockFrame, ReplacementBody, cellLabel, type DockMode, type DockTarget } from './Dock'
 
-// S9 근무 조정 · 관리자 시점 (Build Spec 2-7 frontend-components, 핸드오프 1j)
-const CHIPS = [
-  { code: 'D', cls: 'bg-shift-d' },
-  { code: 'E', cls: 'bg-shift-e' },
-  { code: 'N', cls: 'bg-shift-n' },
-  { code: 'OFF', cls: 'bg-shift-off' },
-  { code: 'S', cls: 'bg-shift-s' },
-] as const
-type Chip = (typeof CHIPS)[number]['code']
-
+// S9 근무 조정 · 관리자 시점 (Build Spec 2-7, 핸드오프 v5 5a·5b 하단 편집 도크)
 const btn2 =
-  'h-8 cursor-pointer rounded-lg border border-line bg-surface px-3 text-[13px] disabled:cursor-default disabled:opacity-50'
+  'h-8 cursor-pointer rounded-lg border border-line bg-surface px-3 text-[13px] disabled:cursor-default disabled:text-ink-3'
 const md = (d: string) => `${Number(d.slice(5, 7))}/${Number(d.slice(8))}`
-const withDay = (d: string) => `${formatMD(d)} (${weekdayKo(d)})`
 const key = (u: string, d: string) => `${u}|${d}`
-// 받침 여부로 조사를 고른다 (강도윤과 / 오민지와)
-const withJosa = (word: string, withBatchim: string, without: string) => {
-  const c = word.charCodeAt(word.length - 1)
-  const has = c >= 0xac00 && c <= 0xd7a3 && (c - 0xac00) % 28 !== 0
-  return `${word}${has ? withBatchim : without}`
-}
-// 'D로'·'N으로' (엔 = 받침 ㄴ)
-const ro = (code: string) => `${code}${code === 'N' ? '으로' : '로'}`
-const isLeaveCell = (c: GridCell) =>
-  c.code === 'AL' || c.code === 'LEAVE' || c.offKind === 'special' || c.offKind === 'founding'
-const codeLabel = (c: GridCell | undefined) =>
-  !c
-    ? '—'
-    : c.code === 'OFF'
-      ? c.offKind === 'sleeping'
-        ? '슬리핑 OFF'
-        : 'OFF'
-      : isLeaveCell(c)
-        ? '휴'
-        : c.code
-
-type Popover =
-  { kind: 'cell'; userId: string; date: string } | { kind: 'replace'; date: string; shift: DutyCode }
 
 export function AdjustScreen({ view }: { view: AdjustView }) {
   const router = useRouter()
   const hydrated = useHydrated()
   const [pending, start] = useTransition()
   const [edits, setEdits] = useState<CellEdit[]>([])
-  const [pop, setPop] = useState<Popover | null>(
+  const [pop, setPop] = useState<DockTarget | null>(
     view.focus?.shift ? { kind: 'replace', date: view.focus.date, shift: view.focus.shift } : null,
   )
+  const [mode, setMode] = useState<DockMode>('open')
+  // 맞바꾸기·대체처럼 함께 들어간 편집은 함께 되돌린다
+  const [groups, setGroups] = useState<Map<string, string[]>>(new Map())
   const [msg, setMsg] = useState<{ kind: 'ok' | 'err'; text: string; list?: string[] } | null>(null)
   const [closing, setClosing] = useState(false)
   const [hover, setHover] = useState<{ userId: string; date: string } | null>(null)
@@ -117,8 +75,33 @@ export function AdjustScreen({ view }: { view: AdjustView }) {
       }
       return [...m.values()]
     })
-    setPop(null)
+    const ks = next.map((e) => key(e.userId, e.date))
+    setGroups((g) => {
+      const n = new Map(g)
+      for (const k of ks) n.set(k, ks)
+      return n
+    })
   }
+  const revert = (k: string) => {
+    const ks = groups.get(k) ?? [k]
+    setEdits((prev) => prev.filter((e) => !ks.includes(key(e.userId, e.date))))
+    setGroups((g) => {
+      const n = new Map(g)
+      for (const x of ks) n.delete(x)
+      return n
+    })
+  }
+  const openCell = (userId: string, date: string) => {
+    setPop({ kind: 'cell', userId, date })
+    if (mode === 'min') setMode('open')
+  }
+  // Esc = 도크 닫기
+  useEffect(() => {
+    if (!pop) return
+    const h = (e: KeyboardEvent) => e.key === 'Escape' && setPop(null)
+    window.addEventListener('keydown', h)
+    return () => window.removeEventListener('keydown', h)
+  }, [pop])
 
   const save = () =>
     start(async () => {
@@ -126,6 +109,7 @@ export function AdjustScreen({ view }: { view: AdjustView }) {
       const r = await saveEditsAction({ planId: view.plan.id, edits })
       if (r.ok) {
         setEdits([])
+        setGroups(new Map())
         setMsg({
           kind: 'ok',
           text: `${'saved' in r ? r.saved : 0}건을 저장했습니다. 간호사 근무표에 바로 보입니다.`,
@@ -146,7 +130,7 @@ export function AdjustScreen({ view }: { view: AdjustView }) {
     <div
       data-hydrated={hydrated || undefined}
       data-adjust-root
-      className="relative flex min-w-0 flex-col gap-3 px-4 py-[18px]"
+      className="relative flex h-screen min-w-0 flex-col gap-3 px-4 py-[18px]"
     >
       <div className="flex items-center gap-3">
         <div className="flex items-center gap-1.5">
@@ -171,23 +155,19 @@ export function AdjustScreen({ view }: { view: AdjustView }) {
           </button>
         </div>
         {view.admin && view.plan && <NegotiationEditor view={view} />}
-        {view.admin && (
-          <span className="text-xs whitespace-nowrap text-ink-2">
-            신청 마감 <b className="text-ink">매월 {view.requestDeadlineDay}일</b> ·{' '}
-            <Link href="/admin/rules" className="underline">
-              설정
-            </Link>
-          </span>
-        )}
         <span className="ml-auto" />
         {view.editable && (
           <>
-            <span className="text-[13px] whitespace-nowrap text-ink-2">변경 {edits.length}건 미저장</span>
+            <span
+              className={`text-[13px] whitespace-nowrap ${edits.length ? 'font-semibold text-admin' : 'text-ink-2'}`}
+            >
+              변경 {edits.length}건 미저장
+            </span>
             <button
               type="button"
               className={btn2}
               disabled={!edits.length || pending}
-              onClick={() => setEdits([])}
+              onClick={() => (setEdits([]), setGroups(new Map()))}
             >
               되돌리기
             </button>
@@ -250,7 +230,7 @@ export function AdjustScreen({ view }: { view: AdjustView }) {
           관리자 수정
         </span>
         {view.editable && (
-          <span>칸을 누르면 편집합니다 · 변경은 모았다가 「저장 · 재배포」로 한 번에 반영됩니다</span>
+          <span className="ml-2">칸을 누르면 아래 도크에서 바로 바꿉니다 · 규칙을 통과하면 즉시 적용</span>
         )}
       </div>
 
@@ -285,49 +265,80 @@ export function AdjustScreen({ view }: { view: AdjustView }) {
         </div>
       )}
 
-      <ScheduleGrid
-        view={view.grid}
-        ui={
-          view.editable
-            ? {
-                pending: pendingViews,
-                focusDate: pop?.kind === 'replace' ? pop.date : null,
-                selected: pop?.kind === 'cell' ? { userId: pop.userId, date: pop.date } : null,
-                hover,
-                onHover: setHover,
-                onCell: (userId, date) => setPop({ kind: 'cell', userId, date }),
-              }
-            : undefined
-        }
-      />
+      {mode !== 'max' || !pop ? (
+        <div className="min-h-0 flex-1 overflow-auto">
+          <ScheduleGrid
+            view={view.grid}
+            ui={
+              view.editable
+                ? {
+                    pending: pendingViews,
+                    focusDate: pop?.kind === 'replace' ? pop.date : null,
+                    selected: pop?.kind === 'cell' ? { userId: pop.userId, date: pop.date } : null,
+                    hover,
+                    onHover: setHover,
+                    onCell: openCell,
+                  }
+                : undefined
+            }
+          />
+        </div>
+      ) : null}
 
-      {pop?.kind === 'cell' && input && (
-        <CellPopover
-          key={key(pop.userId, pop.date)}
-          view={view}
-          base={base}
-          userId={pop.userId}
-          date={pop.date}
-          nameOf={nameOf}
+      {pop && input && (
+        <DockFrame
+          mode={mode}
+          setMode={setMode}
           onClose={() => setPop(null)}
-          onApply={addEdits}
-          onLeaveCancelled={(text, list) => {
-            setPop(null)
-            setMsg({ kind: 'ok', text, ...(list.length ? { list } : {}) })
-            router.refresh()
-          }}
-        />
-      )}
-      {pop?.kind === 'replace' && input && (
-        <ReplacementPopover
-          view={view}
-          base={base}
-          date={pop.date}
-          shift={pop.shift}
-          nameOf={nameOf}
-          onClose={() => setPop(null)}
-          onApply={addEdits}
-        />
+          label={
+            pop.kind === 'cell'
+              ? `${nameOf(pop.userId)} ${md(pop.date)} 근무 편집`
+              : `${md(pop.date)} ${pop.shift} 대체 지정`
+          }
+          summary={
+            pop.kind === 'cell'
+              ? (() => {
+                  const orig = input.cells.find((c) => c.userId === pop.userId && c.date === pop.date)
+                  const now = base.find((c) => c.userId === pop.userId && c.date === pop.date)
+                  const changed = edits.some((e) => e.userId === pop.userId && e.date === pop.date)
+                  return `${nameOf(pop.userId)} · ${md(pop.date)} · ${changed ? `${cellLabel(orig)} → ${cellLabel(now)} 적용됨` : `현재 ${cellLabel(now)}`}`
+                })()
+              : `${md(pop.date)} ${pop.shift} 대체 지정`
+          }
+        >
+          {pop.kind === 'cell' ? (
+            <CellBody
+              key={key(pop.userId, pop.date)}
+              view={view}
+              input={input}
+              edits={edits}
+              base={base}
+              userId={pop.userId}
+              date={pop.date}
+              nameOf={nameOf}
+              onApply={addEdits}
+              onRevert={revert}
+              onLeaveCancelled={(text, list) => {
+                setPop(null)
+                setMsg({ kind: 'ok', text, ...(list.length ? { list } : {}) })
+                router.refresh()
+              }}
+            />
+          ) : (
+            <ReplacementBody
+              view={view}
+              input={input}
+              base={base}
+              date={pop.date}
+              shift={pop.shift}
+              nameOf={nameOf}
+              onPick={(e) => {
+                addEdits([e])
+                setPop({ kind: 'cell', userId: e.userId, date: e.date })
+              }}
+            />
+          )}
+        </DockFrame>
       )}
       {closing && view.plan && (
         <CloseDialog
@@ -391,320 +402,6 @@ function NegotiationEditor({ view }: { view: AdjustView }) {
           {err}
         </span>
       )}
-    </div>
-  )
-}
-
-function violationText(v: Violation, nameOf: (id: string) => string, month: number) {
-  const f = formatViolation(v, { nameOf, month })
-  return f.detail ? `${f.title} · ${f.detail}` : f.title
-}
-
-function CellPopover(props: {
-  view: AdjustView
-  base: GridCell[]
-  userId: string
-  date: string
-  nameOf: (id: string) => string
-  onClose: () => void
-  onApply: (e: CellEdit[]) => void
-  onLeaveCancelled: (text: string, list: string[]) => void
-}) {
-  const { view, base, userId, date, nameOf } = props
-  const input = view.checkInput!
-  const cur = base.find((c) => c.userId === userId && c.date === date)
-  const [pick, setPick] = useState<Chip | null>(null)
-  const [sleeping, setSleeping] = useState(false)
-  const [reason, setReason] = useState('')
-  const [pending, run] = useTransition()
-  const leave = view.leaveCells[key(userId, date)]
-  // 격자 아래 패널이 화면 밖이면 보이도록 스크롤한다 (격자는 가리지 않는다)
-  const dockRef = useRef<HTMLDivElement>(null)
-  useEffect(() => {
-    dockRef.current?.scrollIntoView({ block: 'nearest', behavior: 'smooth' })
-  }, [])
-  const req = view.requests[key(userId, date)]
-
-  const unchanged =
-    !!cur && cur.code === pick && (pick !== 'OFF' || (cur.offKind === 'sleeping') === sleeping)
-  const trialEdit: CellEdit | null =
-    cur && pick && !unchanged
-      ? {
-          userId,
-          date,
-          before: {
-            code: cur.code,
-            ...(cur.offKind ? { offKind: cur.offKind } : {}),
-            ...(cur.leaveKind ? { leaveKind: cur.leaveKind } : {}),
-          },
-          after:
-            pick === 'OFF' ? { code: 'OFF', offKind: sleeping ? 'sleeping' : 'regular' } : { code: pick },
-          kind: 'manual',
-        }
-      : null
-  const diff = useMemo(() => {
-    if (!trialEdit) return null
-    const before = checkSchedule({ ...input, cells: base })
-    const trialCells = applyEdits(base, [trialEdit])
-    return { d: newViolations(before, checkSchedule({ ...input, cells: trialCells })), trialCells }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [pick, sleeping, base])
-  const hard = diff?.d.hardViolations ?? []
-  const staffing = hard.filter(
-    (v) => (v.ruleId === 'H-STAFF' || v.ruleId === 'H-KTASS') && v.dates[0] === date,
-  )
-  const others = hard.filter((v) => !staffing.includes(v))
-  const shortShift = (staffing[0]?.shift ?? null) as DutyCode | null
-  const candidate = useMemo(() => {
-    if (!diff || !shortShift) return null
-    return (
-      replacementCandidates({ ...input, cells: diff.trialCells }, date, shortShift).find(
-        (c) => c.newHard.length === 0 && c.userId !== userId,
-      ) ?? null
-    )
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [diff, shortShift])
-  // 대상자는 고른 코드로, 후보자는 그날 쉬던 칸(OFF)을 모자란 듀티로. 후보 계산이 이 조합의 새 필수 위반 0을 보장한다
-  const swap = candidate && trialEdit ? [trialEdit, candidate.edit] : null
-
-  return (
-    <div
-      role="dialog"
-      aria-label={`${nameOf(userId)} ${md(date)} 근무 편집`}
-      ref={dockRef}
-      className="flex flex-col gap-2.5 rounded-xl border border-ink bg-surface p-3.5 text-[13px] shadow-[0_4px_16px_rgba(0,0,0,.08)]"
-      onKeyDown={(e) => e.key === 'Escape' && props.onClose()}
-    >
-      <div className="flex items-center justify-between">
-        <span className="font-bold">
-          {nameOf(userId)} · {withDay(date)}
-        </span>
-        <span className="flex items-center gap-2 text-ink-2">
-          현재 <b className="text-ink">{codeLabel(cur)}</b>
-          <button
-            type="button"
-            aria-label="닫기"
-            className="cursor-pointer text-ink-3"
-            onClick={props.onClose}
-          >
-            ✕
-          </button>
-        </span>
-      </div>
-      {cur && isLeaveCell(cur) ? (
-        <>
-          <div className="text-xs text-ink-2">
-            {leave ? `${leave.kindLabel} · ${leave.range}` : '휴가 칸 (근무표 생성 때 들어감)'}
-          </div>
-          {leave && (
-            <button
-              type="button"
-              disabled={pending}
-              className="h-8 cursor-pointer self-end rounded-lg border border-danger px-3 text-xs text-danger"
-              onClick={() => {
-                if (
-                  !window.confirm(
-                    `${nameOf(userId)} ${leave.kindLabel}(${leave.range})를 취소하고 칸을 승인 전으로 되돌립니다.`,
-                  )
-                )
-                  return
-                run(async () => {
-                  const r = await cancelApprovedLeaveAction({ leaveId: leave.leaveId })
-                  if (!r.ok) return props.onLeaveCancelled(r.message, [])
-                  const rr = r as { restored: string[]; skipped: { reason: string }[] }
-                  props.onLeaveCancelled(
-                    `휴가를 취소했습니다. ${rr.restored.length}일을 되돌렸습니다.`,
-                    rr.skipped.map((s) => s.reason),
-                  )
-                })
-              }}
-            >
-              휴가 취소
-            </button>
-          )}
-        </>
-      ) : (
-        <div className="grid grid-cols-[300px_minmax(0,1fr)_260px] gap-4">
-          <div className="flex flex-col gap-2">
-            <div className="grid grid-cols-5 gap-1.5">
-              {CHIPS.map((c) => {
-                const isCur = cur?.code === c.code
-                return (
-                  <button
-                    key={c.code}
-                    type="button"
-                    aria-pressed={pick === c.code}
-                    onClick={() => (setPick(c.code), setReason(''))}
-                    className={`h-9 cursor-pointer rounded-lg border-2 font-bold text-ink ${c.cls} ${
-                      pick === c.code ? 'border-ink' : isCur ? 'border-admin' : 'border-transparent'
-                    }`}
-                  >
-                    {c.code}
-                  </button>
-                )
-              })}
-            </div>
-            {pick === 'OFF' && (
-              <label className="flex items-center gap-1.5 text-xs text-ink-2">
-                <input type="checkbox" checked={sleeping} onChange={(e) => setSleeping(e.target.checked)} />
-                슬리핑오프로
-              </label>
-            )}
-            {req && (
-              <div className="flex flex-wrap items-center gap-1.5 text-xs text-ink-2">
-                신청: <b className="text-ink">{req.label}</b>
-                {req.comment && (
-                  <>
-                    · 코멘트 <span className="text-ink">&ldquo;{req.comment}&rdquo;</span>
-                  </>
-                )}
-              </div>
-            )}
-          </div>
-          <div className="flex min-w-0 flex-col gap-2">
-            {!pick && (
-              <div className="text-xs text-ink-3">바꿀 근무를 고르면 규칙 검사 결과가 여기에 보입니다.</div>
-            )}
-            {pick && !hard.length && !(diff && diff.d.softWarnings.length) && trialEdit && (
-              <div className="rounded-lg bg-primary-soft px-2.5 py-2 text-xs text-primary-hover">
-                규칙 검사 통과
-              </div>
-            )}
-            {others.length > 0 && (
-              <div className="rounded-lg bg-danger-bg px-2.5 py-2 text-xs leading-[1.5] text-danger-ink">
-                <b>{ro(pick ?? '')} 변경 불가</b> ·{' '}
-                {others.map((v) => violationText(v, nameOf, view.month)).join(' · ')}
-              </div>
-            )}
-            {staffing.length > 0 && (
-              <div className="rounded-lg bg-panel px-2.5 py-2 text-xs leading-[1.5] text-ink-2">
-                {ro(pick ?? '')} 변경 시{' '}
-                {staffing.map((v) => violationText(v, nameOf, view.month)).join(' · ')}.{' '}
-                <b className="text-ink">최소 인원 미달</b>
-                {candidate
-                  ? `, 대체자 필요: ${nameOf(candidate.userId)} (OFF${candidate.kTass ? ', K-tass' : ''})`
-                  : ', 그날 쉬는 사람 중 대체할 수 있는 사람이 없습니다'}
-              </div>
-            )}
-            {diff && diff.d.softWarnings.length > 0 && (
-              <div className="text-xs text-warn-ink">
-                권고 · {diff.d.softWarnings.map((v) => violationText(v, nameOf, view.month)).join(' · ')}
-              </div>
-            )}
-          </div>
-          <div className="flex flex-col justify-end gap-2">
-            {hard.length > 0 && (
-              <textarea
-                aria-label="예외 사유"
-                placeholder="사유 (필수 규칙을 어기고 적용하는 이유)"
-                maxLength={200}
-                value={reason}
-                onChange={(e) => setReason(e.target.value)}
-                className="h-14 rounded-lg border border-line p-2 text-xs"
-              />
-            )}
-            <div className="flex justify-end gap-1.5">
-              {swap && (
-                <button
-                  type="button"
-                  className="h-8 cursor-pointer rounded-lg border border-line bg-surface px-3 text-xs"
-                  onClick={() => props.onApply(swap)}
-                >
-                  {pick === 'OFF'
-                    ? `${withJosa(nameOf(candidate!.userId), '과', '와')} 맞바꾸기`
-                    : `${withJosa(nameOf(candidate!.userId), '을', '를')} ${ro(shortShift ?? '')} 대체`}
-                </button>
-              )}
-              {hard.length > 0 ? (
-                <button
-                  type="button"
-                  disabled={!reason.trim()}
-                  onClick={() =>
-                    trialEdit && props.onApply([{ ...trialEdit, override: { reason: reason.trim() } }])
-                  }
-                  className="h-8 cursor-pointer rounded-lg bg-danger px-3 text-xs font-semibold text-white disabled:cursor-default disabled:opacity-40"
-                >
-                  그래도 적용
-                </button>
-              ) : (
-                <button
-                  type="button"
-                  disabled={!trialEdit}
-                  onClick={() => trialEdit && props.onApply([trialEdit])}
-                  className="h-8 cursor-pointer rounded-lg bg-ink px-3 text-xs font-semibold text-white disabled:cursor-default disabled:opacity-40"
-                >
-                  적용
-                </button>
-              )}
-            </div>
-          </div>
-        </div>
-      )}
-    </div>
-  )
-}
-
-function ReplacementPopover(props: {
-  view: AdjustView
-  base: GridCell[]
-  date: string
-  shift: DutyCode
-  nameOf: (id: string) => string
-  onClose: () => void
-  onApply: (e: CellEdit[]) => void
-}) {
-  const { view, base, date, shift, nameOf } = props
-  const input = view.checkInput!
-  const check = useMemo(() => checkSchedule({ ...input, cells: base }), [input, base])
-  const short = check.hardViolations.filter(
-    (v) => (v.ruleId === 'H-STAFF' || v.ruleId === 'H-KTASS') && v.dates[0] === date && v.shift === shift,
-  )
-  const list = useMemo(
-    () => replacementCandidates({ ...input, cells: base }, date, shift),
-    [input, base, date, shift],
-  )
-  return (
-    <div
-      role="dialog"
-      aria-label={`${md(date)} ${shift} 대체 지정`}
-      className="flex max-w-[640px] flex-col gap-2.5 rounded-xl border border-ink bg-surface p-3.5 text-[13px] shadow-[0_4px_16px_rgba(0,0,0,.08)]"
-    >
-      <div className="flex items-center justify-between">
-        <span className="font-bold">
-          {withDay(date)} {shift} 대체 지정
-        </span>
-        <button type="button" aria-label="닫기" className="cursor-pointer text-ink-3" onClick={props.onClose}>
-          ✕
-        </button>
-      </div>
-      <div
-        className={`rounded-lg px-2.5 py-2 text-xs ${short.length ? 'bg-danger-bg text-danger-ink' : 'bg-primary-soft text-primary-hover'}`}
-      >
-        {short.length
-          ? short.map((v) => violationText(v, nameOf, view.month)).join(' · ')
-          : '인원이 채워졌습니다'}
-      </div>
-      {list.length === 0 && <div className="text-xs text-ink-3">그날 쉬는 교대 근무자가 없습니다.</div>}
-      {list.map((c) => (
-        <div
-          key={c.userId}
-          className={`flex items-center gap-2 text-xs ${c.newHard.length ? 'opacity-50' : ''}`}
-        >
-          <span className="font-semibold">{nameOf(c.userId)}</span>
-          <span className="text-ink-2">OFF{c.kTass ? ', K-tass' : ''}</span>
-          {c.newHard.length > 0 && (
-            <span className="truncate text-danger">{violationText(c.newHard[0]!, nameOf, view.month)}</span>
-          )}
-          <button
-            type="button"
-            disabled={c.newHard.length > 0}
-            onClick={() => props.onApply([c.edit])}
-            className="ml-auto h-7 cursor-pointer rounded-md bg-ink px-2.5 text-[11px] font-semibold text-white disabled:cursor-default disabled:opacity-40"
-          >
-            지정
-          </button>
-        </div>
-      ))}
     </div>
   )
 }
