@@ -150,12 +150,13 @@ describe('무작위 격자 속성 (고정 시드 200개)', () => {
 })
 
 describe('NFR', () => {
-  it('11×31 격자 검사 100회 평균 < 5ms (브라우저 목표 50ms의 여유)', () => {
+  // 목표는 50ms(1-3 §7). CI 러너가 느려 5ms 여유는 흔들렸다(6.1ms) → 15ms (목표의 1/3)
+  it('11×31 격자 검사 100회 평균 < 15ms (브라우저 목표 50ms의 여유)', () => {
     const { input: paper } = loadPaper()
     checkSchedule(paper) // 워밍업
     const t0 = performance.now()
     for (let i = 0; i < 100; i++) checkSchedule(paper)
-    expect((performance.now() - t0) / 100).toBeLessThan(5)
+    expect((performance.now() - t0) / 100).toBeLessThan(15)
   })
 
   it('브라우저 번들용 소스는 node:* 모듈을 import하지 않는다', () => {
