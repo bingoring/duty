@@ -29,7 +29,10 @@ export type GridInteraction = {
   // 저장 전 편집 칸 (칸 보기를 덮어쓴다)
   pending?: ReadonlyMap<string, GridCellView>
   focusDate?: string | null
+  // 편집 중인 칸 (3a 선택 색: 행 #FFF9E8 · 열 #FBE7B5 · 칸 2px 외곽선)
+  selected?: { userId: string; date: string } | null
 }
+const SELECTED_ROW = 'bg-[#FFF9E8]'
 
 function Cell({
   c,
@@ -44,7 +47,9 @@ function Cell({
 }) {
   const pending = ui?.pending?.get(`${userId}|${c.date}`)
   const v = pending ?? c
-  const focus = ui?.focusDate === c.date
+  const selected = ui?.selected?.userId === userId && ui.selected.date === c.date
+  const focus = ui?.focusDate === c.date || ui?.selected?.date === c.date
+  const inRow = ui?.selected?.userId === userId
   const body = (
     <>
       {v.chip && (
@@ -65,8 +70,8 @@ function Cell({
     </>
   )
   const cls = `relative flex h-8 items-center justify-center border-r border-b border-line-soft ${
-    focus ? 'bg-warn-bg' : c.today ? TODAY_CELL : c.weekend ? 'bg-weekend-cell' : ''
-  }`
+    focus ? 'bg-warn-bg' : inRow ? SELECTED_ROW : c.today ? TODAY_CELL : c.weekend ? 'bg-weekend-cell' : ''
+  } ${selected ? 'z-10 outline-2 -outline-offset-2 outline-ink' : ''}`
   if (ui?.onCell)
     return (
       <button
@@ -75,6 +80,7 @@ function Cell({
         data-date={c.date}
         data-pending={pending ? true : undefined}
         aria-label={`${name} ${c.date}`}
+        aria-pressed={selected || undefined}
         className={`${cls} cursor-pointer hover:bg-line-soft`}
         onClick={(e) => ui.onCell!(userId, c.date, e.currentTarget)}
       >
@@ -96,12 +102,17 @@ function Cell({
 
 function Row({ r, ui }: { r: GridRow; ui?: GridInteraction }) {
   const me = r.kind === 'me'
-  const num = `flex h-8 items-center justify-center border-r border-b border-line border-b-line-soft text-ink-2 ${me ? 'bg-primary-soft' : ''}`
+  const sel = ui?.selected?.userId === r.userId
+  const num = `flex h-8 items-center justify-center border-r border-b border-line border-b-line-soft text-ink-2 ${me ? 'bg-primary-soft' : sel ? SELECTED_ROW : ''}`
   return (
     <div role="row" aria-label={r.name} data-kind={r.kind} className="contents">
       <div
         className={`flex h-8 items-center truncate border-r border-b border-line border-b-line-soft pl-2 ${
-          me ? 'bg-primary-soft font-extrabold shadow-[inset_3px_0_0_var(--color-primary)]' : 'font-semibold'
+          me
+            ? 'bg-primary-soft font-extrabold shadow-[inset_3px_0_0_var(--color-primary)]'
+            : sel
+              ? `${SELECTED_ROW} font-extrabold`
+              : 'font-semibold'
         } ${r.kind === 'head' ? 'text-admin' : ''}`}
       >
         {r.name}
@@ -123,6 +134,7 @@ function Row({ r, ui }: { r: GridRow; ui?: GridInteraction }) {
 }
 
 export function ScheduleGrid({ view, ui }: { view: ScheduleView; ui?: GridInteraction }) {
+  const colOn = (date: string) => ui?.selected?.date === date || ui?.focusDate === date
   if (view.empty)
     return (
       <div className="flex flex-col items-center gap-3 rounded-[10px] border border-line bg-surface p-8 text-sm text-ink-2">
@@ -160,7 +172,13 @@ export function ScheduleGrid({ view, ui }: { view: ScheduleView; ui?: GridIntera
             key={d.date}
             data-today-head={d.today || undefined}
             className={`flex h-[18px] items-center justify-center border-r border-b border-line-soft ${
-              d.today ? `${TODAY_HEAD} font-extrabold` : d.red ? 'bg-weekend-head font-bold' : 'bg-panel'
+              colOn(d.date)
+                ? 'bg-warn-bg font-extrabold'
+                : d.today
+                  ? `${TODAY_HEAD} font-extrabold`
+                  : d.red
+                    ? 'bg-weekend-head font-bold'
+                    : 'bg-panel'
             }`}
           >
             {d.day}
@@ -184,9 +202,11 @@ export function ScheduleGrid({ view, ui }: { view: ScheduleView; ui?: GridIntera
             key={d.date}
             data-today-head={d.today || undefined}
             className={`flex h-[18px] items-center justify-center border-r border-b border-r-line-soft border-b-line text-[10px] ${
-              d.today
-                ? `${TODAY_HEAD} font-bold`
-                : `${d.red ? 'bg-weekend-head' : 'bg-panel'} ${DAY_COLOR[d.color]}`
+              colOn(d.date)
+                ? `bg-warn-bg font-bold ${DAY_COLOR[d.color]}`
+                : d.today
+                  ? `${TODAY_HEAD} font-bold`
+                  : `${d.red ? 'bg-weekend-head' : 'bg-panel'} ${DAY_COLOR[d.color]}`
             }`}
           >
             {d.weekday}

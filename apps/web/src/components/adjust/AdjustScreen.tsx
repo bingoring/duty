@@ -7,7 +7,6 @@ import {
   formatViolation,
   newViolations,
   replacementCandidates,
-  swapEdits,
   weekdayKo,
   type CellEdit,
   type DutyCode,
@@ -45,6 +44,12 @@ const btn2 =
 const md = (d: string) => `${Number(d.slice(5, 7))}/${Number(d.slice(8))}`
 const withDay = (d: string) => `${formatMD(d)} (${weekdayKo(d)})`
 const key = (u: string, d: string) => `${u}|${d}`
+// 받침 여부로 조사를 고른다 (강도윤과 / 오민지와)
+const withJosa = (word: string, withBatchim: string, without: string) => {
+  const c = word.charCodeAt(word.length - 1)
+  const has = c >= 0xac00 && c <= 0xd7a3 && (c - 0xac00) % 28 !== 0
+  return `${word}${has ? withBatchim : without}`
+}
 // 'D로'·'N으로' (엔 = 받침 ㄴ)
 const ro = (code: string) => `${code}${code === 'N' ? '으로' : '로'}`
 const isLeaveCell = (c: GridCell) =>
@@ -140,6 +145,7 @@ export function AdjustScreen({ view }: { view: AdjustView }) {
   return (
     <div
       data-hydrated={hydrated || undefined}
+      data-adjust-root
       className="relative flex min-w-0 flex-col gap-3 px-4 py-[18px]"
     >
       <div className="flex items-center gap-3">
@@ -286,13 +292,14 @@ export function AdjustScreen({ view }: { view: AdjustView }) {
             ? {
                 pending: pendingViews,
                 focusDate: pop?.kind === 'replace' ? pop.date : null,
+                selected: pop?.kind === 'cell' ? { userId: pop.userId, date: pop.date } : null,
                 onCell: (userId, date, el) => {
+                  // 팝오버는 화면 컨테이너(relative) 기준 좌표. 아래에 자리가 없으면 칸 위에 띄운다
                   const r = el.getBoundingClientRect()
-                  const x = Math.min(window.innerWidth - 320, Math.max(8, r.left - 140))
-                  const y =
-                    r.bottom + 6 + window.scrollY > window.innerHeight + window.scrollY - 360
-                      ? r.top + window.scrollY - 370
-                      : r.bottom + window.scrollY + 6
+                  const box = el.closest('[data-adjust-root]')!.getBoundingClientRect()
+                  const x = Math.min(box.width - 308, Math.max(0, r.left - box.left - 140))
+                  const below = r.bottom + 380 <= window.innerHeight || r.top - 380 < 0
+                  const y = below ? r.bottom - box.top + 6 : r.top - box.top - 376
                   setPop({ kind: 'cell', userId, date, x, y })
                 },
               }
@@ -460,7 +467,8 @@ function CellPopover(props: {
     )
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [diff, shortShift])
-  const swap = candidate ? swapEdits(base, date, userId, candidate.userId) : null
+  // 대상자는 고른 코드로, 후보자는 그날 쉬던 칸(OFF)을 모자란 듀티로. 후보 계산이 이 조합의 새 필수 위반 0을 보장한다
+  const swap = candidate && trialEdit ? [trialEdit, candidate.edit] : null
 
   return (
     <div
@@ -591,7 +599,9 @@ function CellPopover(props: {
                 className="h-8 cursor-pointer rounded-lg border border-line bg-surface px-3 text-xs"
                 onClick={() => props.onApply(swap)}
               >
-                {nameOf(candidate!.userId)}과 맞바꾸기
+                {pick === 'OFF'
+                  ? `${withJosa(nameOf(candidate!.userId), '과', '와')} 맞바꾸기`
+                  : `${withJosa(nameOf(candidate!.userId), '을', '를')} ${ro(shortShift ?? '')} 대체`}
               </button>
             )}
             {hard.length > 0 ? (

@@ -25,6 +25,13 @@ test('관리자 칸 편집: 필수 위반 차단 → 사유 입력 후 적용 �
 
   // 홍다은 10/16 E → 10/17 off를 D로: E-D 금지 패턴
   await page.getByRole('button', { name: `${HONG.name} 2026-10-17` }).click()
+  // 편집 중인 칸·열·행을 표시한다 (3a 선택 색)
+  await expect(page.getByRole('button', { name: `${HONG.name} 2026-10-17` })).toHaveAttribute(
+    'aria-pressed',
+    'true',
+  )
+  await expect(page.getByRole('button', { name: `${HONG.name} 2026-10-18` })).toHaveClass(/bg-\[#FFF9E8\]/)
+  await expect(page.getByRole('button', { name: `${ADMIN.name} 2026-10-17` })).toHaveClass(/bg-warn-bg/)
   const pop = page.getByRole('dialog', { name: `${HONG.name} 10/17 근무 편집` })
   await pop.getByRole('button', { name: 'D', exact: true }).click()
   await expect(pop.getByText('D로 변경 불가')).toBeVisible()
@@ -40,6 +47,17 @@ test('관리자 칸 편집: 필수 위반 차단 → 사유 입력 후 적용 �
     'title',
     /D.*관리자 수정/,
   )
+
+  // 인원이 모자라지는 변경이면 대체 후보와 맞바꾸기를 제안한다 (적용하지 않고 닫음)
+  await page.getByRole('button', { name: '윤채원 2026-10-02' }).click()
+  const pop2 = page.getByRole('dialog', { name: '윤채원 10/2 근무 편집' })
+  await pop2.getByRole('button', { name: 'OFF', exact: true }).click()
+  await expect(pop2).toContainText('10/2 (금) D 인원')
+  await expect(
+    pop2.getByRole('button', { name: /맞바꾸기$/ }).or(pop2.getByText('대체할 수 있는 사람이 없습니다')),
+  ).toBeVisible()
+  await pop2.getByRole('button', { name: '닫기' }).click()
+  await expect(page.getByText('변경 0건 미저장')).toBeVisible()
 
   const me = await browser.newPage()
   await loginAndWait(me, HONG.employeeNo)
