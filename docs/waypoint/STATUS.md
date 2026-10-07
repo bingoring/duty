@@ -8,6 +8,9 @@
 
 > 🔒 **개인정보:** 공개 저장소다. 간호사 이름·사번은 모두 가명이며, 실명 자료는 커밋하지 않는다([DECISIONS](DECISIONS.md) 2026-09-26).
 
+> 📝 **2-9 통합·E2E Build Spec READY (2026-10-07).** 11월 한 달 흐름(신청·휴가 → 생성·확정 → 교환·관리자 조정 → 마감 → 12월 이월)을 요청별 쿠키 시계로 "오늘"을 옮기며 하나의 E2E로 확인,
+> 화면 × 역할 커버리지 점검·보강. Q1~Q3 해소. 구현 착수 승인 대기.
+>
 > ✅ **2-8 근무 교환 요청 승인 (2026-10-07).** 사용자 피드백 반영 — 바뀐 근무 안내 링크가 칸을 짚고(확인·강조 열 클릭으로 해제), 근무표 격자가 화면 폭에 비례해 커진다. 재검증 E2E 35·통합 136.
 >
 > 🏗️ **2-8 근무 교환 요청 구현 완료 → 승인 대기 (2026-09-30).** 3a 간호사 교환 요청(체크·재배정 팝업·받은/보낸 패널 접기), 전원 수락 시 재검사 뒤 즉시 반영,
@@ -133,7 +136,7 @@
 | 2-6 솔버·듀티 생성 (S8) | [06-solver-generation.md](02-construction/06-solver-generation.md) · [Build Spec](02-construction/solver-generation/build-spec-index.md) (IMPLEMENTED) | HUMAN_APPROVED |
 | 2-7 근무 조정·월 마감 (S9 관리자) | [07-adjust-close.md](02-construction/07-adjust-close.md) · [Build Spec](02-construction/adjust-close/build-spec-index.md) (IMPLEMENTED) | HUMAN_APPROVED |
 | 2-8 근무 교환 요청 (S9 간호사, 3a) | [08-swap-requests.md](02-construction/08-swap-requests.md) · [Build Spec](02-construction/swap-requests/build-spec-index.md) (IMPLEMENTED) | HUMAN_APPROVED |
-| 2-9 통합·E2E | 02-construction/09-integration-e2e.md | PENDING |
+| 2-9 통합·E2E | [09-integration-e2e.md](02-construction/09-integration-e2e.md) · [Build Spec](02-construction/integration-e2e/build-spec-index.md) (READY) | AI_PROPOSED |
 
 ## Phase R — Independent Code Review 🔍 (Construction → Operations 게이트)
 
