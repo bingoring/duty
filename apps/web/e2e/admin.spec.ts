@@ -3,7 +3,10 @@ import { ADMIN, NURSE, login, loginAndWait, waitHydrated } from './fixtures'
 
 // Build Spec 2-4 §4 E2E. 다른 스펙에 영향을 주지 않도록 만든 데이터는 테스트 안에서 되돌린다
 test.describe('S10 간호사 관리', () => {
-  test('신규 간호사 추가 → 임시 비밀번호 1회 → 첫 로그인 비밀번호 변경 → 제거', async ({ page, browser }) => {
+  test('신규 간호사 추가 → 임시 비밀번호 1회 → 첫 로그인 비밀번호 변경 → 재발급 → 제거', async ({
+    page,
+    browser,
+  }) => {
     await loginAndWait(page, ADMIN.employeeNo)
     await page.goto('/admin/staff')
     await waitHydrated(page)
@@ -28,6 +31,19 @@ test.describe('S10 간호사 관리', () => {
     await login(other, '00150', pw)
     await expect(other).toHaveURL('/password')
     await other.close()
+
+    // 비밀번호 재발급: 새 임시 비밀번호만 통한다 (2-9 커버리지 보강)
+    await row.getByRole('button', { name: '추가테스트 메뉴' }).click()
+    await page.getByRole('button', { name: '비밀번호 재발급' }).click()
+    const pw2 = (await page.getByTestId('temp-password').textContent())!.trim()
+    expect(pw2).not.toBe(pw)
+    await page.getByRole('button', { name: '확인' }).click()
+    const again = await browser.newPage()
+    await login(again, '00150', pw)
+    await expect(again).toHaveURL(/\/login/)
+    await login(again, '00150', pw2)
+    await expect(again).toHaveURL('/password')
+    await again.close()
 
     // 제거
     await row.getByRole('button', { name: '추가테스트 메뉴' }).click()

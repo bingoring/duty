@@ -53,7 +53,7 @@ test('"비밀번호를 잊으셨나요?"는 관리자 재발급 안내를 보여
   await expect(page.getByRole('status')).toHaveText('관리자(수간호사)에게 비밀번호 재발급을 요청해 주세요.')
 })
 
-test('첫 로그인은 비밀번호 변경을 강제한다', async ({ page }) => {
+test('첫 로그인은 비밀번호 변경을 강제한다 → 내 설정에서 다시 바꾼다', async ({ page }) => {
   await login(page, E2E_TEMP_USER.employeeNo, E2E_TEMP_USER.tempPassword)
   await expect(page).toHaveURL('/password')
   await page.goto('/requests')
@@ -63,6 +63,17 @@ test('첫 로그인은 비밀번호 변경을 강제한다', async ({ page }) =>
   await page.getByRole('button', { name: '저장' }).click()
   await expect(page).toHaveURL('/')
   await expect(page.getByRole('navigation').getByText(E2E_TEMP_USER.name)).toBeVisible()
+
+  // 내 설정에서 스스로 바꾸기 → 새 비밀번호로 다시 로그인 (2-9 커버리지 보강)
+  await page.goto('/settings')
+  await page.getByLabel('현재 비밀번호').fill('my-new-pass-1')
+  await page.getByLabel('새 비밀번호', { exact: true }).fill('my-new-pass-2')
+  await page.getByLabel('새 비밀번호 확인').fill('my-new-pass-2')
+  await page.getByRole('button', { name: '저장' }).click()
+  await expect(page.getByRole('status')).toContainText('비밀번호를 바꿨습니다')
+  await page.getByRole('button', { name: '로그아웃' }).click()
+  await login(page, E2E_TEMP_USER.employeeNo, 'my-new-pass-2')
+  await expect(page).toHaveURL('/')
 })
 
 test('로그아웃하면 다시 로그인해야 한다', async ({ page }) => {
