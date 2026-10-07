@@ -57,6 +57,24 @@ test.describe('S3 근무표', () => {
     await expect(page.locator('[data-today-head]')).toHaveCount(0)
   })
 
+  test('넓은 화면에서는 격자가 폭을 채우고 칩·행이 커진다 (1280에서는 1c 수치 그대로)', async ({ page }) => {
+    await login(page, NURSE.employeeNo)
+    await page.goto('/?ym=2026-10')
+    const grid = page.getByRole('grid')
+    const chip = grid.getByRole('row', { name: NURSE.name }).locator('[data-date="2026-10-01"] > span')
+    const size = async () => ({
+      chip: (await chip.boundingBox())!.width,
+      row: (await chip.locator('..').boundingBox())!.height,
+      fill: await grid.evaluate((g) => g.parentElement!.clientWidth - g.scrollWidth),
+    })
+    expect(await size()).toEqual({ chip: 20, row: 32, fill: 0 })
+    await page.setViewportSize({ width: 1920, height: 1000 })
+    const wide = await size()
+    expect(wide.chip).toBeGreaterThan(20)
+    expect(wide.row).toBe(wide.chip + 12)
+    expect(wide.fill).toBe(0)
+  })
+
   test('인쇄 모드: 사이드바·카드·헤더 컨트롤을 숨기고 격자만', async ({ page }) => {
     await login(page, NURSE.employeeNo)
     await page.goto('/?ym=2026-10')

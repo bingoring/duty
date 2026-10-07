@@ -63,6 +63,16 @@ body {
   -webkit-font-smoothing: antialiased;
 }
 
+/* 근무표 격자 크기 (사용자 요청 2026-10-07): 칩 20px·행 32px·헤더 18px(1c 수치)을 최소로,
+   넓은 화면에서는 격자 폭에 비례해 칩·행·글자·열이 함께 커진다(최대 칩 28px) */
+.schedule-grid {
+  container-type: inline-size;
+}
+.schedule-grid > [role='grid'] {
+  --chip: clamp(20px, 1.6cqw + 2px, 28px);
+  font-size: calc(var(--chip) * 0.55);
+}
+
 /* S3 인쇄 (Build Spec 2-3 frontend-components §5): 격자만 A4 가로 1장 */
 .print-only {
   display: none;

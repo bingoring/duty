@@ -161,6 +161,13 @@ function accNote(n: number): string {
   return r > 0 ? `다음 달 반납 ${r}` : r < 0 ? `다음 달 ${-r}일 더 받음` : '기준과 같음'
 }
 
+// 열 폭은 칩 크기(--chip, globals.css)의 배수다. 칩 20px이면 1c 수치(68·36·24·34px) 그대로이고,
+// 화면이 넓으면 칩과 함께 커지며 날짜 열은 남는 폭을 나눠 채운다(사용자 요청 2026-10-07)
+const col = (k: number) => `calc(var(--chip)*${k})`
+function gridTemplate(days: number): string {
+  return `${col(3.4)} ${col(1.8)} ${col(1.8)} repeat(${days},minmax(${col(1.2)},1fr)) ${Array(5).fill(col(1.7)).join(' ')}`
+}
+
 export function buildScheduleView(d: MonthViewData): ScheduleView {
   const ym = { year: d.year, month: d.month }
   const next = shiftYm(ym, 1)
@@ -198,8 +205,7 @@ export function buildScheduleView(d: MonthViewData): ScheduleView {
       nextShown && todayYm === ymOf(ym) ? { ym: ymOf(next), text: `${next.month}월 근무표 확정됨` } : null,
     days,
     footer,
-    // 날짜 열은 최소 24px(1c), 화면이 넓으면 남는 폭을 나눠 채운다(사용자 요청 2026-10-07)
-    gridTemplate: `68px 36px 36px repeat(${dates.length},minmax(24px,1fr)) 34px 34px 34px 34px 34px`,
+    gridTemplate: gridTemplate(dates.length),
   }
 
   if (!shown) {

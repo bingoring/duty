@@ -177,11 +177,12 @@ describe('일자 헤더 (R-VIEW-8)', () => {
 
   it('열 수는 날짜 수와 같다', () => {
     expect(buildScheduleView(data()).gridTemplate).toBe(
-      '68px 36px 36px repeat(31,minmax(24px,1fr)) 34px 34px 34px 34px 34px',
+      'calc(var(--chip)*3.4) calc(var(--chip)*1.8) calc(var(--chip)*1.8) repeat(31,minmax(calc(var(--chip)*1.2),1fr)) ' +
+        Array(5).fill('calc(var(--chip)*1.7)').join(' '),
     )
     expect(buildScheduleView(data({ month: 11, cells: [], todayCell: null })).days).toHaveLength(30)
     expect(buildScheduleView(data({ month: 2, cells: [], todayCell: null })).gridTemplate).toContain(
-      'repeat(28,minmax(24px,1fr))',
+      'repeat(28,',
     )
   })
 })

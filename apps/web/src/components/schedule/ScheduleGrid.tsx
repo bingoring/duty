@@ -20,6 +20,10 @@ const TODAY_CELL =
   'bg-primary-soft shadow-[inset_1px_0_0_var(--color-primary),inset_-1px_0_0_var(--color-primary)]'
 const TODAY_HEAD = 'bg-primary text-white'
 
+// 칸 크기는 --chip(globals.css .schedule-grid)에서 나온다: 칩 20px → 행 32px·헤더 18px·글자 10.5px
+const ROW_H = 'h-[calc(var(--chip)+12px)]'
+const HEAD_H = 'h-[calc(var(--chip)*0.9)]'
+
 const headFixed =
   'row-span-2 flex flex-col items-center justify-center border-r border-b border-line bg-panel text-center leading-[1.2] text-ink-2'
 
@@ -60,8 +64,8 @@ function Cell({
     <>
       {v.chip && (
         <span
-          className={`relative flex h-5 w-5 items-center justify-center rounded-[5px] font-bold text-ink ${
-            v.label === 'off' ? 'text-[8.5px]' : 'text-[10.5px]'
+          className={`relative flex size-(--chip) items-center justify-center rounded-[5px] font-bold text-ink ${
+            v.label === 'off' ? 'text-[calc(var(--chip)*0.425)]' : 'text-[calc(var(--chip)*0.525)]'
           } ${CHIP[v.chip]} ${pending ? 'shadow-[inset_0_0_0_2px_var(--color-admin)] outline-1 outline-offset-1 outline-admin outline-dashed' : v.outline ? OUTLINE[v.outline] : ''}`}
         >
           {v.label}
@@ -75,7 +79,7 @@ function Cell({
       )}
     </>
   )
-  const cls = `relative flex h-8 items-center justify-center border-r border-b border-line-soft ${
+  const cls = `relative flex ${ROW_H} items-center justify-center border-r border-b border-line-soft ${
     focus
       ? 'bg-warn-bg'
       : inRow
@@ -124,11 +128,11 @@ function Row({ r, ui }: { r: GridRow; ui?: GridInteraction }) {
   const me = r.kind === 'me'
   const sel = ui?.selected?.userId === r.userId
   const hov = !sel && ui?.hover?.userId === r.userId
-  const num = `flex h-8 items-center justify-center border-r border-b border-line border-b-line-soft text-ink-2 ${me ? 'bg-primary-soft' : sel ? SELECTED_ROW : hov ? HOVER : ''}`
+  const num = `flex ${ROW_H} items-center justify-center border-r border-b border-line border-b-line-soft text-ink-2 ${me ? 'bg-primary-soft' : sel ? SELECTED_ROW : hov ? HOVER : ''}`
   return (
     <div role="row" aria-label={r.name} data-kind={r.kind} className="contents">
       <div
-        className={`flex h-8 items-center truncate border-r border-b border-line border-b-line-soft pl-2 ${
+        className={`flex ${ROW_H} items-center truncate border-r border-b border-line border-b-line-soft pl-2 ${
           me
             ? 'bg-primary-soft font-extrabold shadow-[inset_3px_0_0_var(--color-primary)]'
             : sel
@@ -178,7 +182,7 @@ export function ScheduleGrid({ view, ui }: { view: ScheduleView; ui?: GridIntera
         // 서버 컴포넌트(근무표)에서는 함수를 넘길 수 없으므로 호버를 쓰는 화면에서만 붙인다
         {...(ui?.onHover ? { onMouseLeave: () => ui.onHover!(null) } : {})}
         aria-label={view.title}
-        className="grid text-[11px]"
+        className="grid"
         style={{ gridTemplateColumns: view.gridTemplate }}
       >
         <div className={headFixed}>성명</div>
@@ -196,7 +200,7 @@ export function ScheduleGrid({ view, ui }: { view: ScheduleView; ui?: GridIntera
             key={d.date}
             data-day={d.date}
             data-today-head={d.today || undefined}
-            className={`flex h-[18px] items-center justify-center border-r border-b border-line-soft ${
+            className={`flex ${HEAD_H} items-center justify-center border-r border-b border-line-soft ${
               colOn(d.date)
                 ? 'bg-warn-bg font-extrabold'
                 : d.today
@@ -227,7 +231,7 @@ export function ScheduleGrid({ view, ui }: { view: ScheduleView; ui?: GridIntera
             key={d.date}
             data-day={d.date}
             data-today-head={d.today || undefined}
-            className={`flex h-[18px] items-center justify-center border-r border-b border-r-line-soft border-b-line text-[10px] ${
+            className={`flex ${HEAD_H} items-center justify-center border-r border-b border-r-line-soft border-b-line text-[calc(var(--chip)*0.5)] ${
               colOn(d.date)
                 ? `bg-warn-bg font-bold ${DAY_COLOR[d.color]}`
                 : colHover(d.date)
