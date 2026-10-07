@@ -2,13 +2,13 @@ import { StaffManager } from '@/components/admin/StaffManager'
 import { ensureYearStart } from '@/server/balances/year-start'
 import { getDb } from '@/server/db/client'
 import { getCurrentRules } from '@/server/rules'
-import { appToday } from '@/server/schedule/month'
 import { listStaff } from '@/server/staff/service'
+import { requestToday } from '@/server/clock'
 
 // S10 관리자 · 간호사 관리 (Build Spec 2-4). 관리자 확인은 admin/layout과 각 액션에서 한다
 export default async function StaffPage() {
   const db = getDb()
-  const today = appToday()
+  const today = await requestToday()
   const [rows, rules, ys] = await Promise.all([
     listStaff(db, today),
     getCurrentRules(),

@@ -4,8 +4,8 @@ import { refresh } from 'next/cache'
 import { z } from 'zod'
 import { getSession } from '../auth/session'
 import { getDb } from '../db/client'
-import { appToday } from '../schedule/month'
 import { confirmCandidate, generate } from './service'
+import { requestToday } from '../clock'
 
 // Build Spec 2-6 — 듀티 생성 서버 액션. 각 액션은 첫 줄에서 관리자를 확인한다(페이지 가드에 기대지 않음)
 const DENIED = { ok: false as const, kind: 'blocked' as const, message: '권한이 없습니다.' }
@@ -36,7 +36,7 @@ export async function generateAction(input: unknown) {
   const parsed = GenerateSchema.safeParse(input)
   if (!parsed.success) return BAD
   const { year, month, priorities } = parsed.data
-  const r = await generate(getDb(), admin, { year, month }, { priorities, today: appToday() })
+  const r = await generate(getDb(), admin, { year, month }, { priorities, today: await requestToday() })
   if (r.ok) refresh()
   return r
 }
@@ -46,7 +46,7 @@ export async function confirmCandidateAction(input: unknown) {
   if (!admin) return DENIED
   const parsed = z.object({ candidateId: z.string().uuid() }).safeParse(input)
   if (!parsed.success) return BAD
-  const r = await confirmCandidate(getDb(), admin, parsed.data.candidateId, appToday())
+  const r = await confirmCandidate(getDb(), admin, parsed.data.candidateId, await requestToday())
   if (r.ok) refresh()
   return r
 }

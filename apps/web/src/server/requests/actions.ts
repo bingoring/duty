@@ -5,7 +5,6 @@ import { refresh } from 'next/cache'
 import { z } from 'zod'
 import { getSession } from '../auth/session'
 import { getDb } from '../db/client'
-import { appToday } from '../schedule/month'
 import {
   cancelLeave,
   decideLeave,
@@ -15,6 +14,7 @@ import {
   submitRequests,
   type Actor,
 } from './service'
+import { requestToday } from '../clock'
 
 // Build Spec 2-5 — 신청 서버 액션. 세션 확인은 첫 줄, 본인·관리자 권한은 service가 판단한다
 const DENIED = { ok: false as const, message: '로그인이 필요합니다.' }
@@ -42,7 +42,7 @@ export async function saveShiftRequestAction(input: unknown) {
   if (!actor) return DENIED
   const p = ShiftSchema.safeParse(input)
   if (!p.success) return BAD
-  const r = await saveShiftRequest(getDb(), actor, p.data, appToday())
+  const r = await saveShiftRequest(getDb(), actor, p.data, await requestToday())
   if (r.ok) refresh()
   return r
 }
@@ -52,7 +52,7 @@ export async function deleteShiftRequestAction(input: unknown) {
   if (!actor) return DENIED
   const p = z.object({ userId: uuid, date }).safeParse(input)
   if (!p.success) return BAD
-  const r = await deleteShiftRequest(getDb(), actor, p.data, appToday())
+  const r = await deleteShiftRequest(getDb(), actor, p.data, await requestToday())
   if (r.ok) refresh()
   return r
 }
@@ -71,7 +71,7 @@ export async function saveLeaveAction(input: unknown) {
   if (!actor) return DENIED
   const p = LeaveSchema.safeParse(input)
   if (!p.success) return BAD
-  const r = await saveLeave(getDb(), actor, p.data, appToday())
+  const r = await saveLeave(getDb(), actor, p.data, await requestToday())
   if (r.ok) refresh()
   return r
 }
@@ -81,7 +81,7 @@ export async function cancelLeaveAction(id: string) {
   if (!actor) return DENIED
   const p = uuid.safeParse(id)
   if (!p.success) return BAD
-  const r = await cancelLeave(getDb(), actor, p.data, appToday())
+  const r = await cancelLeave(getDb(), actor, p.data, await requestToday())
   if (r.ok) refresh()
   return r
 }
@@ -93,7 +93,7 @@ export async function submitRequestsAction(input: unknown) {
     .object({ year: z.number().int().min(2000).max(2100), month: z.number().int().min(1).max(12) })
     .safeParse(input)
   if (!p.success) return BAD
-  const r = await submitRequests(getDb(), actor, p.data, appToday())
+  const r = await submitRequests(getDb(), actor, p.data, await requestToday())
   if (r.ok) refresh()
   return r
 }

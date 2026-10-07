@@ -8,9 +8,9 @@ import { getSession } from '../auth/session'
 import { getDb } from '../db/client'
 import { monthPlans } from '../db/schema'
 import { cancelApprovedLeave } from '../requests/service'
-import { appToday } from '../schedule/month'
 import { closeMonth, previewClose, reopenMonth } from './close'
 import { saveEdits, updateNegotiation } from './service'
+import { requestToday } from '../clock'
 
 // Build Spec 2-7 — 근무 조정 서버 액션. 각 액션은 첫 줄에서 관리자를 확인한다(페이지 가드에 기대지 않음)
 const DENIED = { ok: false as const, message: '권한이 없습니다.' }
@@ -78,7 +78,7 @@ export async function closeMonthAction(input: unknown) {
   if (!admin) return DENIED
   const parsed = z.object({ planId: uuid }).safeParse(input)
   if (!parsed.success) return BAD
-  const r = await closeMonth(getDb(), admin, parsed.data.planId, appToday())
+  const r = await closeMonth(getDb(), admin, parsed.data.planId, await requestToday())
   if (r.ok) refresh()
   return r
 }

@@ -38,4 +38,10 @@ describe('appToday — 개발·E2E용 날짜 고정', () => {
     expect(appToday({ NODE_ENV: 'development' }, now)).toBe('2026-09-27')
     expect(appToday({ DUTY_FAKE_TODAY: '2026-02-30', NODE_ENV: 'test' }, now)).toBe('2026-09-27')
   })
+  it('쿠키 값(override)은 운영이 아닐 때만 DUTY_FAKE_TODAY보다 앞선다 (2-9)', () => {
+    const env = { DUTY_FAKE_TODAY: '2026-10-13', NODE_ENV: 'development' }
+    expect(appToday(env, now, '2026-12-01')).toBe('2026-12-01')
+    expect(appToday(env, now, 'tomorrow')).toBe('2026-10-13')
+    expect(appToday({ ...env, NODE_ENV: 'production' }, now, '2026-12-01')).toBe('2026-09-27')
+  })
 })

@@ -9,13 +9,19 @@ export function todaySeoul(now: Date = new Date()): IsoDate {
   return new Intl.DateTimeFormat('en-CA', { timeZone: 'Asia/Seoul' }).format(now)
 }
 
-// 앱의 "오늘". 개발·E2E에서만 DUTY_FAKE_TODAY로 고정할 수 있다(운영에서는 무시)
+// 앱의 "오늘". 개발·E2E에서만 고정할 수 있다(운영에서는 무시):
+// 요청 쿠키(override, 2-9 E2E가 날짜를 옮길 때) → DUTY_FAKE_TODAY → 서울 기준 오늘
+export const FAKE_TODAY_COOKIE = 'duty_fake_today'
 export function appToday(
   env: Record<string, string | undefined> = process.env,
   now: Date = new Date(),
+  override?: string,
 ): IsoDate {
-  const fake = env.DUTY_FAKE_TODAY
-  if (env.NODE_ENV !== 'production' && fake && isIsoDate(fake)) return fake
+  if (env.NODE_ENV !== 'production') {
+    if (override && isIsoDate(override)) return override
+    const fake = env.DUTY_FAKE_TODAY
+    if (fake && isIsoDate(fake)) return fake
+  }
   return todaySeoul(now)
 }
 

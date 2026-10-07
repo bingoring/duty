@@ -9,8 +9,9 @@ import { getDb } from '@/server/db/client'
 import { loadNotices } from '@/server/notices/service'
 import { pendingReceivedCount } from '@/server/swaps/service'
 import { loadMonthView } from '@/server/schedule/load'
-import { parseYm, appToday } from '@/server/schedule/month'
+import { parseYm } from '@/server/schedule/month'
 import { buildScheduleView } from '@/server/schedule/view'
+import { requestToday } from '@/server/clock'
 
 // S3 근무표 — 홈 (Build Spec 2-3). 서버 컴포넌트로 렌더링한다(클라이언트 JS는 인쇄 버튼, 2-7 바뀐 근무 안내의 「확인」, 강조 열 해제뿐)
 export default async function SchedulePage({
@@ -19,7 +20,7 @@ export default async function SchedulePage({
   searchParams: Promise<{ ym?: string | string[]; focus?: string | string[] }>
 }) {
   const session = await requireUser()
-  const today = appToday()
+  const today = await requestToday()
   const sp = await searchParams
   const { year, month } = parseYm(sp.ym, today)
   // 바뀐 근무 안내 링크(?focus=날짜): 내 줄의 그 칸을 행·열·칸 강조로 짚는다

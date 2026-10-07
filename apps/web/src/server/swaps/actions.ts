@@ -5,8 +5,8 @@ import { refresh } from 'next/cache'
 import { z } from 'zod'
 import { getSession } from '../auth/session'
 import { getDb } from '../db/client'
-import { appToday } from '../schedule/month'
 import { cancelSwap, createSwap, respondSwap } from './service'
+import { requestToday } from '../clock'
 
 // Build Spec 2-8 — 교환 요청 서버 액션. 세션 확인은 첫 줄, 당사자·요청자 권한은 service가 판단한다
 const DENIED = { ok: false as const, message: '로그인이 필요합니다.' }
@@ -34,7 +34,12 @@ export async function createSwapAction(input: unknown) {
   if (!actor) return DENIED
   const parsed = CreateSchema.safeParse(input)
   if (!parsed.success) return BAD
-  const r = await createSwap(getDb(), actor, parsed.data as Parameters<typeof createSwap>[2], appToday())
+  const r = await createSwap(
+    getDb(),
+    actor,
+    parsed.data as Parameters<typeof createSwap>[2],
+    await requestToday(),
+  )
   if (r.ok) refresh()
   return r
 }
@@ -44,7 +49,7 @@ export async function respondSwapAction(input: unknown) {
   if (!actor) return DENIED
   const parsed = z.object({ id: uuid, decision: z.enum(['accept', 'reject']) }).safeParse(input)
   if (!parsed.success) return BAD
-  const r = await respondSwap(getDb(), actor, parsed.data.id, parsed.data.decision, appToday())
+  const r = await respondSwap(getDb(), actor, parsed.data.id, parsed.data.decision, await requestToday())
   if (r.ok) refresh()
   return r
 }

@@ -3,7 +3,8 @@ import { requireUser } from '@/server/auth/guards'
 import { getDb } from '@/server/db/client'
 import { buildRequestsView } from '@/server/requests/dto'
 import { loadRequestsRaw } from '@/server/requests/load'
-import { appToday, parseYm, shiftYm, ymOf } from '@/server/schedule/month'
+import { parseYm, shiftYm, ymOf } from '@/server/schedule/month'
+import { requestToday } from '@/server/clock'
 
 // S4 근무 신청 + S5 휴가 팝오버 + S4-A 휴가 승인 (Build Spec 2-5). 기본 대상 월 = 오늘의 다음 달
 export default async function RequestsPage({
@@ -12,7 +13,7 @@ export default async function RequestsPage({
   searchParams: Promise<{ ym?: string | string[] }>
 }) {
   const session = await requireUser()
-  const today = appToday()
+  const today = await requestToday()
   const raw = (await searchParams).ym
   const ym = raw ? parseYm(raw, today) : shiftYm(parseYm(undefined, today), 1)
   const viewer = {

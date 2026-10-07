@@ -3,7 +3,8 @@ import { NurseAdjust } from '@/components/adjust/NurseAdjust'
 import { defaultAdjustYm, loadAdjustView } from '@/server/adjust/view'
 import { requireUser } from '@/server/auth/guards'
 import { getDb } from '@/server/db/client'
-import { appToday, parseYm } from '@/server/schedule/month'
+import { parseYm } from '@/server/schedule/month'
+import { requestToday } from '@/server/clock'
 
 // S9 근무 조정 (Build Spec 2-7 관리자 편집·월 마감, 2-8 간호사 교환 요청). 기본 달 = 이번 달(간호사는 협의 기간인 달)
 export default async function AdjustPage({
@@ -12,7 +13,7 @@ export default async function AdjustPage({
   searchParams: Promise<{ ym?: string | string[]; focus?: string | string[]; shift?: string | string[] }>
 }) {
   const session = await requireUser()
-  const today = appToday()
+  const today = await requestToday()
   const sp = await searchParams
   const one = (v: string | string[] | undefined) => (typeof v === 'string' ? v : undefined)
   const focusDate = one(sp.focus)

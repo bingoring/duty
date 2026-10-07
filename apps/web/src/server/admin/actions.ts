@@ -8,7 +8,6 @@ import { getDb } from '../db/client'
 import { addHoliday, deleteHoliday, importHolidays, type ImportResult } from '../holidays/service'
 import { getCurrentRules } from '../rules'
 import { saveRules, type SaveResult } from '../rules/service'
-import { appToday } from '../schedule/month'
 import {
   adjustBalances,
   createStaff,
@@ -25,6 +24,7 @@ import {
   StaffUpdateSchema,
   type FieldErrors,
 } from './schemas'
+import { requestToday } from '../clock'
 
 // Build Spec 2-4 — 관리자 서버 액션. 각 액션은 첫 줄에서 관리자를 확인한다(페이지 가드에 기대지 않음)
 const DENIED = { ok: false as const, message: '권한이 없습니다.' }
@@ -44,7 +44,7 @@ function fieldErrors(e: z.ZodError): FieldErrors {
 }
 
 async function staffCtx(adminId: string) {
-  return { adminId, today: appToday(), rules: await getCurrentRules() }
+  return { adminId, today: await requestToday(), rules: await getCurrentRules() }
 }
 
 export async function createStaffAction(input: unknown): Promise<CreateResult | typeof DENIED> {
