@@ -58,6 +58,28 @@ def test_전월_말_N_두_개면_1일_N은_한_개까지():
     assert not (codes["2026-11-01"] == "N" and codes["2026-11-02"] == "N")
 
 
+def test_다음_달_초_확정_칸과_이어지는_금지_패턴을_피한다():
+    req = request()
+    # 12월이 먼저 확정됨: n1 12/1 D → 11/30 E면 E-D
+    req["nextHead"] = [{"userId": "n1", "date": "2026-12-01", "code": "D"}]
+    req["nurses"][0]["requests"] = [{"date": "2026-11-30", "options": ["E"]}]
+    res = solve(req)
+    assert hard_violations(req, res) == []
+    codes = {c["date"]: c["code"] for c in res["cells"] if c["userId"] == "n1"}
+    assert codes["2026-11-30"] != "E"
+
+
+def test_다음_달_안에서만_생긴_위반은_이번_달_생성을_막지_않는다():
+    req = request()
+    req["nextHead"] = [
+        {"userId": "n1", "date": "2026-12-01", "code": "E"},
+        {"userId": "n1", "date": "2026-12-02", "code": "D"},
+    ]
+    res = solve(req)
+    assert res["status"] in ("OPTIMAL", "FEASIBLE")
+    assert hard_violations(req, res) == []
+
+
 def test_3인_근무_신규는_인원에_세지_않고_프리셉터와_같은_근무():
     req = request()
     req["trainings"] = [

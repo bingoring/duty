@@ -54,6 +54,8 @@ export const SolverRequest = z.object({
   // 대상 월과 전월 꼬리의 빨간 날
   redDays: z.array(IsoDate),
   prevTail: z.array(SolverCell),
+  // 다음 달이 이미 확정되었으면 그 달 초 칸(경계 규칙용 고정값). 없으면 생략
+  nextHead: z.array(SolverCell).optional(),
   nurses: z.array(SolverNurse),
   // 수간호사 고정 칸 (인원 보충 계산용)
   heads: z.array(

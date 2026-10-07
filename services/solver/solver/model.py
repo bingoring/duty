@@ -57,14 +57,22 @@ class Builder:
         self.days: list[str] = req["days"]
         self.month = set(self.days)
         tail = sorted({c["date"] for c in req["prevTail"]})
-        first = _d(self.days[0])
-        # 전월 꼬리는 월초 바로 앞의 연속 날짜로 둔다 (칸이 없는 날은 '칸 없음')
+        head = sorted({c["date"] for c in req.get("nextHead") or []})
+        first, last = _d(self.days[0]), _d(self.days[-1])
+        # 전월 꼬리는 월초 바로 앞, 다음 달 머리(이미 확정된 달)는 월말 바로 뒤의 연속 날짜로 둔다
+        # (칸이 없는 날은 '칸 없음')
         span = (first - _d(tail[0])).days if tail else 0
-        self.timeline = [_iso(first - timedelta(days=span - i)) for i in range(span)] + self.days
+        after = (_d(head[-1]) - last).days if head else 0
+        self.timeline = (
+            [_iso(first - timedelta(days=span - i)) for i in range(span)]
+            + self.days
+            + [_iso(last + timedelta(days=i + 1)) for i in range(after)]
+        )
         self.red = set(req["redDays"])
         self.nurses = req["nurses"]
         self.byId = {n["id"]: n for n in self.nurses}
-        self.tail = {(c["userId"], c["date"]): c for c in req["prevTail"]}
+        # 대상 월 밖의 고정 칸: 전월 꼬리 + 다음 달 머리
+        self.tail = {(c["userId"], c["date"]): c for c in req["prevTail"] + (req.get("nextHead") or [])}
         self.x: dict[tuple[str, str, str], Lit] = {}
         self.sleeping: dict[tuple[str, str], Lit] = {}
         self.fixed: dict[tuple[str, str], dict] = {}
@@ -247,6 +255,12 @@ class Builder:
         rest_h = self.req["restHours"]
         tl = self.timeline
         first_month = tl.index(self.days[0])
+        last_month = tl.index(self.days[-1])
+
+        # 대상 월에 한 칸이라도 걸친 창만 검사한다(월 밖에서만 생긴 위반은 이 생성이 고칠 수 없다)
+        def touches(i: int, k: int) -> bool:
+            return i + k - 1 >= first_month and i <= last_month
+
         for n in self.nurses:
             nid = n["id"]
             # H-PATTERN
@@ -254,7 +268,7 @@ class Builder:
                 parts = pattern.split("-")
                 k = len(parts)
                 for i in range(len(tl) - k + 1):
-                    if i + k - 1 < first_month:
+                    if not touches(i, k):
                         continue
                     lits = [self.token(nid, tl[i + j], parts[j]) for j in range(k)]
                     if any(v is self.false for v in lits):
@@ -262,7 +276,7 @@ class Builder:
                     self.m.add_bool_or([~v for v in lits])
             # H-REST
             for i in range(len(tl) - 1):
-                if i + 1 < first_month:
+                if not touches(i, 2):
                     continue
                 d1, d2 = tl[i], tl[i + 1]
                 for a in WORK:
@@ -280,7 +294,7 @@ class Builder:
             w = r["maxConsecutiveNight"] + 1
             g = self.guard(f"NIGHT_CONSEC:{nid}")
             for i in range(len(tl) - w + 1):
-                if i + w - 1 < first_month:
+                if not touches(i, w):
                     continue
                 lits = [self.is_(nid, tl[i + j], "N") for j in range(w)]
                 if any(v is self.false for v in lits):
@@ -297,7 +311,7 @@ class Builder:
                         break
                     total += 0 if self._is_leave(nid, d) else 1
                     j += 1
-                if total <= limit or j - 1 < first_month:
+                if total <= limit or not touches(i, j - i):
                     continue
                 lits = [self.rest(nid, tl[q]) for q in range(i, j)]
                 if any(v is self.false for v in lits):

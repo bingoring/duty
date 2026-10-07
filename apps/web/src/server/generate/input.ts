@@ -256,6 +256,16 @@ export async function buildGenerationInput(db: Db, plan: PlanRow): Promise<Gener
 
   const tailDates = [...new Set(input.prevTail.map((c) => c.date))]
   const rotIds = new Set(rotating.map((n) => n.id))
+  const outside = (cells: GridCell[]) =>
+    cells
+      .filter((c) => rotIds.has(c.userId))
+      .map((c) => ({
+        userId: c.userId,
+        date: c.date,
+        code: c.code,
+        ...(c.offKind ? { offKind: c.offKind } : {}),
+      }))
+  const nextHead = outside(input.nextHead)
   const restHours = Object.fromEntries(
     WORK_CODES.map((a) => [a, Object.fromEntries(WORK_CODES.map((b) => [b, restHoursBetween(a, b)]))]),
   ) as SolverRequest['restHours']
@@ -263,14 +273,9 @@ export async function buildGenerationInput(db: Db, plan: PlanRow): Promise<Gener
     contractVersion: SOLVER_CONTRACT_VERSION,
     days,
     redDays: [...tailDates, ...days].filter((d) => isRedDay(d, red)),
-    prevTail: input.prevTail
-      .filter((c) => rotIds.has(c.userId))
-      .map((c) => ({
-        userId: c.userId,
-        date: c.date,
-        code: c.code,
-        ...(c.offKind ? { offKind: c.offKind } : {}),
-      })),
+    prevTail: outside(input.prevTail),
+    // 다음 달이 이미 확정된 경우에만(없으면 키를 빼 입력 해시를 그대로 둔다). 2-9에서 발견: 솔버가 경계를 몰라 재검사에서 늘 탈락
+    ...(nextHead.length ? { nextHead } : {}),
     nurses: rotating.map(nurse),
     heads: heads.map((h) => ({
       id: h.id,

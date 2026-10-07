@@ -48,6 +48,13 @@ class PrevTailItem(BaseModel):
     offKind: OffKind | None = None
 
 
+class NextHeadItem(BaseModel):
+    userId: str
+    date: Annotated[str, Field(pattern='^\\d{4}-\\d{2}-\\d{2}$')]
+    code: Code
+    offKind: OffKind | None = None
+
+
 class WorkDay(RootModel[str]):
     root: Annotated[str, Field(pattern='^\\d{4}-\\d{2}-\\d{2}$')]
 
@@ -148,6 +155,7 @@ class SolverRequest(BaseModel):
     days: Annotated[list[Day], Field(max_length=31, min_length=28)]
     redDays: list[RedDay]
     prevTail: list[PrevTailItem]
+    nextHead: list[NextHeadItem] | None = None
     nurses: list[Nurse]
     heads: list[Head]
     trainings: list[Training]

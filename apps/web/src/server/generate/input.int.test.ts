@@ -3,9 +3,10 @@ import { DEFAULT_RULES } from '@duty/domain'
 import { eq, sql } from 'drizzle-orm'
 import { beforeEach, describe, expect, it } from 'vitest'
 import { resetDb, setupTestDb } from '../../test/db'
-import { leaveRequests, users } from '../db/schema'
+import { leaveRequests, monthPlans, scheduleCells, users } from '../db/schema'
 import { ensureRequestPlan } from '../requests/plan'
 import { decideLeave, saveLeave, saveShiftRequest, submitRequests } from '../requests/service'
+import { ensureWard } from '../seed/core'
 import { seedDev } from '../seed/dev'
 import { buildGenerationInput, toSolverRequest } from './input'
 
@@ -62,6 +63,43 @@ describe('buildGenerationInput (business-logic-model §2)', () => {
     expect(req.redDays.filter((d) => d.startsWith('2026-11'))).toHaveLength(9)
     expect(req.restHours.E!.D).toBe(8)
     expect(g.fixedViolations).toEqual([])
+  })
+
+  it('다음 달이 이미 확정되었으면 그 달 초 칸을 nextHead로 넘긴다 (2-9 발견: 경계 위반으로 생성이 늘 실패)', async () => {
+    const before = await buildGenerationInput(db, await novPlan())
+    expect(
+      toSolverRequest(before, { seed: 1, timeLimitSec: 20, priorities: PRIORITIES }).nextHead,
+    ).toBeUndefined()
+
+    const [dec] = await db
+      .insert(monthPlans)
+      .values({
+        wardId: await ensureWard(db),
+        year: 2026,
+        month: 12,
+        status: 'CONFIRMED',
+        requestDeadline: '2026-11-15',
+        negotiationStart: '2026-11-16',
+        negotiationEnd: '2026-11-20',
+      })
+      .returning()
+    const bae = (await actor('00108')).id
+    const head = (await actor('00101')).id
+    await db.insert(scheduleCells).values(
+      [bae, head].map((userId) => ({
+        monthPlanId: dec!.id,
+        userId,
+        date: '2026-12-01',
+        code: 'D',
+        source: 'auto',
+      })),
+    )
+    const g = await buildGenerationInput(db, await novPlan())
+    const req = toSolverRequest(g, { seed: 1, timeLimitSec: 20, priorities: PRIORITIES })
+    expect(() => SolverRequest.parse(req)).not.toThrow()
+    // 교대 근무자만 (수간호사는 솔버 대상이 아니다)
+    expect(req.nextHead).toEqual([{ userId: bae, date: '2026-12-01', code: 'D' }])
+    expect(g.inputHash).not.toBe(before.inputHash)
   })
 
   it('10월 주말 통 OFF를 못 받은 사람은 미배정 연속 1', async () => {
