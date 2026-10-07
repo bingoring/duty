@@ -1,8 +1,8 @@
 ---
 phase: 02-construction
 stage: 08-swap-requests
-status: AI_PROPOSED
-updated: 2026-09-30
+status: HUMAN_APPROVED
+updated: 2026-10-07
 ---
 
 # [Stage 2-8] 근무 교환 요청 (S9 간호사, 3a)
@@ -46,8 +46,8 @@ Build Spec(comprehensive, 4 아티팩트): [`swap-requests/build-spec-index.md`]
 
 > 아래 항목을 확인 후 frontmatter의 status를 `HUMAN_APPROVED`로 변경하세요.
 
-- [ ] Build Spec이 READY이고 요청·응답·무효 규칙이 운영과 맞는가? (승인 = 구현 착수)
-- [ ] 구현 후: §5 검증 통과, 편차 로그(§7) 확인
+- [x] Build Spec이 READY이고 요청·응답·무효 규칙이 운영과 맞는가? (승인 = 구현 착수)
+- [x] 구현 후: §5 검증 통과, 편차 로그(§7) 확인
 
 ## 다음 단계
 

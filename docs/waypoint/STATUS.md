@@ -4,10 +4,12 @@
 **Requirements:** [inputs/requirements_v3.md](inputs/requirements_v3.md) (근무 지침 원문 + 근무자 명단)
 **Design handoff:** [inputs/design-handoff_v5/](inputs/design-handoff_v5/README.md) (최신, 2026-09-30) · [v4](inputs/design-handoff_v4/README.md) · [v3](inputs/design-handoff_v3/README.md) · [v2](inputs/design-handoff_v2/README.md) · [v1](inputs/design-handoff_v1/README.md)
 **Decisions (audit):** [DECISIONS.md](DECISIONS.md)
-**Last updated:** 2026-09-30
+**Last updated:** 2026-10-07
 
 > 🔒 **개인정보:** 공개 저장소다. 간호사 이름·사번은 모두 가명이며, 실명 자료는 커밋하지 않는다([DECISIONS](DECISIONS.md) 2026-09-26).
 
+> ✅ **2-8 근무 교환 요청 승인 (2026-10-07).** 사용자 피드백 반영 — 바뀐 근무 안내 링크가 칸을 짚고(확인·강조 열 클릭으로 해제), 근무표 격자가 화면 폭에 비례해 커진다. 재검증 E2E 35·통합 136.
+>
 > 🏗️ **2-8 근무 교환 요청 구현 완료 → 승인 대기 (2026-09-30).** 3a 간호사 교환 요청(체크·재배정 팝업·받은/보낸 패널 접기), 전원 수락 시 재검사 뒤 즉시 반영,
 > 겹침·관리자 편집 무효, 만료, 메뉴 배지·근무표 띠. 단위 361·통합 136·E2E 34 그린, 편차 4건.
 >
@@ -130,7 +132,7 @@
 | 2-5 근무 신청·휴가 (S4 + S5 팝오버 통합) | [05-shift-requests.md](02-construction/05-shift-requests.md) · [Build Spec](02-construction/shift-requests/build-spec-index.md) (IMPLEMENTED) | HUMAN_APPROVED |
 | 2-6 솔버·듀티 생성 (S8) | [06-solver-generation.md](02-construction/06-solver-generation.md) · [Build Spec](02-construction/solver-generation/build-spec-index.md) (IMPLEMENTED) | HUMAN_APPROVED |
 | 2-7 근무 조정·월 마감 (S9 관리자) | [07-adjust-close.md](02-construction/07-adjust-close.md) · [Build Spec](02-construction/adjust-close/build-spec-index.md) (IMPLEMENTED) | HUMAN_APPROVED |
-| 2-8 근무 교환 요청 (S9 간호사, 3a) | [08-swap-requests.md](02-construction/08-swap-requests.md) · [Build Spec](02-construction/swap-requests/build-spec-index.md) (IMPLEMENTED) | AI_PROPOSED |
+| 2-8 근무 교환 요청 (S9 간호사, 3a) | [08-swap-requests.md](02-construction/08-swap-requests.md) · [Build Spec](02-construction/swap-requests/build-spec-index.md) (IMPLEMENTED) | HUMAN_APPROVED |
 | 2-9 통합·E2E | 02-construction/09-integration-e2e.md | PENDING |
 
 ## Phase R — Independent Code Review 🔍 (Construction → Operations 게이트)
