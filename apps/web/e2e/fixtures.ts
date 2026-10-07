@@ -1,4 +1,5 @@
-import type { Page } from '@playwright/test'
+import type { BrowserContext, Page } from '@playwright/test'
+import { FAKE_TODAY_COOKIE } from '../src/server/schedule/month'
 
 export const DEV_PASSWORD = 'duty-dev-1234'
 export const NURSE = { employeeNo: '00103', name: '정하늘' }
@@ -21,4 +22,9 @@ export async function loginAndWait(page: Page, employeeNo: string, password = DE
 // 대화형 폼이 하이드레이션을 마칠 때까지 기다린다(그 전에 입력하면 느린 CI에서 값이 사라진다)
 export async function waitHydrated(page: Page) {
   await page.locator('[data-hydrated]').first().waitFor()
+}
+
+// 2-9: 이 컨텍스트의 "오늘"을 옮긴다(운영이 아닐 때만 서버가 쿠키를 읽는다 — requestToday)
+export async function setToday(context: BrowserContext, date: string, baseURL: string) {
+  await context.addCookies([{ name: FAKE_TODAY_COOKIE, value: date, url: baseURL }])
 }

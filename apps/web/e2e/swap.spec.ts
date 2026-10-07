@@ -1,11 +1,11 @@
 import { existsSync } from 'node:fs'
-import { applyEdits, checkSchedule, newViolations, swappable, swapToEdits, type SwapCode } from '@duty/domain'
-import { expect, test } from '@playwright/test'
+import { expect, test, type Page } from '@playwright/test'
 import { and, eq } from 'drizzle-orm'
 import { adjustCheckInput } from '../src/server/adjust/service'
 import { createDb } from '../src/server/db/client'
 import { monthPlans, users } from '../src/server/db/schema'
-import { loginAndWait, waitHydrated } from './fixtures'
+import { loginAndWait, setToday, waitHydrated } from './fixtures'
+import { findSwapPair, lab, mdOf } from './search'
 
 // Build Spec 2-8 §4 E2E. 오늘(10/13 고정)에 협의 기간인 확정된 달을 만들려고 10월 협의 기간을 10/10–10/20으로 바꾸고 끝나면 되돌린다
 if (existsSync('.env')) process.loadEnvFile('.env')
@@ -27,34 +27,9 @@ test('교환 요청: 요청 보내기 → 상대 근무표 띠·메뉴 배지 �
   // 교환해도 새 필수 위반이 없는 두 사람·날짜(10/14 이후)를 찾는다
   const people = await db.select({ id: users.id, no: users.employeeNo, name: users.name }).from(users)
   const byId = new Map(people.filter((p) => p.no !== '00101').map((p) => [p.id, p]))
-  const input = await adjustCheckInput(db, oct!)
-  const base = checkSchedule(input)
-  let pair: { date: string; a: string; b: string; ca: SwapCode; cb: SwapCode } | null = null
-  const dates = [...new Set(input.cells.map((c) => c.date))].sort().filter((d) => d >= '2026-10-14')
-  search: for (const date of dates)
-    for (const a of byId.keys())
-      for (const b of byId.keys()) {
-        if (a >= b) continue
-        const ca = input.cells.find((c) => c.userId === a && c.date === date)
-        const cb = input.cells.find((c) => c.userId === b && c.date === date)
-        if (!swappable(ca) || !swappable(cb) || ca!.code === cb!.code) continue
-        const edits = swapToEdits(date, [
-          { userId: a, before: { code: ca!.code as SwapCode }, after: { code: cb!.code as SwapCode } },
-          { userId: b, before: { code: cb!.code as SwapCode }, after: { code: ca!.code as SwapCode } },
-        ])
-        if (
-          !newViolations(base, checkSchedule({ ...input, cells: applyEdits(input.cells, edits) }))
-            .hardViolations.length
-        ) {
-          pair = { date, a, b, ca: ca!.code as SwapCode, cb: cb!.code as SwapCode }
-          break search
-        }
-      }
-  if (!pair) throw new Error('교환 쌍 없음')
+  const pair = findSwapPair(await adjustCheckInput(db, oct!), [...byId.keys()], '2026-10-14')
   const A = byId.get(pair.a)!
   const B = byId.get(pair.b)!
-  const mdOf = (d: string) => `${Number(d.slice(5, 7))}/${Number(d.slice(8))}`
-  const lab = (c: SwapCode) => (c === 'OFF' ? 'off' : c)
 
   try {
     const me = await browser.newPage()
@@ -111,4 +86,67 @@ test('협의 기간 밖이면 「근무 조정」 버튼이 비활성', async ({
   await waitHydrated(page)
   await expect(page.getByText('협의 기간 아님 (9/16 – 9/20)')).toBeVisible()
   await expect(page.getByRole('button', { name: '근무 조정' })).toBeDisabled()
+})
+
+// 2-9 커버리지 보강: 거절·철회. 오늘을 쿠키로 10월 협의 기간(9/17)에 둔다 — DB 날짜를 바꾸지 않는다
+test('교환 요청: 상대가 거절하면 종료, 요청자는 대기 요청을 철회할 수 있다', async ({ browser }) => {
+  test.setTimeout(120_000)
+  const base = test.info().project.use.baseURL!
+  const { db, close } = createDb(url)
+  const [oct] = await db
+    .select()
+    .from(monthPlans)
+    .where(and(eq(monthPlans.year, 2026), eq(monthPlans.month, 10)))
+  const people = await db.select({ id: users.id, no: users.employeeNo, name: users.name }).from(users)
+  const byId = new Map(people.filter((p) => p.no !== '00101').map((p) => [p.id, p]))
+  const pair = findSwapPair(await adjustCheckInput(db, oct!), [...byId.keys()], '2026-10-01')
+  await close()
+  const A = byId.get(pair.a)!
+  const B = byId.get(pair.b)!
+
+  const open = async (no: string) => {
+    const context = await browser.newContext()
+    await setToday(context, '2026-09-17', base)
+    const page = await context.newPage()
+    await loginAndWait(page, no)
+    await page.goto('/adjust?ym=2026-10')
+    await waitHydrated(page)
+    return page
+  }
+  const send = async (me: Page) => {
+    await me.getByRole('button', { name: '근무 조정' }).click()
+    await me.getByRole('checkbox', { name: `${B.name} 선택` }).click()
+    await me.getByRole('button', { name: `${mdOf(pair.date)} 재배정` }).click()
+    const pop = me.getByRole('dialog', { name: `${mdOf(pair.date)} 근무 재배정` })
+    await pop.getByRole('button', { name: `${A.name} 변경 후 ${pair.ca}` }).click()
+    await pop.getByRole('button', { name: `${B.name} 변경 후 ${pair.cb}` }).click()
+    await pop.getByRole('button', { name: '요청 보내기' }).click()
+    await expect(me.getByRole('status')).toContainText(`${B.name}에게 교환을 요청했습니다`)
+  }
+
+  const me = await open(A.no)
+  await expect(me.getByText('협의 기간 9/16 – 9/20 · 4일 남음')).toBeVisible()
+  await send(me)
+  const other = await open(B.no)
+  await other
+    .getByRole('article')
+    .filter({ hasText: `${A.name} 님의 요청` })
+    .getByRole('button', { name: '거절' })
+    .click()
+  await expect(other.getByRole('status')).toContainText('요청을 거절했습니다')
+  await me.reload()
+  await waitHydrated(me)
+  await me.getByRole('button', { name: /^보낸 요청/ }).click()
+  const panel = me.getByRole('complementary', { name: '조정 요청' })
+  await expect(panel.getByRole('article').first()).toContainText('거절됨')
+
+  // 다시 보내고 상대가 답하기 전에 철회 → 상대는 응답할 수 없다
+  await send(me)
+  await me.getByRole('button', { name: /^보낸 요청/ }).click()
+  await panel.getByRole('button', { name: '철회' }).click()
+  await expect(me.getByRole('status')).toContainText('요청을 철회했습니다')
+  await other.reload()
+  await waitHydrated(other)
+  await expect(other.getByRole('button', { name: '수락' })).toHaveCount(0)
+  await Promise.all([me.context().close(), other.context().close()])
 })

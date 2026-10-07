@@ -142,15 +142,21 @@ function Row({ r, ui }: { r: GridRow; ui?: GridInteraction }) {
       >
         {r.name}
       </div>
-      <div className={num}>{r.carryOff}</div>
-      <div className={num}>{r.carryN}</div>
+      <div className={num} data-col="carry-off">
+        {r.carryOff}
+      </div>
+      <div className={num} data-col="carry-n">
+        {r.carryN}
+      </div>
       {r.cells.map((c) => (
         <Cell key={c.date} c={c} name={r.name} userId={r.userId} {...(ui ? { ui } : {})} />
       ))}
       <div className={`${num} border-l font-bold text-ink`} data-col="acc">
         {r.accOff}
       </div>
-      <div className={num}>{r.nLeft}</div>
+      <div className={num} data-col="n-left">
+        {r.nLeft}
+      </div>
       <div className={num}>{r.special}</div>
       <div className={num}>{r.checkup}</div>
       <div className={`${num} border-r-0`}>{r.bo}</div>

@@ -8,7 +8,8 @@ import { seedDev } from '../src/server/seed/dev'
 import { hashPassword } from '../src/server/auth/password'
 import { E2E_TEMP_USER } from './fixtures'
 
-export default async function globalSetup() {
+// 스키마를 비우고 시드를 다시 채운다. 전체 실행 시작과 2-9 한 달 흐름(cycle) 앞에서 쓴다
+export async function resetE2eDb() {
   if (existsSync('.env')) process.loadEnvFile('.env')
   const url = process.env.E2E_DATABASE_URL
   if (!url) throw new Error('E2E_DATABASE_URL이 설정되지 않았습니다')
@@ -40,4 +41,8 @@ export default async function globalSetup() {
     .set({ passwordHash: await hashPassword(E2E_TEMP_USER.tempPassword), mustChangePassword: true })
     .where(eq(credentials.userId, u!.id))
   await close()
+}
+
+export default async function globalSetup() {
+  await resetE2eDb()
 }

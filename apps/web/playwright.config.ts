@@ -14,7 +14,19 @@ export default defineConfig({
   reporter: [['list']],
   use: { baseURL: `http://localhost:${PORT}`, viewport: { width: 1280, height: 720 }, locale: 'ko-KR' },
   projects: [
-    { name: 'chromium', use: { ...devices['Desktop Chrome'], viewport: { width: 1280, height: 720 } } },
+    {
+      name: 'chromium',
+      testIgnore: 'cycle/**',
+      use: { ...devices['Desktop Chrome'], viewport: { width: 1280, height: 720 } },
+    },
+    // 2-9 한 달 흐름: 다른 스펙이 모두 끝난 뒤 DB를 시드 상태로 되돌리고 돈다(11월을 확정·마감하므로)
+    { name: 'cycle-reset', testMatch: 'cycle/reset.setup.ts', dependencies: ['chromium'] },
+    {
+      name: 'cycle',
+      testMatch: 'cycle/**/*.spec.ts',
+      dependencies: ['cycle-reset'],
+      use: { ...devices['Desktop Chrome'], viewport: { width: 1280, height: 720 } },
+    },
   ],
   webServer: [
     {
