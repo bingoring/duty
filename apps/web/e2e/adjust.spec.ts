@@ -96,6 +96,9 @@ test('관리자 칸 편집: 필수 위반 차단 → 사유 입력 후 적용 �
   await expect(hongRow.locator('[data-date="2026-10-18"]')).toHaveClass(/bg-\[#FFF9E8\]/)
   await bar.getByRole('button', { name: '확인' }).click()
   await expect(bar).toHaveCount(0)
+  // 확인하면 강조도 사라진다
+  await me.waitForURL('/?ym=2026-10')
+  await expect(hongRow.locator('[data-date="2026-10-17"]')).not.toHaveAttribute('data-selected', 'true')
   await me.reload()
   await expect(me.getByRole('status', { name: '바뀐 근무' })).toHaveCount(0)
 

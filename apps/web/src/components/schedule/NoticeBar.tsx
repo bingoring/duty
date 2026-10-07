@@ -1,6 +1,7 @@
 'use client'
 
 import Link from 'next/link'
+import { useRouter, useSearchParams } from 'next/navigation'
 import { useTransition } from 'react'
 import { ackNoticesAction } from '@/server/notices/actions'
 import type { Notice } from '@/server/notices/service'
@@ -8,6 +9,8 @@ import type { Notice } from '@/server/notices/service'
 // Build Spec 2-7 R-NOTICE-1·2 (Q3) — 근무표 상단 "내 근무가 바뀌었습니다" 띠
 export function NoticeBar({ items, more, swaps = 0 }: { items: Notice[]; more: number; swaps?: number }) {
   const [pending, start] = useTransition()
+  const router = useRouter()
+  const params = useSearchParams()
   if (items.length === 0 && swaps === 0) return null
   // 2-8 R-SWAP-12: 처리할 일(받은 교환 요청)은 근무 조정으로 보낸다
   const swapLine = swaps > 0 && (
@@ -52,7 +55,14 @@ export function NoticeBar({ items, more, swaps = 0 }: { items: Notice[]; more: n
       <button
         type="button"
         disabled={pending}
-        onClick={() => start(async () => void (await ackNoticesAction()))}
+        onClick={() =>
+          start(async () => {
+            await ackNoticesAction()
+            // 확인하면 링크로 짚은 칸 강조(?focus)도 함께 지운다
+            const ym = params.get('ym')
+            if (params.get('focus')) router.replace(ym ? `/?ym=${ym}` : '/')
+          })
+        }
         className="ml-auto h-7 flex-none cursor-pointer rounded-lg border border-line bg-surface px-2.5 text-xs"
       >
         확인

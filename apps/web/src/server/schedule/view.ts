@@ -198,7 +198,8 @@ export function buildScheduleView(d: MonthViewData): ScheduleView {
       nextShown && todayYm === ymOf(ym) ? { ym: ymOf(next), text: `${next.month}월 근무표 확정됨` } : null,
     days,
     footer,
-    gridTemplate: `68px 36px 36px repeat(${dates.length},24px) 34px 34px 34px 34px 34px`,
+    // 날짜 열은 최소 24px(1c), 화면이 넓으면 남는 폭을 나눠 채운다(사용자 요청 2026-10-07)
+    gridTemplate: `68px 36px 36px repeat(${dates.length},minmax(24px,1fr)) 34px 34px 34px 34px 34px`,
   }
 
   if (!shown) {
