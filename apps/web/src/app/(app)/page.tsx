@@ -1,5 +1,6 @@
 import { NoticeBar } from '@/components/schedule/NoticeBar'
 import { ScheduleGrid } from '@/components/schedule/ScheduleGrid'
+import { ScrollToSelected } from '@/components/schedule/ScrollToSelected'
 import { ScheduleHeader } from '@/components/schedule/ScheduleHeader'
 import { SummaryCards } from '@/components/schedule/SummaryCards'
 import { requireUser } from '@/server/auth/guards'
@@ -14,11 +15,18 @@ import { buildScheduleView } from '@/server/schedule/view'
 export default async function SchedulePage({
   searchParams,
 }: {
-  searchParams: Promise<{ ym?: string | string[] }>
+  searchParams: Promise<{ ym?: string | string[]; focus?: string | string[] }>
 }) {
   const session = await requireUser()
   const today = appToday()
-  const { year, month } = parseYm((await searchParams).ym, today)
+  const sp = await searchParams
+  const { year, month } = parseYm(sp.ym, today)
+  // 바뀐 근무 안내 링크(?focus=날짜): 내 줄의 그 칸을 행·열·칸 강조로 짚는다
+  const ym = `${year}-${String(month).padStart(2, '0')}`
+  const focus =
+    typeof sp.focus === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(sp.focus) && sp.focus.startsWith(ym)
+      ? sp.focus
+      : null
   const db = getDb()
   const data = await loadMonthView(db, { year, month, viewerId: session.user.id, today })
   const view = buildScheduleView(data)
@@ -30,7 +38,11 @@ export default async function SchedulePage({
       <NoticeBar items={notices.items} more={notices.more} swaps={swaps} />
       <ScheduleHeader view={view} />
       {!view.empty && <SummaryCards cards={view.cards} />}
-      <ScheduleGrid view={view} />
+      <ScheduleGrid
+        view={view}
+        {...(focus ? { ui: { selected: { userId: session.user.id, date: focus } } } : {})}
+      />
+      <ScrollToSelected focus={focus} />
       <p className="text-xs text-ink-2" data-print="hide">
         {view.footer}
       </p>

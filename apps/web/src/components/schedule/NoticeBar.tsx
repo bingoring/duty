@@ -37,7 +37,10 @@ export function NoticeBar({ items, more, swaps = 0 }: { items: Notice[]; more: n
         <b>내 근무가 바뀌었습니다</b>
         {items.map((n) => (
           <span key={n.date} className="text-ink-2">
-            <Link href={`/?ym=${n.ym}`} className="font-semibold text-ink underline-offset-2 hover:underline">
+            <Link
+              href={`/?ym=${n.ym}&focus=${n.date}`}
+              className="font-semibold text-ink underline-offset-2 hover:underline"
+            >
               {n.label}
             </Link>{' '}
             · {n.by} {n.at}

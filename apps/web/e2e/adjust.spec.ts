@@ -88,6 +88,12 @@ test('관리자 칸 편집: 필수 위반 차단 → 사유 입력 후 적용 �
   await expect(bar).toContainText('내 근무가 바뀌었습니다')
   await expect(bar).toContainText('10/17 (토) off → D')
   await expect(bar).toContainText(ADMIN.name)
+  // 안내 링크 = 그 달 근무표로 가서 바뀐 칸(내 줄·그 날짜)을 강조한다
+  await bar.getByRole('link', { name: '10/17 (토) off → D' }).click()
+  await me.waitForURL('/?ym=2026-10&focus=2026-10-17')
+  const hongRow = me.getByRole('grid').getByRole('row', { name: HONG.name })
+  await expect(hongRow.locator('[data-date="2026-10-17"]')).toHaveAttribute('data-selected', 'true')
+  await expect(hongRow.locator('[data-date="2026-10-18"]')).toHaveClass(/bg-\[#FFF9E8\]/)
   await bar.getByRole('button', { name: '확인' }).click()
   await expect(bar).toHaveCount(0)
   await me.reload()

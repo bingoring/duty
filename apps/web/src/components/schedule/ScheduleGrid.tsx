@@ -94,6 +94,7 @@ function Cell({
         type="button"
         title={v.title}
         data-date={c.date}
+        data-selected={selected || undefined}
         data-pending={pending ? true : undefined}
         aria-label={`${name} ${c.date}`}
         aria-pressed={selected || undefined}
@@ -109,6 +110,7 @@ function Cell({
     <div
       title={v.title}
       data-date={c.date}
+      data-selected={selected || undefined}
       data-today={c.today || undefined}
       data-warn={v.warn || undefined}
       className={cls}
