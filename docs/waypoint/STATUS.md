@@ -8,6 +8,8 @@
 
 > 🔒 **개인정보:** 공개 저장소다. 간호사 이름·사번은 모두 가명이며, 실명 자료는 커밋하지 않는다([DECISIONS](DECISIONS.md) 2026-09-26).
 
+> ✅ **2-9 통합·E2E 승인 (2026-10-07).** 2차 범위 중 S6 동료 현황·S7 규칙 안내를 배포 전 2-10으로 넣기로 했다(DECISIONS).
+>
 > 🏗️ **2-9 통합·E2E 구현 완료 → 승인 대기 (2026-10-07).** 쿠키 시계로 11월 한 달 흐름(신청·휴가 → 생성·확정 → 교환·관리자 조정 → 12월 확정 → 마감 → 이월)을 E2E 하나로 확인,
 > 커버리지 표·보강 3건. **발견 결함 수정:** 다음 달이 확정된 달을 생성하면 늘 재검사 탈락 → 솔버 `nextHead`. 단위 362·pytest 14·통합 137·E2E 38 그린, 편차 7건.
 >
@@ -127,7 +129,7 @@
 ## Phase 2 — Construction (How)
 
 > 1-3 §10의 분해(승인됨)를 핸드오프 v2에 맞춰 조정(2026-09-27): 휴가 신청은 S4 팝오버로 들어와 2-5에 포함, 간호사 교환 요청은 2-8로 분리.
-> 2차 범위(S2·S6·S7)는 MVP 리뷰 후 2-10 이후로 추가.
+> 2차 범위 중 S6·S7은 배포 전 2-10으로 당겼다(2026-10-07). S2 초기 설정은 2-10 Build Spec에서 범위를 정한다.
 
 | 스테이지 | 문서 | 상태 |
 |---------|------|------|
@@ -139,7 +141,8 @@
 | 2-6 솔버·듀티 생성 (S8) | [06-solver-generation.md](02-construction/06-solver-generation.md) · [Build Spec](02-construction/solver-generation/build-spec-index.md) (IMPLEMENTED) | HUMAN_APPROVED |
 | 2-7 근무 조정·월 마감 (S9 관리자) | [07-adjust-close.md](02-construction/07-adjust-close.md) · [Build Spec](02-construction/adjust-close/build-spec-index.md) (IMPLEMENTED) | HUMAN_APPROVED |
 | 2-8 근무 교환 요청 (S9 간호사, 3a) | [08-swap-requests.md](02-construction/08-swap-requests.md) · [Build Spec](02-construction/swap-requests/build-spec-index.md) (IMPLEMENTED) | HUMAN_APPROVED |
-| 2-9 통합·E2E | [09-integration-e2e.md](02-construction/09-integration-e2e.md) · [Build Spec](02-construction/integration-e2e/build-spec-index.md) (IMPLEMENTED) | AI_PROPOSED |
+| 2-9 통합·E2E | [09-integration-e2e.md](02-construction/09-integration-e2e.md) · [Build Spec](02-construction/integration-e2e/build-spec-index.md) (IMPLEMENTED) | HUMAN_APPROVED |
+| 2-10 동료 현황·규칙 안내 (S6·S7) | 02-construction/10-peers-rules.md | PENDING |
 
 ## Phase R — Independent Code Review 🔍 (Construction → Operations 게이트)
 

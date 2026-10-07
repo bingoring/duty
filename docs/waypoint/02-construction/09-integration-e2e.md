@@ -1,7 +1,7 @@
 ---
 phase: 02-construction
 stage: 09-integration-e2e
-status: AI_PROPOSED
+status: HUMAN_APPROVED
 updated: 2026-10-07
 ---
 
@@ -50,9 +50,9 @@ Build Spec(minimal, 인덱스만): [`integration-e2e/build-spec-index.md`](integ
 
 > 아래 항목을 확인 후 frontmatter의 status를 `HUMAN_APPROVED`로 변경하세요.
 
-- [ ] Build Spec이 READY이고 흐름 단계·시계 방식이 운영과 맞는가? (승인 = 구현 착수)
-- [ ] 구현 후: §5 검증 통과, 커버리지 표·편차 로그(§7) 확인
+- [x] Build Spec이 READY이고 흐름 단계·시계 방식이 운영과 맞는가? (승인 = 구현 착수)
+- [x] 구현 후: §5 검증 통과, 커버리지 표·편차 로그(§7) 확인
 
 ## 다음 단계
 
-READY 승인 → 구현 → IMPLEMENTED → `STATUS.md`의 2-9를 `HUMAN_APPROVED`로 업데이트 → R-1 독립 코드 리뷰
+READY 승인 → 구현 → IMPLEMENTED → `STATUS.md`의 2-9를 `HUMAN_APPROVED`로 업데이트 → 2-10 동료 현황·규칙 안내(2026-10-07 배포 전으로 추가) → R-1 독립 코드 리뷰
