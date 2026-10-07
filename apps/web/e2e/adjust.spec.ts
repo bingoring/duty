@@ -94,6 +94,17 @@ test('관리자 칸 편집: 필수 위반 차단 → 사유 입력 후 적용 �
   const hongRow = me.getByRole('grid').getByRole('row', { name: HONG.name })
   await expect(hongRow.locator('[data-date="2026-10-17"]')).toHaveAttribute('data-selected', 'true')
   await expect(hongRow.locator('[data-date="2026-10-18"]')).toHaveClass(/bg-\[#FFF9E8\]/)
+  // 강조된 열이 아닌 칸을 누르면 그대로, 강조된 열(다른 사람 줄이어도)을 누르면 강조가 사라진다
+  const grid = me.getByRole('grid')
+  await grid.getByRole('row', { name: ADMIN.name }).locator('[data-date="2026-10-16"]').click()
+  await expect(me).toHaveURL('/?ym=2026-10&focus=2026-10-17')
+  await grid.getByRole('row', { name: ADMIN.name }).locator('[data-date="2026-10-17"]').click()
+  await me.waitForURL('/?ym=2026-10')
+  await expect(hongRow.locator('[data-date="2026-10-17"]')).not.toHaveAttribute('data-selected', 'true')
+  // 다시 링크로 짚는다 → 이번에는 「확인」으로 지운다
+  await bar.getByRole('link', { name: '10/17 (토) off → D' }).click()
+  await me.waitForURL('/?ym=2026-10&focus=2026-10-17')
+  await expect(hongRow.locator('[data-date="2026-10-17"]')).toHaveAttribute('data-selected', 'true')
   await bar.getByRole('button', { name: '확인' }).click()
   await expect(bar).toHaveCount(0)
   // 확인하면 강조도 사라진다

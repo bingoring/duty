@@ -1,3 +1,4 @@
+import { FocusClear } from '@/components/schedule/FocusClear'
 import { NoticeBar } from '@/components/schedule/NoticeBar'
 import { ScheduleGrid } from '@/components/schedule/ScheduleGrid'
 import { ScrollToSelected } from '@/components/schedule/ScrollToSelected'
@@ -11,7 +12,7 @@ import { loadMonthView } from '@/server/schedule/load'
 import { parseYm, appToday } from '@/server/schedule/month'
 import { buildScheduleView } from '@/server/schedule/view'
 
-// S3 근무표 — 홈 (Build Spec 2-3). 서버 컴포넌트로 렌더링한다(클라이언트 JS는 인쇄 버튼과 2-7 바뀐 근무 안내의 「확인」뿐)
+// S3 근무표 — 홈 (Build Spec 2-3). 서버 컴포넌트로 렌더링한다(클라이언트 JS는 인쇄 버튼, 2-7 바뀐 근무 안내의 「확인」, 강조 열 해제뿐)
 export default async function SchedulePage({
   searchParams,
 }: {
@@ -38,10 +39,12 @@ export default async function SchedulePage({
       <NoticeBar items={notices.items} more={notices.more} swaps={swaps} />
       <ScheduleHeader view={view} />
       {!view.empty && <SummaryCards cards={view.cards} />}
-      <ScheduleGrid
-        view={view}
-        {...(focus ? { ui: { selected: { userId: session.user.id, date: focus } } } : {})}
-      />
+      <FocusClear focus={focus} ym={ym}>
+        <ScheduleGrid
+          view={view}
+          {...(focus ? { ui: { selected: { userId: session.user.id, date: focus } } } : {})}
+        />
+      </FocusClear>
       <ScrollToSelected focus={focus} />
       <p className="text-xs text-ink-2" data-print="hide">
         {view.footer}

@@ -194,6 +194,7 @@ export function ScheduleGrid({ view, ui }: { view: ScheduleView; ui?: GridIntera
         {view.days.map((d) => (
           <div
             key={d.date}
+            data-day={d.date}
             data-today-head={d.today || undefined}
             className={`flex h-[18px] items-center justify-center border-r border-b border-line-soft ${
               colOn(d.date)
@@ -224,6 +225,7 @@ export function ScheduleGrid({ view, ui }: { view: ScheduleView; ui?: GridIntera
         {view.days.map((d) => (
           <div
             key={d.date}
+            data-day={d.date}
             data-today-head={d.today || undefined}
             className={`flex h-[18px] items-center justify-center border-r border-b border-r-line-soft border-b-line text-[10px] ${
               colOn(d.date)
