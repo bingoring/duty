@@ -408,7 +408,8 @@ class Builder:
                         continue
                     sun = _iso(_d(d) + timedelta(days=1))
                     sat_rest = self.rest(nid, d)
-                    if sun in self.month:
+                    # 일요일이 다음 달이면 그 달 칸을 알 때만 함께 본다(모르면 달성 예정, TS와 같음)
+                    if sun in self.month or (nid, sun) in self.tail:
                         pairs.append(self._and([sat_rest, self.rest(nid, sun)]))
                     else:
                         pairs.append(sat_rest)

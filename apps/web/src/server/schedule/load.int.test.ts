@@ -1,10 +1,10 @@
-import { addDays } from '@duty/domain'
+import { addDays, weekendPairs } from '@duty/domain'
 import { eq } from 'drizzle-orm'
 import { beforeEach, describe, expect, it } from 'vitest'
 import { resetDb, setupTestDb } from '../../test/db'
 import { balanceEntries, monthPlans, monthSettlements, scheduleCells, users } from '../db/schema'
 import { seedDev } from '../seed/dev'
-import { loadLeaveBalance, loadMonthView } from './load'
+import { loadLeaveBalance, loadMonthView, planSettlements } from './load'
 
 const db = setupTestDb()
 
@@ -110,6 +110,40 @@ describe('이월 체인 — 마감 전 달이 여러 개 (R-VIEW-12)', () => {
     const b = d.balances.get(me)!
     expect([b.offCarryBefore, b.offCarryAfter]).toEqual([4, 4 + 10 - 9])
     expect([b.nightBankBefore, b.nightBankAfter]).toEqual([3, 3])
+    // R-1: 11월 칸이 없는 사람은 정산하지 않는다(기준 OFF만큼 음수로 보이지 않게, 마감과 같은 기준)
+    const other = d.balances.get(await userId('00104'))!
+    expect([other.offCarryBefore, other.offCarryAfter]).toEqual([2, 2])
+  })
+
+  it('다음 달이 확정돼 1일 칸을 알면 월말 토요일의 주말 통 OFF를 그 칸으로 판정한다 (R-1)', async () => {
+    const [octPlan] = await db.select().from(monthPlans)
+    const octCells = await db.select().from(scheduleCells).where(eq(scheduleCells.monthPlanId, octPlan!.id))
+    // 10/31(토)에 쉬는 사람 중 10월 안에 다른 주말 쌍이 없는 사람
+    const rest = (c: { code: string }) => ['OFF', 'AL', 'LEAVE'].includes(c.code)
+    const lonely = [...new Set(octCells.map((c) => c.userId))].find((id) => {
+      const mine = octCells.filter((c) => c.userId === id)
+      const pairs = weekendPairs(mine as never, 2026, 10)
+      return pairs.length === 1 && pairs[0]!.pending && mine.some((c) => c.date === '2026-10-31' && rest(c))
+    })
+    if (!lonely) throw new Error('시드에 10/31만 기대는 사람이 없다')
+    const [nov] = await db
+      .insert(monthPlans)
+      .values({
+        wardId: octPlan!.wardId,
+        year: 2026,
+        month: 11,
+        status: 'CONFIRMED',
+        requestDeadline: '2026-10-15',
+        negotiationStart: '2026-10-16',
+        negotiationEnd: '2026-10-20',
+        ruleVersion: 1,
+      })
+      .returning()
+    await db
+      .insert(scheduleCells)
+      .values({ monthPlanId: nov!.id, userId: lonely, date: '2026-11-01', code: 'D', source: 'auto' })
+    const r = (await planSettlements(db, octPlan!)).find((x) => x.userId === lonely)!
+    expect(r.result.weekendPairAchieved).toBe(false)
   })
 })
 

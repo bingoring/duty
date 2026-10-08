@@ -129,23 +129,58 @@ type Ctx = {
   holidays: HolidayDay[]
 }
 
-function settleAll(ctx: Ctx, plan: PlanRow, cells: ScheduleCellRow[], sums: Map<string, Sums>) {
+// R-1: 그 달 칸이 없는 사람은 정산하지 않는다(마감 planSettlements와 같게 — 칸 없이 정산하면 기준 OFF만큼 누적 OFF가 음수로 보였다).
+// 다음 달이 확정돼 있으면 그 달 1일 칸을 함께 넘겨 월말 토요일의 주말 통 OFF를 정확히 판정한다
+function settleAll(
+  ctx: Ctx,
+  plan: PlanRow,
+  cells: ScheduleCellRow[],
+  sums: Map<string, Sums>,
+  heads: Map<string, ScheduleCellRow> = new Map(),
+) {
   const rules = (plan.ruleVersion && ctx.rules.get(plan.ruleVersion)) || currentRules(ctx.rules)
   const out = new Map<string, SettlementResult>()
+  const withCells = new Set(cells.map((c) => c.userId))
   for (const u of ctx.users) {
+    const r = settleMonth({
+      nurse: profile(u, sums.get(u.id)!),
+      year: plan.year,
+      month: plan.month,
+      cells: cells.filter((c) => c.userId === u.id),
+      holidays: ctx.holidays,
+      sleepingOffPerN: rules.params.sleepingOffPerN,
+      ...(heads.has(u.id) ? { nextHead: heads.get(u.id)! } : {}),
+    })
     out.set(
       u.id,
-      settleMonth({
-        nurse: profile(u, sums.get(u.id)!),
-        year: plan.year,
-        month: plan.month,
-        cells: cells.filter((c) => c.userId === u.id),
-        holidays: ctx.holidays,
-        sleepingOffPerN: rules.params.sleepingOffPerN,
-      }),
+      withCells.has(u.id)
+        ? r
+        : {
+            ...r,
+            baselineOff: 0,
+            actualOff: 0,
+            sleepingOff: 0,
+            nightCount: 0,
+            offCarryAfter: r.offCarryBefore,
+            nightBankAfter: r.nightBankBefore,
+            eduCont: 0,
+            entries: [],
+          },
     )
   }
   return out
+}
+
+// 다음 달이 확정·마감이면 그 달 1일 칸(사람별)
+async function nextHeads(ctx: Ctx, plan: PlanRow) {
+  const nym = shiftYm(plan, 1)
+  const next = ctx.plans.find(
+    (p) => p.year === nym.year && p.month === nym.month && SHOWN.includes(p.status as MonthPlanStatus),
+  )
+  if (!next) return new Map<string, ScheduleCellRow>()
+  const first = monthDates(nym.year, nym.month)[0]!
+  const cells = (await loadCells(ctx.db, [next.id])).get(next.id)!
+  return new Map(cells.filter((c) => c.date === first).map((c) => [c.userId, c]))
 }
 
 // R-VIEW-12: 원장 현재 합계 + 보는 달보다 앞선 확정·미마감 달을 차례로 정산한 증감 = 보는 달의 월초
@@ -159,7 +194,7 @@ async function monthStart(ctx: Ctx, ym: YearMonth) {
     earlier.map((p) => p.id),
   )
   for (const p of earlier) {
-    for (const [id, r] of settleAll(ctx, p, cells.get(p.id)!, sums)) {
+    for (const [id, r] of settleAll(ctx, p, cells.get(p.id)!, sums, await nextHeads(ctx, p))) {
       apply(sums.get(id)!, r)
       if (p.year === ym.year) edu.set(id, edu.get(id)! + r.eduCont)
     }
@@ -224,7 +259,7 @@ async function monthBalances(ctx: Ctx, plan: PlanRow, cells: ScheduleCellRow[]) 
   }
   const { sums, edu } = await monthStart(ctx, plan)
   const starts = new Map([...sums].map(([id, s]) => [id, { ...s }]))
-  for (const [id, r] of settleAll(ctx, plan, cells, sums)) {
+  for (const [id, r] of settleAll(ctx, plan, cells, sums, await nextHeads(ctx, plan))) {
     apply(sums.get(id)!, r)
     const u = ctx.users.find((x) => x.id === id)!
     out.set(
@@ -417,7 +452,7 @@ export async function planSettlements(db: Db, plan: PlanRow) {
   const withCells = new Set(cells.map((c) => c.userId))
   const ctx: Ctx = { db, users: allUsers.filter((u) => withCells.has(u.id)), plans, rules, holidays: hol }
   const { sums } = await monthStart(ctx, plan)
-  return [...settleAll(ctx, plan, cells, sums)].map(([userId, result]) => ({
+  return [...settleAll(ctx, plan, cells, sums, await nextHeads(ctx, plan))].map(([userId, result]) => ({
     userId,
     name: ctx.users.find((u) => u.id === userId)!.name,
     result,

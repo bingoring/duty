@@ -96,6 +96,30 @@ def test_잔여_N이_음수여도_나이트를_강제하지_않고_풀린다():
     assert hard_violations(req, res) == []
 
 
+def test_다음_달_1일이_확정_근무면_월말_토요일만으로는_주말_통_OFF가_아니다():
+    from ortools.sat.python import cp_model
+
+    from solver.model import Builder
+
+    def min_n1_penalty(next_head: list) -> int:
+        # 2026-10: 토요일 3·10·17·24일은 D, 31일(토)은 OFF로 고정 → 쌍이 될 수 있는 건 10/31–11/1뿐
+        req = request(y=2026, m=10)
+        fixed = {d: "D" for d in req["days"] if d.endswith(("-03", "-10", "-17", "-24"))}
+        fixed["2026-10-31"] = "OFF"
+        req["nurses"][0]["fixed"] = [{"date": d, "code": c} for d, c in fixed.items()]
+        req["nextHead"] = next_head
+        b = Builder(req).build()
+        term = b.terms["weekendPair"][0]  # n1의 주말 통 OFF 벌점
+        b.m.minimize(term)
+        s = cp_model.CpSolver()
+        s.parameters.max_time_in_seconds = 20
+        assert s.solve(b.m) in (cp_model.OPTIMAL, cp_model.FEASIBLE)
+        return round(s.objective_value)
+
+    assert min_n1_penalty([]) == 0  # 11/1을 모르면 달성 예정(TS 검사기와 같음)
+    assert min_n1_penalty([{"userId": "n1", "date": "2026-11-01", "code": "D"}]) == 1
+
+
 def test_3인_근무_신규는_인원에_세지_않고_프리셉터와_같은_근무():
     req = request()
     req["trainings"] = [
