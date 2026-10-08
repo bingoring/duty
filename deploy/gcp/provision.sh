@@ -11,8 +11,17 @@ SA=duty-vm@${PROJECT_ID}.iam.gserviceaccount.com
 run() { echo "+ $*"; [ -n "${DRY_RUN:-}" ] || "$@"; }
 
 # 1) 프로젝트·결제·API
-run gcloud projects create "$PROJECT_ID" --name=duty
-run gcloud billing projects link "$PROJECT_ID" --billing-account="$BILLING_ACCOUNT"
+# 콘솔에서 이미 만든 프로젝트·연결한 결제는 건너뛴다
+if gcloud projects describe "$PROJECT_ID" >/dev/null 2>&1; then
+  echo "프로젝트 $PROJECT_ID 있음 — 만들기 건너뜀"
+else
+  run gcloud projects create "$PROJECT_ID" --name=duty
+fi
+if [ "$(gcloud billing projects describe "$PROJECT_ID" --format='value(billingEnabled)' 2>/dev/null)" = "True" ]; then
+  echo "결제 연결됨 — 건너뜀"
+else
+  run gcloud billing projects link "$PROJECT_ID" --billing-account="$BILLING_ACCOUNT"
+fi
 run gcloud services enable compute.googleapis.com storage.googleapis.com iap.googleapis.com --project="$PROJECT_ID"
 
 # 2) VM 서비스 계정 — 백업 버킷에 쓰기(+존재 확인용 읽기)만, 삭제 권한 없음(R-OPS-2)
