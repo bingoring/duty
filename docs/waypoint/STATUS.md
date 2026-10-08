@@ -8,6 +8,9 @@
 
 > 🔒 **개인정보:** 공개 저장소다. 간호사 이름·사번은 모두 가명이며, 실명 자료는 커밋하지 않는다([DECISIONS](DECISIONS.md) 2026-09-26).
 
+> 📝 **3-1 배포 Build Spec READY (2026-10-08).** GCP 별도 프로젝트·서울 e2-medium VM 한 대 + Caddy 자동 TLS + 매일 암호화 백업(서버 14일 + Cloud Storage 90일).
+> 로컬 리허설 뒤 사람 승인 아래 GCP 자원 생성·최초 배포. 구현 착수 승인 대기.
+>
 > ✅ **R-1 독립 코드 리뷰 승인 (2026-10-08).** Operations(3-1 배포) 착수.
 >
 > 🔍 **R-1 독립 코드 리뷰 완료 → 승인 대기 (2026-10-08).** 독립 리뷰어 4명(보안·동시성·도메인·웹/운영) — CRITICAL 1·HIGH 11 포함 결함을 재현 테스트와 함께 수정(운영 이미지 빌드, 동시성 잠금, 연말·연초 경계, 잔여 N 음수 등).
@@ -171,7 +174,7 @@
 
 | 스테이지 | 문서 | 상태 |
 |---------|------|------|
-| 3-1 Deployment | 03-operations/01-deployment.md | IN_PROGRESS |
+| 3-1 Deployment ⚠️ | [01-deployment.md](03-operations/01-deployment.md) · [Build Spec](03-operations/deployment/build-spec-index.md) (READY) | AI_PROPOSED |
 | 3-2 Monitoring | 03-operations/02-monitoring.md | PENDING |
 
 ---

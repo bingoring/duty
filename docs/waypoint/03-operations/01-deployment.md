@@ -1,0 +1,58 @@
+---
+phase: 03-operations
+stage: 01-deployment
+status: AI_PROPOSED
+updated: 2026-10-08
+---
+
+# [Stage 3-1] Deployment ⚠️
+
+## 목적
+
+R-1까지 통과한 앱을 GCP 서울 리전의 전용 VM 한 대에 Docker Compose로 올리고, 새 도메인의 HTTPS 주소로 간호사들이 접속하게 한다.
+매일 암호화 백업과 복구 절차, 업데이트·되돌리기 절차를 함께 갖춘다.
+
+> ⚠️ 비가역 게이트: 실제 간호사 개인정보(이름·사번·휴가 사유)가 외부 서버에 저장되기 시작한다.
+
+## 입력 (Inputs)
+
+- [`../01-inception/03-architecture-decision.md`](../01-inception/03-architecture-decision.md) §8 배포 선택지(A2 ① 클라우드 VPS + Caddy)
+- 메인 저장소 `compose.prod.yaml`, `apps/web/Dockerfile`, `services/solver/Dockerfile`, `README.md` 「운영 최초 부팅」
+- R-1에서 3-1로 넘긴 항목(속도 제한, 헬스체크, TLS, 백업, 운영 env 예시, 임시 비밀번호 로그)
+- [`../DECISIONS.md`](../DECISIONS.md) 2026-10-08 「3-1 배포 (Q1~Q5)」
+
+## 체크리스트
+
+- [x] Build Spec 작성·질문 해소 → READY (2026-10-08)
+- [ ] Build Spec §4 구현 체크리스트(저장소 쪽) 완료, 로컬 리허설 통과
+- [ ] GCP 구축·최초 배포(사람 승인 아래) → 운영 확인
+- [ ] 비가역 게이트 체크리스트 확인
+
+## AI 제안 (AI Proposal)
+
+> ⚠️ 이 섹션은 AI가 작성합니다. 사람이 직접 수정하지 마세요.
+
+Build Spec: [`deployment/build-spec-index.md`](deployment/build-spec-index.md)
+
+요지:
+- **자리:** 새 GCP 프로젝트(기존 서비스와 분리) · Compute Engine `e2-medium`(2vCPU·4GB) · `asia-northeast3`(서울) · Ubuntu 24.04 LTS · 고정 외부 IP. 방화벽은 80·443만 공개, SSH는 IAP 터널로만.
+- **구성:** 기존 compose 한 벌 + **Caddy**(자동 TLS, 유일한 공개 진입점) + **backup** 컨테이너. web·solver·db 포트는 호스트에 공개하지 않는다.
+- **백업:** 매일 03:00(서울) `pg_dump` → `age` 공개키로 암호화 → 서버에 14일 보관 + Cloud Storage 버킷(서울, 90일 보관 규칙)에 복사. 복호화 개인키는 서버에 두지 않는다. 복구 절차를 리허설로 검증한다.
+- **R-1에서 넘긴 것:** 로그인 IP 속도 제한(앱, Caddy 뒤 실제 IP 기준), `/api/health` 헬스체크, 운영 env 예시, 임시 비밀번호는 `--rm` 1회 실행으로만.
+- **진행 방식:** 저장소 쪽(설정·스크립트·운영 문서)을 먼저 만들고 로컬에서 운영 구성 그대로 리허설한다. GCP 자원 생성(비용 발생)과 도메인 구매·DNS는 사람 승인 아래 진행한다.
+
+## 비가역 게이트 추가 체크리스트
+
+- [ ] 번복 시 영향: 다른 곳으로 옮기면 DB 백업을 복구하고 DNS만 바꾸면 된다(앱·설정은 같은 compose). GCP 프로젝트·VM·버킷·고정 IP는 지우면 데이터가 사라지므로 삭제 전 백업 확인
+- [ ] 대안 검토: 병원 내부 서버(외부 접속 불가)·관리형 분산(공급자 3곳·솔버 콜드 스타트)은 1-3에서 탈락, 기존 GCP VM 공유는 개인정보·자원 분리를 위해 탈락(Q2)
+- [ ] 외부 의존성·비용: GCP(VM·디스크·고정 IP·Cloud Storage·외부 트래픽), 도메인 등록비, Let's Encrypt(무료). 공공데이터 공휴일 API 키(선택)
+
+## 검토 게이트 (Human Gate)
+
+- [ ] Build Spec이 READY이고 구성·백업·보안 수준이 운영과 맞는가? (승인 = 저장소 쪽 구현·리허설 착수)
+- [ ] 리허설 뒤: GCP 자원 생성·최초 배포 승인
+- [ ] 운영 확인 뒤: 비가역 게이트 체크리스트 확인 → `HUMAN_APPROVED`
+
+## 다음 단계
+
+승인 후 → `STATUS.md`의 3-1을 `HUMAN_APPROVED`로 → `02-monitoring.md`(3-2)
