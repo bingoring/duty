@@ -8,6 +8,9 @@
 
 > 🔒 **개인정보:** 공개 저장소다. 간호사 이름·사번은 모두 가명이며, 실명 자료는 커밋하지 않는다([DECISIONS](DECISIONS.md) 2026-09-26).
 
+> 🔍 **R-1 독립 코드 리뷰 완료 → 승인 대기 (2026-10-08).** 독립 리뷰어 4명(보안·동시성·도메인·웹/운영) — CRITICAL 1·HIGH 11 포함 결함을 재현 테스트와 함께 수정(운영 이미지 빌드, 동시성 잠금, 연말·연초 경계, 잔여 N 음수 등).
+> 정책 4건 결정(휴가 사유 숨김·연속 근무 상한·순환 역방향 벌점·개원기념 OFF 휴가). 보류는 근거와 함께 3-1 등으로. 단위 393·pytest 17·통합 151·E2E 40 그린.
+>
 > 🔍 **R-1 독립 코드 리뷰 착수 (2026-10-08).** Construction(2-1~2-10) 전체를 작성자와 컨텍스트가 분리된 리뷰어 4명(보안·동시성·도메인·웹/운영)이 적대적으로 검토한다.
 >
 > ✅ **2-10 동료 현황·규칙 안내 승인 (2026-10-08).**
@@ -160,7 +163,7 @@
 
 | 스테이지 | 문서 | 상태 |
 |---------|------|------|
-| R-1 Independent Code Review | [01-independent-review.md](0R-review/01-independent-review.md) | IN_PROGRESS |
+| R-1 Independent Code Review | [01-independent-review.md](0R-review/01-independent-review.md) | AI_PROPOSED |
 
 ## Phase 3 — Operations (Ship)
 
