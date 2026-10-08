@@ -7,7 +7,7 @@ import { checkPerson } from './person'
 import type { CheckResult, Violation } from './rules'
 
 export * from './rules'
-export { hasWeekendPair, restHoursBetween, SHIFT_BALANCE_MIN_WORK } from './person'
+export { hasWeekendPair, restHoursBetween, SHIFT_BALANCE_MIN_WORK, weekendPairSaturdays } from './person'
 export { REPEAT_PAIR_MIN } from './duty'
 
 const cmp = (a: string, b: string) => (a < b ? -1 : a > b ? 1 : 0)

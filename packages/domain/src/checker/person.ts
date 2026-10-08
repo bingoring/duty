@@ -37,15 +37,23 @@ export function restHoursBetween(a: keyof typeof SHIFT_TIMES, b: keyof typeof SH
   return (1440 + minutes(SHIFT_TIMES[b].start) - end) / 60
 }
 
-// 토요일이 속한 달로 센다. 일요일이 다음 달 1일이고 칸을 모르면(undefined) 달성 예정으로 본다
+// 토요일이 속한 달로 센다. 일요일이 다음 달 1일이고 칸을 모르면(undefined) 달성 예정(pending)으로 본다
+export function weekendPairSaturdays(
+  restAt: (d: IsoDate) => boolean | undefined,
+  monthDates: readonly IsoDate[],
+): { saturday: IsoDate; pending: boolean }[] {
+  return monthDates.flatMap((d) => {
+    if (dayOfWeek(d) !== 6 || restAt(d) !== true) return []
+    const sunday = restAt(addDays(d, 1))
+    return sunday === false ? [] : [{ saturday: d, pending: sunday === undefined }]
+  })
+}
+
 export function hasWeekendPair(
   restAt: (d: IsoDate) => boolean | undefined,
   monthDates: readonly IsoDate[],
 ): boolean {
-  return monthDates.some((d) => {
-    if (dayOfWeek(d) !== 6 || restAt(d) !== true) return false
-    return restAt(addDays(d, 1)) !== false
-  })
+  return weekendPairSaturdays(restAt, monthDates).length > 0
 }
 
 export function checkPerson(n: NurseProfile, ctx: PersonCtx): Violation[] {

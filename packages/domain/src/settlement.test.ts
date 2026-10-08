@@ -1,5 +1,12 @@
 import { describe, expect, it } from 'vitest'
-import { baselineOff, reverseEntries, settleMonth, summarizeNurse, weekendPairCarryOut } from './settlement'
+import {
+  baselineOff,
+  reverseEntries,
+  settleMonth,
+  summarizeNurse,
+  weekendPairCarryOut,
+  weekendPairs,
+} from './settlement'
 import { loadPaper, nurse, row } from './test-utils'
 
 const OCT = { year: 2026, month: 10 }
@@ -145,5 +152,25 @@ describe('weekendPairCarryOut — 다음 달 1일(일)에 기대는지', () => {
   })
   it('마지막 날이 토요일이 아닌 달은 false', () => {
     expect(weekendPairCarryOut(row('a', '2026-11-01', Array(30).fill('O').join(' ')), 2026, 11)).toBe(false)
+  })
+})
+
+describe('weekendPairs — 동료 현황(2-10 R-PEER-7)의 주말 통 OFF 날짜', () => {
+  const days = (rest: Record<number, string>) => {
+    const t = Array(31).fill('D')
+    for (const [d, c] of Object.entries(rest)) t[Number(d) - 1] = c
+    return row('a', '2026-10-01', t.join(' '))
+  }
+  it('토·일이 모두 쉬는 칸인 토요일을 차례로 돌려준다(휴가 칸도 쉬는 칸)', () => {
+    expect(weekendPairs(days({ 10: 'O', 11: 'O', 24: 'A', 25: 'L' }), 2026, 10)).toEqual([
+      { saturday: '2026-10-10', pending: false },
+      { saturday: '2026-10-24', pending: false },
+    ])
+  })
+  it('하루만 쉬면 쌍이 아니다', () => {
+    expect(weekendPairs(days({ 17: 'O', 25: 'O' }), 2026, 10)).toEqual([])
+  })
+  it('마지막 날 토요일을 쉬고 다음 달 1일을 모르면 예정', () => {
+    expect(weekendPairs(days({ 31: 'O' }), 2026, 10)).toEqual([{ saturday: '2026-10-31', pending: true }])
   })
 })

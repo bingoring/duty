@@ -1,5 +1,5 @@
 import type { BalanceAccount, ShiftCode } from './allowed-sets'
-import { hasWeekendPair } from './checker/person'
+import { hasWeekendPair, weekendPairSaturdays } from './checker/person'
 import { dayOfWeek, isEmployed, isRedDay, monthDates, redDaySet, type IsoDate } from './dates'
 import { isRestCode, type GridCell, type HolidayDay, type NurseProfile } from './types'
 
@@ -128,6 +128,12 @@ export function weekendPairCarryOut(cells: readonly GridCell[], year: number, mo
   const restAt = restLookup(cells, days)
   const inMonth = (d: IsoDate) => (d > last ? false : restAt(d))
   return dayOfWeek(last) === 6 && restAt(last) === true && !hasWeekendPair(inMonth, days)
+}
+
+// 2-10 동료 현황: 그 달 주말 통 OFF(토·일)의 토요일들. 다음 달 칸은 모르는 것으로 본다
+export function weekendPairs(cells: readonly GridCell[], year: number, month: number) {
+  const days = monthDates(year, month)
+  return weekendPairSaturdays(restLookup(cells, days), days)
 }
 
 // R-SETTLE-6: 마감 취소
