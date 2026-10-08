@@ -18,6 +18,8 @@ export function leaveToCell(type: LeaveType): FixedCell | null {
       return { code: 'AL' }
     case 'special':
       return { code: 'OFF', offKind: 'special' }
+    case 'founding':
+      return { code: 'OFF', offKind: 'founding' }
     case 'checkup':
       return null
     default:

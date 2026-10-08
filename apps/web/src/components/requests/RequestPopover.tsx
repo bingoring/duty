@@ -33,7 +33,11 @@ const LEAVE_TYPES: [LeaveType, string][] = [
   ['official', '공가'],
   ['special', '특별휴가'],
   ['checkup', '검진'],
+  ['founding', '개원기념 OFF'],
 ]
+
+// 종료일을 고르지 않는 종류: 경조사(사유 일수), 검진·개원기념 OFF(하루)
+const autoEnd = (t: LeaveType) => t === 'family' || t === 'checkup' || t === 'founding'
 
 type Mode = 'shift' | 'leave' | 'edu'
 
@@ -86,7 +90,7 @@ export function RequestPopover({
             type,
             startDate: cell.date,
             ...(reason ? { reasonCode: reason } : {}),
-            ...(type !== 'family' && type !== 'checkup' ? { endDate: end } : {}),
+            ...(!autoEnd(type) ? { endDate: end } : {}),
             comment,
           })
         : saveShiftRequestAction({
@@ -255,8 +259,8 @@ export function RequestPopover({
               </div>
             </label>
             <label className="flex flex-col gap-1 text-xs text-ink-2">
-              {type === 'family' || type === 'checkup' ? '종료일 (자동)' : '종료일'}
-              {type === 'family' || type === 'checkup' ? (
+              {autoEnd(type) ? '종료일 (자동)' : '종료일'}
+              {autoEnd(type) ? (
                 <div className="flex h-9 items-center rounded-lg border border-line-soft bg-panel px-2.5 text-[13px] text-ink">
                   {endDate ? `${formatMD(endDate)} (${weekdayKo(endDate)})` : '사유 선택'}
                 </div>

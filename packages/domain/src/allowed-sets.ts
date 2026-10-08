@@ -25,7 +25,8 @@ export const MONTH_PLAN_STATUSES = [
   'CONFIRMED',
   'CLOSED',
 ] as const
-export const LEAVE_TYPES = ['annual', 'family', 'sick', 'official', 'special', 'checkup'] as const
+// founding: 개원기념 OFF(하루, 개원오프 잔여) — R-1, DECISIONS 2026-10-08
+export const LEAVE_TYPES = ['annual', 'family', 'sick', 'official', 'special', 'checkup', 'founding'] as const
 export const LEAVE_STATUSES = ['DRAFT', 'SUBMITTED', 'APPROVED', 'REJECTED', 'CANCELLED'] as const
 export const BALANCE_ACCOUNTS = [
   'off_carry',

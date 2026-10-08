@@ -67,3 +67,11 @@ describe('offTarget (Q3)', () => {
     expect(offTarget({ baseline: 9, offCarry: 0.5, nightBank: 0, sleepingOffPerN: 6 })).toBe(8.5)
   })
 })
+
+describe('개원기념 OFF 휴가 (R-1)', () => {
+  it('하루짜리이고 개원오프 잔여를 쓴다', () => {
+    expect(leaveEnd('founding', '2026-11-03', undefined, '2026-11-05')).toBe('2026-11-03')
+    expect(leaveDays('founding', '2026-11-03', '2026-11-03')).toBe(1)
+    expect(leaveAccount('founding')).toBe('founding_off')
+  })
+})

@@ -369,6 +369,7 @@ export async function loadLeaveBalance(
       specialGranted: 0,
       checkup: 0,
       sick: 0,
+      founding: 0,
       offCarry: 0,
       nightBank: 0,
     }
@@ -385,6 +386,7 @@ export async function loadLeaveBalance(
       special_leave: b.special,
       checkup: b.checkup,
       sick_leave: b.sick,
+      founding_off: b.founding,
     }
   } else {
     const { sums } = await monthStart(ctx, ym)
@@ -399,6 +401,7 @@ export async function loadLeaveBalance(
     specialGranted: granted.special,
     checkup: end.checkup,
     sick: end.sick_leave,
+    founding: end.founding_off,
     offCarry,
     nightBank,
   }

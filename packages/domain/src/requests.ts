@@ -27,7 +27,7 @@ export function requestLabel(options: readonly RequestOption[], special?: Reques
 
 const MAX_LEAVE_DAYS = 31
 
-// R-LEAVE-2: 경조사는 사유 일수, 검진은 시작일, 그 외는 입력(없으면 시작일). 잘못되면 null
+// R-LEAVE-2: 경조사는 사유 일수, 검진·개원기념 OFF는 시작일, 그 외는 입력(없으면 시작일). 잘못되면 null
 export function leaveEnd(
   type: LeaveType,
   start: IsoDate,
@@ -38,7 +38,7 @@ export function leaveEnd(
     const days = FAMILY_LEAVE_DAYS[reasonCode as FamilyLeaveReason]
     return days ? leaveEndDate(start, days) : null
   }
-  if (type === 'checkup') return start
+  if (type === 'checkup' || type === 'founding') return start
   const e = end ?? start
   const span = diffDays(start, e) + 1
   return span < 1 || span > MAX_LEAVE_DAYS ? null : e
@@ -66,6 +66,8 @@ export function leaveAccount(type: LeaveType): BalanceAccount | null {
       return 'checkup'
     case 'sick':
       return 'sick_leave'
+    case 'founding':
+      return 'founding_off'
     default:
       return null
   }

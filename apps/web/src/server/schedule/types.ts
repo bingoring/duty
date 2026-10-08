@@ -79,6 +79,8 @@ export type LeaveBalanceSummary = {
   specialGranted: number
   checkup: number
   sick: number
+  // 개원기념 OFF 잔여(휴가로 신청, R-1)
+  founding: number
   offCarry: number
   nightBank: number
 }

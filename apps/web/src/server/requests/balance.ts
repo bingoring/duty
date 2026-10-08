@@ -19,6 +19,7 @@ const FIELD = {
   special_leave: 'special',
   checkup: 'checkup',
   sick_leave: 'sick',
+  founding_off: 'founding',
 } as const
 
 // R-1: 그해(year, 기본은 오늘의 해) 몫으로 본다. 연초 처리 전인 해(12월에 신청하는 다음 해 1월 휴가, 12월 마감 전의 1월)는
@@ -50,6 +51,7 @@ export async function projectedLeaveBalance(
       specialGranted: special + preOf('special_leave'),
       checkup: 0.5 + preOf('checkup'),
       sick: 60 + preOf('sick_leave'),
+      founding: preOf('founding_off'),
       annualUnknown: preOf('annual_leave') === 0,
     })
   }

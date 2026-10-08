@@ -159,6 +159,7 @@ const LEAVE_LABEL: Record<LeaveType, string> = {
   official: '공가',
   special: '특별휴가',
   checkup: '검진',
+  founding: '개원기념 OFF',
 }
 
 export function leaveKindLabel(type: LeaveType, reasonCode: string | null): string {

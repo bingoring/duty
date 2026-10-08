@@ -19,6 +19,8 @@ describe('leaveToCell · specialToCell (2-5 applyLeave와 같은 칸)', () => {
   it('휴가 종류별 칸', () => {
     expect(leaveToCell('annual')).toEqual({ code: 'AL' })
     expect(leaveToCell('special')).toEqual({ code: 'OFF', offKind: 'special' })
+    // 개원기념 OFF를 휴가로 신청(R-1, DECISIONS 2026-10-08)
+    expect(leaveToCell('founding')).toEqual({ code: 'OFF', offKind: 'founding' })
     expect(leaveToCell('sick')).toEqual({ code: 'LEAVE', leaveKind: 'sick' })
     expect(leaveToCell('family')).toEqual({ code: 'LEAVE', leaveKind: 'family' })
     expect(leaveToCell('official')).toEqual({ code: 'LEAVE', leaveKind: 'official' })

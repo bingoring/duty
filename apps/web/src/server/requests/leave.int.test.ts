@@ -39,6 +39,21 @@ beforeEach(async () => {
 })
 
 describe('saveLeave (R-LEAVE-1~5·8)', () => {
+  it('개원기념 OFF는 하루짜리 휴가로 신청하고 개원오프 잔여를 넘지 못한다 (R-1)', async () => {
+    const me = await actor('00103')
+    const admin = await actor('00101')
+    await adjustBalances(db, { userId: me.id, values: { founding_off: 1 }, note: '개원오프' }, admin.id)
+    const first = await saveLeave(db, me, { userId: me.id, type: 'founding', startDate: '2026-11-04' }, TODAY)
+    expect(first).toMatchObject({ ok: true })
+    expect(await leaveOf(idOf(first))).toMatchObject({ endDate: '2026-11-04', days: '1.0' })
+    expect(
+      await saveLeave(db, me, { userId: me.id, type: 'founding', startDate: '2026-11-06' }, TODAY),
+    ).toMatchObject({
+      ok: false,
+      message: expect.stringContaining('개원기념 OFF 잔여를 넘습니다'),
+    })
+  })
+
   it('12월에 다음 해 1월 휴가를 신청하면 올해 잔여가 아니라 다음 해 몫으로 검사한다 (R-1)', async () => {
     const me = await actor('00103')
     const admin = await actor('00101')

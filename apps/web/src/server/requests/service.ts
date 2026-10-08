@@ -246,6 +246,7 @@ const BALANCE_LABEL = {
   special_leave: ['특별휴가', 'special'],
   checkup: ['검진 반차', 'checkup'],
   sick_leave: ['병가', 'sick'],
+  founding_off: ['개원기념 OFF', 'founding'],
 } as const
 
 // R-LEAVE-8: 신청 중인 달(간호사는 기간 안) 또는 확정된 달
