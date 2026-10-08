@@ -8,15 +8,20 @@ FROM base AS build
 COPY pnpm-lock.yaml pnpm-workspace.yaml package.json ./
 COPY apps/web/package.json apps/web/
 COPY packages/domain/package.json packages/domain/
+COPY packages/contract/package.json packages/contract/
+COPY services/solver/package.json services/solver/
 RUN pnpm install --frozen-lockfile
 COPY tsconfig.base.json ./
 COPY packages/domain packages/domain
+COPY packages/contract packages/contract
 COPY apps/web apps/web
 ENV NEXT_TELEMETRY_DISABLED=1
 RUN pnpm --filter web build
 
 # 마이그레이션·부트스트랩·명단 가져오기용 (tsx 포함 전체 의존성)
 FROM build AS tools
+# 운영 DB에 쓰는 이미지: 개발 시드(db:seed)의 운영 차단이 동작하도록
+ENV NODE_ENV=production
 WORKDIR /repo/apps/web
 CMD ["pnpm", "db:migrate"]
 

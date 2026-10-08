@@ -41,6 +41,10 @@ jobs:
       - run: pnpm test
       - run: pnpm test:int
       - run: pnpm build
+      # 운영 이미지(R-1): 모노레포 패키지가 빠지면 여기서 깨진다
+      - run: docker build -f apps/web/Dockerfile --target runner -t duty-web .
+      - run: docker build -f apps/web/Dockerfile --target tools -t duty-tools .
+      - run: docker build -t duty-solver services/solver
       - run: pnpm --filter web exec playwright install --with-deps chromium
       - run: pnpm test:e2e
       - uses: actions/upload-artifact@v7
