@@ -39,12 +39,13 @@ export async function ensureRequestPlan(
   if (existing) {
     if (existing.status === 'REQUESTING' && today > existing.requestDeadline) {
       const status = nextPlanStatus('REQUESTING', 'CLOSE_REQUESTS', { today, ...ym })
+      // R-1: 그사이 생성·확정으로 넘어간 계획을 되돌리지 않게 상태 조건부로
       const [p] = await db
         .update(monthPlans)
         .set({ status })
-        .where(eq(monthPlans.id, existing.id))
+        .where(and(eq(monthPlans.id, existing.id), eq(monthPlans.status, 'REQUESTING')))
         .returning()
-      return p!
+      return p ?? (await findPlan(db, ym))!
     }
     return existing
   }

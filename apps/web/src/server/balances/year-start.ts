@@ -1,8 +1,9 @@
 import { employedDaysInYear, specialLeaveDays } from '@duty/domain'
-import { and, eq, lt, sql } from 'drizzle-orm'
+import { and, eq, inArray, lt, sql } from 'drizzle-orm'
 import type { Db } from '../db/client'
 import { balanceEntries, monthPlans, users } from '../db/schema'
 import { reconcileFoundingOff } from '../holidays/founding'
+import { lockMonthClosing } from '../plans/lock'
 import { ledgerSums } from '../schedule/balances'
 
 // Build Spec 2-4 business-rules §1.4 — 연초 잔여치 자동 처리. 인증된 요청마다 호출되므로 빠르게 끝나야 한다
@@ -29,27 +30,47 @@ export async function ensureYearStart(db: Db, today: string): Promise<YearStartR
   )
   if (older === 0) return 'first-year'
   // R-YEAR-2: 전년 12월 사용분이 원장에 들어간 뒤에만
-  const [dec] = await db
-    .select({ status: monthPlans.status })
-    .from(monthPlans)
-    .where(and(eq(monthPlans.year, year - 1), eq(monthPlans.month, 12)))
-  if (dec?.status === 'CONFIRMED') return 'deferred'
+  const decConfirmed = async (d: Db) => {
+    const [dec] = await d
+      .select({ status: monthPlans.status })
+      .from(monthPlans)
+      .where(and(eq(monthPlans.year, year - 1), eq(monthPlans.month, 12)))
+    return dec?.status === 'CONFIRMED'
+  }
+  if (await decConfirmed(db)) return 'deferred'
 
   return db.transaction(async (tx) => {
+    const tdb = tx as unknown as Db
     // R-YEAR-5: 동시 요청 중 하나만
     await tx.execute(sql`select pg_advisory_xact_lock(hashtext(${`duty-year-start-${year}`}))`)
-    if (await alreadyStarted(tx as unknown as Db, year)) return 'done' as const
+    if (await alreadyStarted(tdb, year)) return 'done' as const
+    // R-1: 12월 마감 취소와 겹치지 않게 마감 순서 잠금 안에서 12월 상태를 다시 본다
+    await lockMonthClosing(tx)
+    if (await decConfirmed(tdb)) return 'deferred' as const
     const people = await tx.select().from(users).where(eq(users.active, true))
-    const sums = await ledgerSums(
-      tx as unknown as Db,
-      people.map((u) => u.id),
-    )
+    const ids = people.map((u) => u.id)
+    const sums = await ledgerSums(tdb, ids)
+    // R-1: 올해 몫으로 미리 들어간 항목(12월에 등록한 올해 개원기념일의 개원오프 등)은 리셋하지 않는다
+    const pre = ids.length
+      ? await tx
+          .select({
+            userId: balanceEntries.userId,
+            account: balanceEntries.account,
+            sum: sql<string>`sum(${balanceEntries.delta})`,
+          })
+          .from(balanceEntries)
+          .where(and(inArray(balanceEntries.userId, ids), eq(balanceEntries.refYear, year)))
+          .groupBy(balanceEntries.userId, balanceEntries.account)
+      : []
+    const preOf = (userId: string, account: string) =>
+      Number(pre.find((r) => r.userId === userId && r.account === account)?.sum ?? 0)
     for (const u of people) {
       const s = sums.get(u.id)!
+      const leftover = (a: (typeof RESET)[number]) => Math.round((s[a] - preOf(u.id, a)) * 10) / 10
       // R-YEAR-3: 0이어도 표식이 되도록 연차 리셋은 항상 넣는다
-      const resets = RESET.filter((a) => a === 'annual_leave' || s[a] !== 0).map((a) => ({
+      const resets = RESET.filter((a) => a === 'annual_leave' || leftover(a) !== 0).map((a) => ({
         account: a,
-        delta: String(-s[a]),
+        delta: String(-leftover(a)),
         reason: 'year_reset',
       }))
       const grants = [

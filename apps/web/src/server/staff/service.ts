@@ -9,9 +9,18 @@ import {
   type SeniorityTier,
   type TraineeKind,
 } from '@duty/domain'
-import { and, asc, eq, gte, lte, ne, sql } from 'drizzle-orm'
+import { and, asc, eq, gte, inArray, lte, ne, sql } from 'drizzle-orm'
 import type { Db } from '../db/client'
-import { balanceEntries, credentials, sessions, trainings, users } from '../db/schema'
+import {
+  balanceEntries,
+  credentials,
+  leaveRequests,
+  sessions,
+  swapRequestItems,
+  swapRequests,
+  trainings,
+  users,
+} from '../db/schema'
 import { hashPassword } from '../auth/password'
 import { generateTempPassword } from '../auth/tokens'
 import { ensureWard } from '../seed/core'
@@ -301,6 +310,26 @@ export async function removeStaff(db: Db, userId: string, ctx: StaffCtx): Promis
       .set({ active: false, deactivatedAt: new Date(), updatedAt: new Date() })
       .where(eq(users.id, userId))
     await tx.delete(sessions).where(eq(sessions.userId, userId))
+    // R-1: 응답할 수 없게 된 사람의 대기 교환 요청은 무효, 처리 전 휴가 신청은 취소
+    const pending = await tx
+      .select({ id: swapRequests.id })
+      .from(swapRequests)
+      .innerJoin(swapRequestItems, eq(swapRequestItems.requestId, swapRequests.id))
+      .where(and(eq(swapRequestItems.userId, userId), eq(swapRequests.status, 'PENDING')))
+    if (pending.length)
+      await tx
+        .update(swapRequests)
+        .set({ status: 'INVALID', closedReason: '당사자가 제거되었습니다', closedAt: new Date() })
+        .where(
+          and(
+            inArray(swapRequests.id, [...new Set(pending.map((p) => p.id))]),
+            eq(swapRequests.status, 'PENDING'),
+          ),
+        )
+    await tx
+      .update(leaveRequests)
+      .set({ status: 'CANCELLED' })
+      .where(and(eq(leaveRequests.userId, userId), inArray(leaveRequests.status, ['DRAFT', 'SUBMITTED'])))
     return { ok: true as const }
   })
 }
@@ -326,6 +355,8 @@ export async function reissuePassword(
 
 export async function adjustBalances(db: Db, input: BalanceAdjustInput, adminId: string): Promise<void> {
   await db.transaction(async (tx) => {
+    // R-1: 목표값 − 현재 합계를 쓰므로 같은 사람의 조정·마감과 겹치지 않게 사용자 행을 잠근다
+    await tx.select({ id: users.id }).from(users).where(eq(users.id, input.userId)).for('update')
     const sums = (await ledgerSums(tx as unknown as Db, [input.userId])).get(input.userId)!
     const rows = Object.entries(input.values)
       .map(([account, value]) => ({

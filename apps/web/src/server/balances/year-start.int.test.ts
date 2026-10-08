@@ -4,6 +4,7 @@ import { resetDb, setupTestDb } from '../../test/db'
 import { balanceEntries, monthPlans, users } from '../db/schema'
 import { ledgerSums } from '../schedule/balances'
 import { seedDev } from '../seed/dev'
+import { addHoliday } from '../holidays/service'
 import { ensureYearStart } from './year-start'
 
 const db = setupTestDb()
@@ -55,6 +56,18 @@ describe('ensureYearStart (R-YEAR-1~5)', () => {
         ['special_leave', -5, 2027],
       ].sort(),
     )
+  })
+
+  it('12월에 미리 등록한 다음 해 개원기념일의 개원오프는 연초 리셋에서 지우지 않는다 (R-1)', async () => {
+    const admin = await idOf('00101')
+    const added = await addHoliday(
+      db,
+      { date: '2027-04-23', kind: 'founding_day', name: '개원기념일' },
+      admin,
+    )
+    expect(added).toEqual({ ok: true })
+    expect(await ensureYearStart(db, '2027-01-05')).toBe('started')
+    expect((await sums('00103')).founding_off).toBe(1)
   })
 
   it('연중 입사 예정자는 그해 재직 일수로 특휴', async () => {

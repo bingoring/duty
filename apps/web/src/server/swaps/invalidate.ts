@@ -34,5 +34,5 @@ export async function invalidateSwapsForCells(
     await db
       .update(swapRequests)
       .set({ status: 'INVALID', closedReason: reason, closedAt: new Date() })
-      .where(inArray(swapRequests.id, ids))
+      .where(and(inArray(swapRequests.id, ids), eq(swapRequests.status, 'PENDING')))
 }

@@ -15,6 +15,7 @@ import {
 } from '@duty/domain'
 import { and, desc, eq, inArray, lt } from 'drizzle-orm'
 import type { Db } from '../db/client'
+import { lockPlan } from '../plans/lock'
 import { cellEditLogs, monthPlans, scheduleCells, swapRequestItems, swapRequests, users } from '../db/schema'
 import { adjustCheckInput } from '../adjust/service'
 import { invalidateSwapsForCells } from './invalidate'
@@ -161,77 +162,68 @@ export async function respondSwap(
 ): Promise<RespondResult> {
   const [q] = await db.select().from(swapRequests).where(eq(swapRequests.id, id))
   if (!q) return deny('요청을 찾을 수 없습니다.')
-  const items = await db.select().from(swapRequestItems).where(eq(swapRequestItems.requestId, id))
-  const mine = items.find((i) => i.userId === actor.id)
-  if (!mine) return deny('이 요청의 당사자가 아닙니다.')
-  if (q.status !== 'PENDING') return deny('이미 끝난 요청입니다.')
-  const [plan] = await db.select().from(monthPlans).where(eq(monthPlans.id, q.monthPlanId))
-  if (!plan || !inNegotiation(plan, today)) return deny('협의 기간이 끝나 응답할 수 없습니다.')
-  if (mine.response !== 'PENDING') return deny('이미 응답했습니다.')
+  const names = await nameMap(db)
+  // R-1: 계획 행 → 요청 행 순서로 잠근 뒤 응답 상태·칸을 다시 읽는다.
+  // 동시 수락(3인 교환)도 마지막 하나만 반영하고, 철회·무효와 겹쳐도 "반영됨"을 잘못 알리지 않는다
+  return db.transaction(async (tx): Promise<RespondResult> => {
+    const plan = await lockPlan(tx, q.monthPlanId)
+    const [locked] = await tx.select().from(swapRequests).where(eq(swapRequests.id, id)).for('update')
+    const items = await tx.select().from(swapRequestItems).where(eq(swapRequestItems.requestId, id))
+    const mine = items.find((i) => i.userId === actor.id)
+    if (!mine) return deny('이 요청의 당사자가 아닙니다.')
+    if (locked?.status !== 'PENDING') return deny('이미 끝난 요청입니다.')
+    if (!plan || plan.status !== 'CONFIRMED' || !inNegotiation(plan, today))
+      return deny('협의 기간이 끝나 응답할 수 없습니다.')
+    if (mine.response !== 'PENDING') return deny('이미 응답했습니다.')
 
-  if (decision === 'reject') {
-    await db.transaction(async (tx) => {
-      await tx
+    const now = new Date()
+    const myResponse = (response: 'ACCEPTED' | 'REJECTED') =>
+      tx
         .update(swapRequestItems)
-        .set({ response: 'REJECTED', respondedAt: new Date() })
+        .set({ response, respondedAt: now })
         .where(and(eq(swapRequestItems.requestId, id), eq(swapRequestItems.userId, actor.id)))
+
+    if (decision === 'reject') {
+      await myResponse('REJECTED')
+      await tx.update(swapRequests).set({ status: 'REJECTED', closedAt: now }).where(eq(swapRequests.id, id))
+      return { ok: true, applied: false }
+    }
+
+    await myResponse('ACCEPTED')
+    if (!items.every((i) => i.userId === actor.id || i.response === 'ACCEPTED'))
+      return { ok: true, applied: false }
+
+    // R-SWAP-8: 마지막 수락 — 잠근 상태에서 칸 재확인·재검사 뒤 반영
+    const swapItems: SwapItem[] = items.map((i) => ({
+      userId: i.userId,
+      before: i.before as SwapItem['before'],
+      after: i.after as SwapItem['after'],
+    }))
+    const edits = swapToEdits(q.date, swapItems)
+    const check = await adjustCheckInput(tx as unknown as Db, plan)
+    let invalid: string | null = null
+    for (const i of swapItems) {
+      const c = check.cells.find((x) => x.userId === i.userId && x.date === q.date)
+      if (!c || c.code !== i.before.code || !swappable(c)) invalid = '요청 뒤 근무가 바뀌었습니다'
+    }
+    if (!invalid) {
+      const hard = newViolations(
+        checkSchedule(check),
+        checkSchedule({ ...check, cells: applyEdits(check.cells, edits) }),
+      ).hardViolations
+      if (hard.length) {
+        const f = formatViolation(hard[0]!, { nameOf: (x) => names.get(x) ?? x, month: plan.month })
+        invalid = `규칙 위반이 생깁니다 (${f.title})`
+      }
+    }
+    if (invalid) {
       await tx
         .update(swapRequests)
-        .set({ status: 'REJECTED', closedAt: new Date() })
+        .set({ status: 'INVALID', closedReason: invalid, closedAt: now })
         .where(eq(swapRequests.id, id))
-    })
-    return { ok: true, applied: false }
-  }
-
-  const allAccepted = items.every((i) => i.userId === actor.id || i.response === 'ACCEPTED')
-  if (!allAccepted) {
-    await db
-      .update(swapRequestItems)
-      .set({ response: 'ACCEPTED', respondedAt: new Date() })
-      .where(and(eq(swapRequestItems.requestId, id), eq(swapRequestItems.userId, actor.id)))
-    return { ok: true, applied: false }
-  }
-
-  // R-SWAP-8: 마지막 수락 — 칸 재확인·재검사 뒤 반영
-  const swapItems: SwapItem[] = items.map((i) => ({
-    userId: i.userId,
-    before: i.before as SwapItem['before'],
-    after: i.after as SwapItem['after'],
-  }))
-  const edits = swapToEdits(q.date, swapItems)
-  const check = await adjustCheckInput(db, plan)
-  const names = await nameMap(db)
-  let invalid: string | null = null
-  for (const i of swapItems) {
-    const c = check.cells.find((x) => x.userId === i.userId && x.date === q.date)
-    if (!c || c.code !== i.before.code || !swappable(c)) invalid = '요청 뒤 근무가 바뀌었습니다'
-  }
-  if (!invalid) {
-    const hard = newViolations(
-      checkSchedule(check),
-      checkSchedule({ ...check, cells: applyEdits(check.cells, edits) }),
-    ).hardViolations
-    if (hard.length) {
-      const f = formatViolation(hard[0]!, { nameOf: (x) => names.get(x) ?? x, month: plan.month })
-      invalid = `규칙 위반이 생깁니다 (${f.title})`
+      return { ok: true, applied: false, message: `반영하지 못했습니다: ${invalid}` }
     }
-  }
-  if (invalid) {
-    await db
-      .update(swapRequests)
-      .set({ status: 'INVALID', closedReason: invalid, closedAt: new Date() })
-      .where(eq(swapRequests.id, id))
-    return { ok: true, applied: false, message: `반영하지 못했습니다: ${invalid}` }
-  }
 
-  const now = new Date()
-  await db.transaction(async (tx) => {
-    const [locked] = await tx.select().from(swapRequests).where(eq(swapRequests.id, id)).for('update')
-    if (locked?.status !== 'PENDING') return
-    await tx
-      .update(swapRequestItems)
-      .set({ response: 'ACCEPTED', respondedAt: now })
-      .where(and(eq(swapRequestItems.requestId, id), eq(swapRequestItems.userId, actor.id)))
     for (const e of edits) {
       const where = and(
         eq(scheduleCells.monthPlanId, plan.id),
@@ -274,18 +266,20 @@ export async function respondSwap(
       INVALID_BY_SWAP,
       id,
     )
+    return { ok: true, applied: true }
   })
-  return { ok: true, applied: true }
 }
 
 export async function cancelSwap(db: Db, actor: Actor, id: string) {
   const [q] = await db.select().from(swapRequests).where(eq(swapRequests.id, id))
   if (!q || q.requesterId !== actor.id) return deny('보낸 사람만 철회할 수 있습니다.')
-  if (q.status !== 'PENDING') return deny('이미 끝난 요청입니다.')
-  await db
+  // R-1: 대기 중일 때만(마지막 수락·무효와 겹치면 그쪽이 먼저)
+  const [done] = await db
     .update(swapRequests)
     .set({ status: 'CANCELLED', closedAt: new Date() })
-    .where(eq(swapRequests.id, id))
+    .where(and(eq(swapRequests.id, id), eq(swapRequests.status, 'PENDING')))
+    .returning({ id: swapRequests.id })
+  if (!done) return deny('이미 끝난 요청입니다.')
   return { ok: true as const }
 }
 

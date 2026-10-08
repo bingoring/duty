@@ -4,6 +4,15 @@ import type { Db } from '../db/client'
 import { balanceEntries, monthPlans, monthSettlements } from '../db/schema'
 import { planSettlements } from '../schedule/load'
 import { shiftYm } from '../schedule/month'
+import { lockMonthClosing, lockPlan } from '../plans/lock'
+
+const RESET_ACCOUNTS = new Set<string>([
+  'annual_leave',
+  'special_leave',
+  'founding_off',
+  'checkup',
+  'sick_leave',
+])
 
 // Build Spec 2-7 business-rules §3 (R-CLOSE-1~5), business-logic-model §4
 type Actor = { id: string; role: 'nurse' | 'admin' }
@@ -66,15 +75,25 @@ export async function previewClose(db: Db, plan: PlanRow) {
 
 export async function closeMonth(db: Db, actor: Actor, planId: string, today: string): Promise<Result> {
   if (actor.role !== 'admin') return { ok: false, message: '권한이 없습니다.' }
-  const [plan] = await db.select().from(monthPlans).where(eq(monthPlans.id, planId))
-  if (!plan) return { ok: false, message: '계획을 찾을 수 없습니다.' }
-  const state = await closeState(db, plan, today)
-  if (!state.can) return { ok: false, message: state.reason! }
-  const results = await planSettlements(db, plan)
-  const status = nextPlanStatus('CONFIRMED', 'CLOSE', { today, year: plan.year, month: plan.month })
+  // R-1: 마감 순서 잠금 → 계획 행 잠금 뒤 앞뒤 달 상태·정산을 계산한다(편집·교환·휴가 승인·다른 마감과 직렬화)
   return db.transaction(async (tx) => {
-    const [locked] = await tx.select().from(monthPlans).where(eq(monthPlans.id, plan.id)).for('update')
-    if (locked?.status !== 'CONFIRMED') return { ok: false as const, message: '이미 마감한 달입니다.' }
+    const tdb = tx as unknown as Db
+    await lockMonthClosing(tx)
+    const plan = await lockPlan(tx, planId)
+    if (!plan) return { ok: false as const, message: '계획을 찾을 수 없습니다.' }
+    const state = await closeState(tdb, plan, today)
+    if (!state.can) return { ok: false as const, message: state.reason! }
+    const status = nextPlanStatus('CONFIRMED', 'CLOSE', { today, year: plan.year, month: plan.month })
+    // R-1: 연초 처리가 이미 끝난 뒤 12월을 마감하면, 리셋된 휴가 계정(연차·특휴·개원·검진·병가)에서 12월 사용분을 빼지 않는다
+    const afterYearStart = plan.month === 12 && (await yearStarted(tdb, plan.year + 1))
+    const results = (await planSettlements(tdb, plan)).map((x) =>
+      afterYearStart
+        ? {
+            ...x,
+            result: { ...x.result, entries: x.result.entries.filter((e) => !RESET_ACCOUNTS.has(e.account)) },
+          }
+        : x,
+    )
     if (results.length)
       await tx.insert(monthSettlements).values(
         results.map(({ userId, result: r }) => ({
@@ -118,13 +137,13 @@ export async function closeMonth(db: Db, actor: Actor, planId: string, today: st
 
 export async function reopenMonth(db: Db, actor: Actor, planId: string): Promise<Result> {
   if (actor.role !== 'admin') return { ok: false, message: '권한이 없습니다.' }
-  const [plan] = await db.select().from(monthPlans).where(eq(monthPlans.id, planId))
-  if (!plan) return { ok: false, message: '계획을 찾을 수 없습니다.' }
-  const state = await closeState(db, plan, '9999-12-31')
-  if (!state.canReopen) return { ok: false, message: state.reopenReason! }
+  // R-1: 마감 순서 잠금 안에서 뒷 달 상태·연초 처리 여부를 다시 본다
   return db.transaction(async (tx) => {
-    const [locked] = await tx.select().from(monthPlans).where(eq(monthPlans.id, plan.id)).for('update')
-    if (locked?.status !== 'CLOSED') return { ok: false as const, message: '마감한 달이 아닙니다.' }
+    await lockMonthClosing(tx)
+    const plan = await lockPlan(tx, planId)
+    if (!plan) return { ok: false as const, message: '계획을 찾을 수 없습니다.' }
+    const state = await closeState(tx as unknown as Db, plan, '9999-12-31')
+    if (!state.canReopen) return { ok: false as const, message: state.reopenReason! }
     const settled = await tx
       .select()
       .from(balanceEntries)

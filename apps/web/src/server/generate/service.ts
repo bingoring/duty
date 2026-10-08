@@ -14,6 +14,7 @@ import {
 } from '@duty/domain'
 import { and, desc, eq, max } from 'drizzle-orm'
 import type { Db } from '../db/client'
+import { lockPlan } from '../plans/lock'
 import {
   candidateCells,
   monthPlans,
@@ -262,20 +263,20 @@ export async function confirmCandidate(
   if (actor.role !== 'admin') return { ok: false, message: '권한이 없습니다.' }
   const [cand] = await db.select().from(scheduleCandidates).where(eq(scheduleCandidates.id, candidateId))
   if (!cand) return { ok: false, message: '생성안을 찾을 수 없습니다.' }
-  const [plan] = await db.select().from(monthPlans).where(eq(monthPlans.id, cand.monthPlanId))
-  if (!plan || plan.status !== 'DRAFTING') return { ok: false, message: '확정할 수 있는 달이 아닙니다.' }
 
-  const g = await buildGenerationInput(db, plan)
-  if ((cand.solverMeta as SolverMeta | null)?.inputHash !== g.inputHash)
-    return { ok: false, message: '신청·휴가·규칙이 바뀌었습니다. 다시 생성해 주세요.' }
-  const cells = await loadCandidateCells(db, candidateId)
-  const check: CheckResult = checkSchedule({ ...g.input, cells })
-  if (check.hardViolations.length) return { ok: false, message: '필수 규칙 위반이 있어 확정할 수 없습니다.' }
-
+  // R-1: 계획 행을 잠근 뒤 입력 해시·재검사를 한다(신청·휴가 승인과 겹쳐 낡은 안이 확정되지 않게)
   return db.transaction(async (tx) => {
-    const [locked] = await tx.select().from(monthPlans).where(eq(monthPlans.id, plan.id)).for('update')
-    if (!locked || locked.status !== 'DRAFTING')
+    const tdb = tx as unknown as Db
+    const plan = await lockPlan(tx, cand.monthPlanId)
+    if (!plan || plan.status !== 'DRAFTING')
       return { ok: false as const, message: '확정할 수 있는 달이 아닙니다.' }
+    const g = await buildGenerationInput(tdb, plan)
+    if ((cand.solverMeta as SolverMeta | null)?.inputHash !== g.inputHash)
+      return { ok: false as const, message: '신청·휴가·규칙이 바뀌었습니다. 다시 생성해 주세요.' }
+    const cells = await loadCandidateCells(tdb, candidateId)
+    const check: CheckResult = checkSchedule({ ...g.input, cells })
+    if (check.hardViolations.length)
+      return { ok: false as const, message: '필수 규칙 위반이 있어 확정할 수 없습니다.' }
     const existing = await tx
       .select({ d: scheduleCells.date })
       .from(scheduleCells)

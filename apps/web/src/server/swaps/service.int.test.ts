@@ -236,3 +236,26 @@ describe('respondSwap · 반영 (R-SWAP-7~9·12)', () => {
     expect((await db.select().from(swapRequests))[0]!.status).toBe('EXPIRED')
   })
 })
+
+describe('동시 실행 (R-1)', () => {
+  it('수락과 철회가 겹쳐도 상태와 칸이 맞는다(반영이면 칸이 바뀌고 철회는 거부, 철회면 칸 그대로)', async () => {
+    const r = await send(pairs.ok)
+    if (!r.ok) throw new Error(r.message)
+    const before = await cellOf(pairs.ok.b, pairs.ok.date)
+    const [acc, can] = await Promise.all([
+      respondSwap(db, await actor(noOf.get(pairs.ok.b)!), r.id, 'accept', IN),
+      cancelSwap(db, await actor(noOf.get(pairs.ok.a)!), r.id),
+    ])
+    const [q] = await db.select().from(swapRequests).where(eq(swapRequests.id, r.id))
+    const after = await cellOf(pairs.ok.b, pairs.ok.date)
+    if (q!.status === 'APPLIED') {
+      expect(acc).toEqual({ ok: true, applied: true })
+      expect(can.ok).toBe(false)
+      expect(after.code).toBe(pairs.ok.ca)
+    } else {
+      expect(q!.status).toBe('CANCELLED')
+      expect(acc).toMatchObject({ ok: false })
+      expect(after.code).toBe(before.code)
+    }
+  })
+})

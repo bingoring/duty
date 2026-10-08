@@ -28,7 +28,6 @@ import {
   cellEditLogs,
   holidays,
   leaveRequests,
-  monthPlans,
   scheduleCells,
   shiftRequests,
   users,
@@ -38,6 +37,7 @@ import type { YearMonth } from '../schedule/month'
 import { fillProfiles } from '../generate/input'
 import { INVALID_BY_ADMIN, invalidateSwapsForCells } from '../swaps/invalidate'
 import { buildScheduleInput } from '../schedule/input'
+import { lockPlansFor, Rejected, rejectable } from '../plans/lock'
 import { projectedLeaveBalance } from './balance'
 import { PRE_GENERATION, findPlan, type PlanRow } from './plan'
 
@@ -66,7 +66,7 @@ async function guardShift(db: Db, actor: Actor, userId: string, date: string, to
 const ACTIVE_LEAVE = ['DRAFT', 'SUBMITTED', 'APPROVED']
 
 export async function saveShiftRequest(
-  db: Db,
+  outer: Db,
   actor: Actor,
   input: {
     userId: string
@@ -77,41 +77,46 @@ export async function saveShiftRequest(
   },
   today: string,
 ): Promise<Result> {
-  const denied = await guardShift(db, actor, input.userId, input.date, today)
-  if (denied) return denied
-  const parsed = ShiftRequestInputSchema.safeParse(input)
-  if (!parsed.success) return deny(parsed.error.issues[0]?.message ?? '신청 내용을 확인해 주세요.')
-  const leaveSameDay = await db.$count(
-    leaveRequests,
-    and(
-      eq(leaveRequests.userId, input.userId),
-      inArray(leaveRequests.status, ACTIVE_LEAVE),
-      lte(leaveRequests.startDate, input.date),
-      gte(leaveRequests.endDate, input.date),
-    ),
-  )
-  if (leaveSameDay > 0) return deny('이 날은 휴가 신청이 있습니다.')
-  if (input.special === 'EDU_CONT' || input.special === 'EDU_UNION') {
-    const edu = await checkEdu(db, input.userId, input.date, input.special)
-    if (edu) return deny(edu)
-  }
-  const values = {
-    userId: input.userId,
-    year: Number(input.date.slice(0, 4)),
-    month: Number(input.date.slice(5, 7)),
-    date: input.date,
-    options: input.special ? [] : input.options,
-    special: input.special ?? null,
-    comment: input.comment?.trim() || null,
-    // R-REQ-DRAFT-1·2: 간호사 저장은 임시(수정해도 다시 임시), 관리자 편집은 곧바로 제출
-    submittedAt: actor.role === 'admin' ? new Date() : null,
-    updatedAt: new Date(),
-  }
-  await db
-    .insert(shiftRequests)
-    .values(values)
-    .onConflictDoUpdate({ target: [shiftRequests.userId, shiftRequests.date], set: values })
-  return { ok: true }
+  // R-1: 그 달 계획 행을 잠그고 검사·쓰기를 한다(확정·다른 저장과 직렬화, 더블 클릭 중복 방지)
+  return outer.transaction(async (tx) => {
+    const db = tx as unknown as Db
+    await lockPlansFor(tx, [input.date])
+    const denied = await guardShift(db, actor, input.userId, input.date, today)
+    if (denied) return denied
+    const parsed = ShiftRequestInputSchema.safeParse(input)
+    if (!parsed.success) return deny(parsed.error.issues[0]?.message ?? '신청 내용을 확인해 주세요.')
+    const leaveSameDay = await db.$count(
+      leaveRequests,
+      and(
+        eq(leaveRequests.userId, input.userId),
+        inArray(leaveRequests.status, ACTIVE_LEAVE),
+        lte(leaveRequests.startDate, input.date),
+        gte(leaveRequests.endDate, input.date),
+      ),
+    )
+    if (leaveSameDay > 0) return deny('이 날은 휴가 신청이 있습니다.')
+    if (input.special === 'EDU_CONT' || input.special === 'EDU_UNION') {
+      const edu = await checkEdu(db, input.userId, input.date, input.special)
+      if (edu) return deny(edu)
+    }
+    const values = {
+      userId: input.userId,
+      year: Number(input.date.slice(0, 4)),
+      month: Number(input.date.slice(5, 7)),
+      date: input.date,
+      options: input.special ? [] : input.options,
+      special: input.special ?? null,
+      comment: input.comment?.trim() || null,
+      // R-REQ-DRAFT-1·2: 간호사 저장은 임시(수정해도 다시 임시), 관리자 편집은 곧바로 제출
+      submittedAt: actor.role === 'admin' ? new Date() : null,
+      updatedAt: new Date(),
+    }
+    await db
+      .insert(shiftRequests)
+      .values(values)
+      .onConflictDoUpdate({ target: [shiftRequests.userId, shiftRequests.date], set: values })
+    return { ok: true }
+  })
 }
 
 // R-REQ-SHIFT-3: 노조교육은 노조원·평일, 연 한도는 올해 이수 + 올해 신청
@@ -158,61 +163,71 @@ async function checkEdu(
 }
 
 export async function deleteShiftRequest(
-  db: Db,
+  outer: Db,
   actor: Actor,
   input: { userId: string; date: string },
   today: string,
 ): Promise<Result> {
-  const denied = await guardShift(db, actor, input.userId, input.date, today)
-  if (denied) return denied
-  await db
-    .delete(shiftRequests)
-    .where(and(eq(shiftRequests.userId, input.userId), eq(shiftRequests.date, input.date)))
-  return { ok: true }
+  // R-1: 그 달 계획 행을 잠그고 검사·쓰기를 한다(확정·다른 저장과 직렬화, 더블 클릭 중복 방지)
+  return outer.transaction(async (tx) => {
+    const db = tx as unknown as Db
+    await lockPlansFor(tx, [input.date])
+    const denied = await guardShift(db, actor, input.userId, input.date, today)
+    if (denied) return denied
+    await db
+      .delete(shiftRequests)
+      .where(and(eq(shiftRequests.userId, input.userId), eq(shiftRequests.date, input.date)))
+    return { ok: true }
+  })
 }
 
 // R-REQ-DRAFT-1: 그달 내 임시 신청을 모두 제출
 export async function submitRequests(
-  db: Db,
+  outer: Db,
   actor: Actor,
   ym: YearMonth,
   today: string,
 ): Promise<{ ok: true; submitted: number } | { ok: false; message: string }> {
-  const plan = await findPlan(db, ym)
-  const shiftOpen = canEditShiftRequests(plan, actor, today)
-  const leaveOpen = shiftOpen || plan?.status === 'CONFIRMED'
-  if (!leaveOpen) return deny('신청 기간이 아닙니다.')
-  const days = monthDates(ym.year, ym.month)
-  let submitted = 0
-  const now = new Date()
-  if (shiftOpen) {
-    const rows = await db
-      .update(shiftRequests)
-      .set({ submittedAt: now })
+  // R-1: 그 달 계획 행을 잠그고 검사·쓰기를 한다(확정·다른 저장과 직렬화, 더블 클릭 중복 방지)
+  return outer.transaction(async (tx) => {
+    const db = tx as unknown as Db
+    await lockPlansFor(tx, [`${ym.year}-${String(ym.month).padStart(2, '0')}-01`])
+    const plan = await findPlan(db, ym)
+    const shiftOpen = canEditShiftRequests(plan, actor, today)
+    const leaveOpen = shiftOpen || plan?.status === 'CONFIRMED'
+    if (!leaveOpen) return deny('신청 기간이 아닙니다.')
+    const days = monthDates(ym.year, ym.month)
+    let submitted = 0
+    const now = new Date()
+    if (shiftOpen) {
+      const rows = await db
+        .update(shiftRequests)
+        .set({ submittedAt: now })
+        .where(
+          and(
+            eq(shiftRequests.userId, actor.id),
+            eq(shiftRequests.year, ym.year),
+            eq(shiftRequests.month, ym.month),
+            isNull(shiftRequests.submittedAt),
+          ),
+        )
+        .returning({ id: shiftRequests.id })
+      submitted += rows.length
+    }
+    const leaves = await db
+      .update(leaveRequests)
+      .set({ status: 'SUBMITTED' })
       .where(
         and(
-          eq(shiftRequests.userId, actor.id),
-          eq(shiftRequests.year, ym.year),
-          eq(shiftRequests.month, ym.month),
-          isNull(shiftRequests.submittedAt),
+          eq(leaveRequests.userId, actor.id),
+          eq(leaveRequests.status, 'DRAFT'),
+          gte(leaveRequests.startDate, days[0]!),
+          lte(leaveRequests.startDate, days.at(-1)!),
         ),
       )
-      .returning({ id: shiftRequests.id })
-    submitted += rows.length
-  }
-  const leaves = await db
-    .update(leaveRequests)
-    .set({ status: 'SUBMITTED' })
-    .where(
-      and(
-        eq(leaveRequests.userId, actor.id),
-        eq(leaveRequests.status, 'DRAFT'),
-        gte(leaveRequests.startDate, days[0]!),
-        lte(leaveRequests.startDate, days.at(-1)!),
-      ),
-    )
-    .returning({ id: leaveRequests.id })
-  return { ok: true, submitted: submitted + leaves.length }
+      .returning({ id: leaveRequests.id })
+    return { ok: true, submitted: submitted + leaves.length }
+  })
 }
 
 // ───────── 휴가 (Build Spec 2-5 business-rules §1.3) ─────────
@@ -241,65 +256,71 @@ function canRequestLeave(plan: PlanRow | undefined, actor: Actor, today: string)
 }
 
 export async function saveLeave(
-  db: Db,
+  outer: Db,
   actor: Actor,
   input: LeaveInput,
   today: string,
 ): Promise<{ ok: true; id: string } | { ok: false; message: string }> {
-  if (actor.role !== 'admin' && actor.id !== input.userId) return deny('다른 사람의 신청은 바꿀 수 없습니다.')
-  const plan = await findPlan(db, ymOfDate(input.startDate))
-  if (!canRequestLeave(plan, actor, today)) return deny('휴가를 신청할 수 있는 달이 아닙니다.')
-  if (input.type === 'family' && !(input.reasonCode && input.reasonCode in FAMILY_LEAVE_DAYS))
-    return deny('사유를 선택해 주세요.')
-  if (input.type === 'official' && !(input.reasonCode && input.reasonCode in OFFICIAL_LEAVE_REASONS))
-    return deny('사유를 선택해 주세요.')
-  const endDate = leaveEnd(input.type, input.startDate, input.reasonCode, input.endDate)
-  if (!endDate) return deny('종료일을 확인해 주세요.')
-  const days = leaveDays(input.type, input.startDate, endDate, input.reasonCode)
+  // R-1: 그 달 계획 행을 잠그고 검사·쓰기를 한다(확정·다른 저장과 직렬화, 더블 클릭 중복 방지)
+  return outer.transaction(async (tx) => {
+    const db = tx as unknown as Db
+    await lockPlansFor(tx, [input.startDate, input.endDate ?? input.startDate])
+    if (actor.role !== 'admin' && actor.id !== input.userId)
+      return deny('다른 사람의 신청은 바꿀 수 없습니다.')
+    const plan = await findPlan(db, ymOfDate(input.startDate))
+    if (!canRequestLeave(plan, actor, today)) return deny('휴가를 신청할 수 있는 달이 아닙니다.')
+    if (input.type === 'family' && !(input.reasonCode && input.reasonCode in FAMILY_LEAVE_DAYS))
+      return deny('사유를 선택해 주세요.')
+    if (input.type === 'official' && !(input.reasonCode && input.reasonCode in OFFICIAL_LEAVE_REASONS))
+      return deny('사유를 선택해 주세요.')
+    const endDate = leaveEnd(input.type, input.startDate, input.reasonCode, input.endDate)
+    if (!endDate) return deny('종료일을 확인해 주세요.')
+    const days = leaveDays(input.type, input.startDate, endDate, input.reasonCode)
 
-  // R-LEAVE-4: 겹침
-  const overlapLeave = await db.$count(
-    leaveRequests,
-    and(
-      eq(leaveRequests.userId, input.userId),
-      inArray(leaveRequests.status, ACTIVE_LEAVE),
-      lte(leaveRequests.startDate, endDate),
-      gte(leaveRequests.endDate, input.startDate),
-    ),
-  )
-  if (overlapLeave > 0) return deny('기간 안에 다른 휴가가 있습니다.')
-  const overlapShift = await db.$count(
-    shiftRequests,
-    and(
-      eq(shiftRequests.userId, input.userId),
-      gte(shiftRequests.date, input.startDate),
-      lte(shiftRequests.date, endDate),
-    ),
-  )
-  if (overlapShift > 0) return deny('기간 안에 근무 신청이 있습니다.')
+    // R-LEAVE-4: 겹침
+    const overlapLeave = await db.$count(
+      leaveRequests,
+      and(
+        eq(leaveRequests.userId, input.userId),
+        inArray(leaveRequests.status, ACTIVE_LEAVE),
+        lte(leaveRequests.startDate, endDate),
+        gte(leaveRequests.endDate, input.startDate),
+      ),
+    )
+    if (overlapLeave > 0) return deny('기간 안에 다른 휴가가 있습니다.')
+    const overlapShift = await db.$count(
+      shiftRequests,
+      and(
+        eq(shiftRequests.userId, input.userId),
+        gte(shiftRequests.date, input.startDate),
+        lte(shiftRequests.date, endDate),
+      ),
+    )
+    if (overlapShift > 0) return deny('기간 안에 근무 신청이 있습니다.')
 
-  // R-LEAVE-5: 예정 잔여
-  const account = leaveAccount(input.type)
-  if (account && account in BALANCE_LABEL) {
-    const [label, field] = BALANCE_LABEL[account as keyof typeof BALANCE_LABEL]
-    const available = (await projectedLeaveBalance(db, input.userId, today))[field]
-    if (days > available)
-      return deny(`${label} 잔여를 넘습니다 (신청 ${days}일 / 잔여 ${Math.max(0, available)}일).`)
-  }
-  const [row] = await db
-    .insert(leaveRequests)
-    .values({
-      userId: input.userId,
-      type: input.type,
-      reasonCode: input.reasonCode ?? null,
-      startDate: input.startDate,
-      endDate,
-      days: String(days),
-      status: actor.role === 'admin' ? 'SUBMITTED' : 'DRAFT',
-      comment: input.comment?.trim() || null,
-    })
-    .returning({ id: leaveRequests.id })
-  return { ok: true, id: row!.id }
+    // R-LEAVE-5: 예정 잔여
+    const account = leaveAccount(input.type)
+    if (account && account in BALANCE_LABEL) {
+      const [label, field] = BALANCE_LABEL[account as keyof typeof BALANCE_LABEL]
+      const available = (await projectedLeaveBalance(db, input.userId, today))[field]
+      if (days > available)
+        return deny(`${label} 잔여를 넘습니다 (신청 ${days}일 / 잔여 ${Math.max(0, available)}일).`)
+    }
+    const [row] = await db
+      .insert(leaveRequests)
+      .values({
+        userId: input.userId,
+        type: input.type,
+        reasonCode: input.reasonCode ?? null,
+        startDate: input.startDate,
+        endDate,
+        days: String(days),
+        status: actor.role === 'admin' ? 'SUBMITTED' : 'DRAFT',
+        comment: input.comment?.trim() || null,
+      })
+      .returning({ id: leaveRequests.id })
+    return { ok: true, id: row!.id }
+  })
 }
 
 async function planStatusOf(db: Db, date: string) {
@@ -312,7 +333,7 @@ export async function cancelLeave(db: Db, actor: Actor, id: string, today: strin
   if (actor.role !== 'admin') {
     if (l.userId !== actor.id) return deny('다른 사람의 신청은 바꿀 수 없습니다.')
     if (l.status === 'DRAFT') {
-      await db.delete(leaveRequests).where(eq(leaveRequests.id, id))
+      await db.delete(leaveRequests).where(and(eq(leaveRequests.id, id), eq(leaveRequests.status, 'DRAFT')))
       return { ok: true }
     }
     if (l.status !== 'SUBMITTED') return deny('취소할 수 없는 휴가입니다.')
@@ -323,7 +344,13 @@ export async function cancelLeave(db: Db, actor: Actor, id: string, today: strin
     if (st === 'CONFIRMED' || st === 'CLOSED')
       return deny('확정된 달의 승인된 휴가는 근무 조정에서 취소합니다.')
   } else if (!['DRAFT', 'SUBMITTED'].includes(l.status)) return deny('취소할 수 없는 휴가입니다.')
-  await db.update(leaveRequests).set({ status: 'CANCELLED' }).where(eq(leaveRequests.id, id))
+  // R-1: 본 상태 그대로일 때만(그사이 승인되면 칸이 휴가로 남은 채 취소로 덮이지 않게)
+  const [done] = await db
+    .update(leaveRequests)
+    .set({ status: 'CANCELLED' })
+    .where(and(eq(leaveRequests.id, id), eq(leaveRequests.status, l.status)))
+    .returning({ id: leaveRequests.id })
+  if (!done) return deny('그사이 처리된 휴가입니다. 새로 불러와 주세요.')
   return { ok: true }
 }
 
@@ -345,81 +372,94 @@ export async function decideLeave(
   if (actor.role !== 'admin') return deny('권한이 없습니다.')
   const [l] = await db.select().from(leaveRequests).where(eq(leaveRequests.id, id))
   if (!l || l.status !== 'SUBMITTED') return deny('제출된 휴가만 처리할 수 있습니다.')
+  // R-1: 상태 조건부 갱신으로 두 번 승인·승인과 반려 겹침을 막는다
   if (d.decision === 'reject') {
     if (!d.reason?.trim()) return deny('반려 사유를 입력해 주세요.')
-    await db
+    const [done] = await db
       .update(leaveRequests)
       .set({ status: 'REJECTED', rejectReason: d.reason.trim(), decidedBy: actor.id, decidedAt: new Date() })
-      .where(eq(leaveRequests.id, id))
-    return { ok: true }
+      .where(and(eq(leaveRequests.id, id), eq(leaveRequests.status, 'SUBMITTED')))
+      .returning({ id: leaveRequests.id })
+    return done ? { ok: true } : deny('제출된 휴가만 처리할 수 있습니다.')
   }
   const dates = leaveDates(l.startDate, l.endDate)
-  const plans = await db.select().from(monthPlans)
-  const statusOf = (date: string) =>
-    plans.find((p) => p.year === Number(date.slice(0, 4)) && p.month === Number(date.slice(5, 7)))
-  if (dates.some((x) => statusOf(x)?.status === 'CLOSED')) return deny('마감된 달이 포함된 휴가입니다.')
-  await db.transaction(async (tx) => {
-    const now = new Date()
-    await tx
-      .update(leaveRequests)
-      .set({ status: 'APPROVED', decidedBy: actor.id, decidedAt: now })
-      .where(eq(leaveRequests.id, id))
-    for (const date of dates) {
-      const plan = statusOf(date)
-      if (plan?.status !== 'CONFIRMED') continue
-      const [c] = await tx
-        .select()
-        .from(scheduleCells)
-        .where(
-          and(
-            eq(scheduleCells.monthPlanId, plan.id),
-            eq(scheduleCells.userId, l.userId),
-            eq(scheduleCells.date, date),
-          ),
-        )
-      if (!c) continue
-      const before = { code: c.code, offKind: c.offKind, leaveKind: c.leaveKind, checkupHalf: c.checkupHalf }
-      const next = applyLeave(
-        {
-          userId: c.userId,
-          date,
-          code: c.code as GridCell['code'],
+  // R-1: 걸친 달의 계획 행을 잠근 뒤 마감 여부·칸을 다시 본다
+  return rejectable(() =>
+    db.transaction(async (tx) => {
+      const plans = await lockPlansFor(tx, dates)
+      const statusOf = (date: string) =>
+        plans.find((p) => p.year === Number(date.slice(0, 4)) && p.month === Number(date.slice(5, 7)))
+      if (dates.some((x) => statusOf(x)?.status === 'CLOSED'))
+        throw new Rejected('마감된 달이 포함된 휴가입니다.')
+      const now = new Date()
+      const [done] = await tx
+        .update(leaveRequests)
+        .set({ status: 'APPROVED', decidedBy: actor.id, decidedAt: now })
+        .where(and(eq(leaveRequests.id, id), eq(leaveRequests.status, 'SUBMITTED')))
+        .returning({ id: leaveRequests.id })
+      if (!done) throw new Rejected('제출된 휴가만 처리할 수 있습니다.')
+      for (const date of dates) {
+        const plan = statusOf(date)
+        if (plan?.status !== 'CONFIRMED') continue
+        const [c] = await tx
+          .select()
+          .from(scheduleCells)
+          .where(
+            and(
+              eq(scheduleCells.monthPlanId, plan.id),
+              eq(scheduleCells.userId, l.userId),
+              eq(scheduleCells.date, date),
+            ),
+          )
+        if (!c) continue
+        const before = {
+          code: c.code,
+          offKind: c.offKind,
+          leaveKind: c.leaveKind,
           checkupHalf: c.checkupHalf,
-          ...(c.offKind ? { offKind: c.offKind as GridCell['offKind'] } : {}),
-          ...(c.leaveKind ? { leaveKind: c.leaveKind as GridCell['leaveKind'] } : {}),
-        },
-        l.type as LeaveType,
-      )
-      const after = {
-        code: next.code,
-        offKind: next.offKind ?? null,
-        leaveKind: next.leaveKind ?? null,
-        checkupHalf: next.checkupHalf,
-      }
-      await tx
-        .update(scheduleCells)
-        .set({ ...after, source: 'admin', editedBy: actor.id, editedAt: now })
-        .where(
-          and(
-            eq(scheduleCells.monthPlanId, plan.id),
-            eq(scheduleCells.userId, l.userId),
-            eq(scheduleCells.date, date),
-          ),
+        }
+        const next = applyLeave(
+          {
+            userId: c.userId,
+            date,
+            code: c.code as GridCell['code'],
+            checkupHalf: c.checkupHalf,
+            ...(c.offKind ? { offKind: c.offKind as GridCell['offKind'] } : {}),
+            ...(c.leaveKind ? { leaveKind: c.leaveKind as GridCell['leaveKind'] } : {}),
+          },
+          l.type as LeaveType,
         )
-      await tx.insert(cellEditLogs).values({
-        monthPlanId: plan.id,
-        userId: l.userId,
-        date,
-        before,
-        after,
-        editedBy: actor.id,
-        editedAt: now,
-        reason: 'leave_approved',
-      })
-      await invalidateSwapsForCells(tx, plan.id, [{ userId: l.userId, date }], INVALID_BY_ADMIN)
-    }
-  })
-  return { ok: true }
+        const after = {
+          code: next.code,
+          offKind: next.offKind ?? null,
+          leaveKind: next.leaveKind ?? null,
+          checkupHalf: next.checkupHalf,
+        }
+        await tx
+          .update(scheduleCells)
+          .set({ ...after, source: 'admin', editedBy: actor.id, editedAt: now })
+          .where(
+            and(
+              eq(scheduleCells.monthPlanId, plan.id),
+              eq(scheduleCells.userId, l.userId),
+              eq(scheduleCells.date, date),
+            ),
+          )
+        await tx.insert(cellEditLogs).values({
+          monthPlanId: plan.id,
+          userId: l.userId,
+          date,
+          before,
+          after,
+          editedBy: actor.id,
+          editedAt: now,
+          reason: 'leave_approved',
+        })
+        await invalidateSwapsForCells(tx, plan.id, [{ userId: l.userId, date }], INVALID_BY_ADMIN)
+      }
+      return { ok: true as const }
+    }),
+  )
 }
 
 // Build Spec 2-7 R-LEAVE-C2·Q4: 확정된 달의 승인 휴가 취소 = 승인 전 칸으로 복원.
@@ -440,71 +480,81 @@ export async function cancelApprovedLeave(db: Db, actor: Actor, id: string): Pro
   const [l] = await db.select().from(leaveRequests).where(eq(leaveRequests.id, id))
   if (!l || l.status !== 'APPROVED') return deny('승인된 휴가만 취소할 수 있습니다.')
   const dates = leaveDates(l.startDate, l.endDate)
-  const plans = await db.select().from(monthPlans)
-  const planOf = (date: string) =>
-    plans.find((p) => p.year === Number(date.slice(0, 4)) && p.month === Number(date.slice(5, 7)))
-  if (dates.some((d) => planOf(d)?.status === 'CLOSED'))
-    return deny('마감한 달이 포함된 휴가입니다. 마감 취소 후 취소하세요.')
 
   const restored: string[] = []
   const skipped: { date: string; reason: string }[] = []
-  await db.transaction(async (tx) => {
-    const now = new Date()
-    for (const date of dates) {
-      const plan = planOf(date)
-      if (plan?.status !== 'CONFIRMED') continue
-      const where = and(
-        eq(scheduleCells.monthPlanId, plan.id),
-        eq(scheduleCells.userId, l.userId),
-        eq(scheduleCells.date, date),
-      )
-      const [c] = await tx.select().from(scheduleCells).where(where)
-      if (!c) continue
-      const [log] = await tx
-        .select()
-        .from(cellEditLogs)
-        .where(
-          and(
-            eq(cellEditLogs.monthPlanId, plan.id),
-            eq(cellEditLogs.userId, l.userId),
-            eq(cellEditLogs.date, date),
-            eq(cellEditLogs.reason, 'leave_approved'),
-          ),
+  // R-1: 계획 행을 잠그고 휴가를 조건부로 먼저 취소한 뒤 칸을 되돌린다(두 번 취소·마감과 겹침 방지)
+  const r = await rejectable(() =>
+    db.transaction(async (tx) => {
+      const plans = await lockPlansFor(tx, dates)
+      const planOf = (date: string) =>
+        plans.find((p) => p.year === Number(date.slice(0, 4)) && p.month === Number(date.slice(5, 7)))
+      if (dates.some((d) => planOf(d)?.status === 'CLOSED'))
+        throw new Rejected('마감한 달이 포함된 휴가입니다. 마감 취소 후 취소하세요.')
+      const [done] = await tx
+        .update(leaveRequests)
+        .set({ status: 'CANCELLED' })
+        .where(and(eq(leaveRequests.id, id), eq(leaveRequests.status, 'APPROVED')))
+        .returning({ id: leaveRequests.id })
+      if (!done) throw new Rejected('승인된 휴가만 취소할 수 있습니다.')
+      const now = new Date()
+      for (const date of dates) {
+        const plan = planOf(date)
+        if (plan?.status !== 'CONFIRMED') continue
+        const where = and(
+          eq(scheduleCells.monthPlanId, plan.id),
+          eq(scheduleCells.userId, l.userId),
+          eq(scheduleCells.date, date),
         )
-        .orderBy(desc(cellEditLogs.editedAt))
-        .limit(1)
-      const now_ = { code: c.code, offKind: c.offKind, leaveKind: c.leaveKind, checkupHalf: c.checkupHalf }
-      if (!log) {
-        skipped.push({
+        const [c] = await tx.select().from(scheduleCells).where(where)
+        if (!c) continue
+        const [log] = await tx
+          .select()
+          .from(cellEditLogs)
+          .where(
+            and(
+              eq(cellEditLogs.monthPlanId, plan.id),
+              eq(cellEditLogs.userId, l.userId),
+              eq(cellEditLogs.date, date),
+              eq(cellEditLogs.reason, 'leave_approved'),
+            ),
+          )
+          .orderBy(desc(cellEditLogs.editedAt))
+          .limit(1)
+        const now_ = { code: c.code, offKind: c.offKind, leaveKind: c.leaveKind, checkupHalf: c.checkupHalf }
+        if (!log) {
+          skipped.push({
+            date,
+            reason: `${formatMD(date)}은 근무표를 만들 때 들어간 휴가라 근무 조정에서 칸을 정해 주세요.`,
+          })
+          continue
+        }
+        if (!sameCell(log.after as CellSnapshot, now_)) {
+          skipped.push({ date, reason: `${formatMD(date)}은 승인 뒤 다시 바뀌어 되돌리지 않았습니다.` })
+          continue
+        }
+        const before = log.before as CellSnapshot
+        await tx
+          .update(scheduleCells)
+          .set({ ...before, source: 'admin', editedBy: actor.id, editedAt: now })
+          .where(where)
+        await tx.insert(cellEditLogs).values({
+          monthPlanId: plan.id,
+          userId: l.userId,
           date,
-          reason: `${formatMD(date)}은 근무표를 만들 때 들어간 휴가라 근무 조정에서 칸을 정해 주세요.`,
+          before: now_,
+          after: before,
+          editedBy: actor.id,
+          editedAt: now,
+          reason: 'leave_cancelled',
         })
-        continue
+        await invalidateSwapsForCells(tx, plan.id, [{ userId: l.userId, date }], INVALID_BY_ADMIN)
+        restored.push(date)
       }
-      if (!sameCell(log.after as CellSnapshot, now_)) {
-        skipped.push({ date, reason: `${formatMD(date)}은 승인 뒤 다시 바뀌어 되돌리지 않았습니다.` })
-        continue
-      }
-      const before = log.before as CellSnapshot
-      await tx
-        .update(scheduleCells)
-        .set({ ...before, source: 'admin', editedBy: actor.id, editedAt: now })
-        .where(where)
-      await tx.insert(cellEditLogs).values({
-        monthPlanId: plan.id,
-        userId: l.userId,
-        date,
-        before: now_,
-        after: before,
-        editedBy: actor.id,
-        editedAt: now,
-        reason: 'leave_cancelled',
-      })
-      await invalidateSwapsForCells(tx, plan.id, [{ userId: l.userId, date }], INVALID_BY_ADMIN)
-      restored.push(date)
-    }
-    await tx.update(leaveRequests).set({ status: 'CANCELLED' }).where(eq(leaveRequests.id, id))
-  })
+      return null
+    }),
+  )
+  if (r) return r
   return { ok: true, restored, skipped }
 }
 

@@ -11,6 +11,7 @@ import {
 } from '@duty/domain'
 import { and, eq, inArray } from 'drizzle-orm'
 import type { Db } from '../db/client'
+import { lockPlan } from '../plans/lock'
 import { cellEditLogs, monthPlans, scheduleCells, users } from '../db/schema'
 import { fillProfiles } from '../generate/input'
 import { buildScheduleInput } from '../schedule/input'
@@ -50,104 +51,108 @@ export async function saveEdits(
   edits: CellEdit[],
 ): Promise<SaveResult> {
   if (actor.role !== 'admin') return { ok: false, message: '권한이 없습니다.' }
-  const [plan] = await db.select().from(monthPlans).where(eq(monthPlans.id, planId))
-  const blocked = editBlockReason(plan?.status)
-  if (!plan || blocked) return { ok: false, message: blocked ?? '계획을 찾을 수 없습니다.' }
-  if (edits.length === 0) return { ok: true, saved: 0 }
-  const days = new Set(monthDates(plan.year, plan.month))
-  if (edits.some((e) => !days.has(e.date))) return { ok: false, message: '대상 월 밖의 칸입니다.' }
-  if (edits.some((e) => e.override && (!e.override.reason.trim() || e.override.reason.length > MAX_REASON)))
-    return { ok: false, message: `예외 사유는 1~${MAX_REASON}자로 적어 주세요.` }
+  // R-1: 계획 행을 잠근 뒤 상태·칸 비교·재검사·쓰기를 한 트랜잭션에서 한다(동시 저장·교환·마감과 직렬화)
+  return db.transaction(async (tx) => {
+    const tdb = tx as unknown as Db
+    const plan = await lockPlan(tx, planId)
+    const blocked = editBlockReason(plan?.status)
+    if (!plan || blocked) return { ok: false, message: blocked ?? '계획을 찾을 수 없습니다.' }
+    if (edits.length === 0) return { ok: true, saved: 0 }
+    const days = new Set(monthDates(plan.year, plan.month))
+    if (edits.some((e) => !days.has(e.date))) return { ok: false, message: '대상 월 밖의 칸입니다.' }
+    if (edits.some((e) => e.override && (!e.override.reason.trim() || e.override.reason.length > MAX_REASON)))
+      return { ok: false, message: `예외 사유는 1~${MAX_REASON}자로 적어 주세요.` }
 
-  const names = new Map(
-    (await db.select({ id: users.id, name: users.name }).from(users)).map((u) => [u.id, u.name]),
-  )
-  const nameOf = (id: string) => names.get(id) ?? id
-  const current = await db
-    .select()
-    .from(scheduleCells)
-    .where(
-      and(
-        eq(scheduleCells.monthPlanId, plan.id),
-        inArray(scheduleCells.userId, [...new Set(edits.map((e) => e.userId))]),
-      ),
+    const names = new Map(
+      (await tdb.select({ id: users.id, name: users.name }).from(users)).map((u) => [u.id, u.name]),
     )
-  const at = new Map(current.map((c) => [`${c.userId}|${c.date}`, c]))
+    const nameOf = (id: string) => names.get(id) ?? id
+    const current = await tdb
+      .select()
+      .from(scheduleCells)
+      .where(
+        and(
+          eq(scheduleCells.monthPlanId, plan.id),
+          inArray(scheduleCells.userId, [...new Set(edits.map((e) => e.userId))]),
+        ),
+      )
+    const at = new Map(current.map((c) => [`${c.userId}|${c.date}`, c]))
 
-  // R-ADJ-7: 편집을 시작할 때 본 값과 지금 값이 다르면 전체 거부
-  const conflicts = edits.filter((e) => {
-    const c = at.get(`${e.userId}|${e.date}`)
-    return !c || !same(e.before, c)
-  })
-  if (conflicts.length)
-    return {
-      ok: false,
-      message: `다른 곳에서 먼저 바뀐 칸이 있습니다: ${conflicts.map((e) => `${nameOf(e.userId)} ${formatMD(e.date)}`).join(', ')}. 새로 불러와 주세요.`,
-    }
-
-  // R-ADJ-6: 서버 재검사, 예외 사유가 가려 주지 않는 새 필수 위반은 거부
-  const input = await adjustCheckInput(db, plan)
-  const diff = newViolations(
-    checkSchedule(input),
-    checkSchedule({ ...input, cells: applyEdits(input.cells, edits) }),
-  )
-  const uncovered = uncoveredViolations(diff.hardViolations, edits)
-  if (uncovered.length)
-    return {
-      ok: false,
-      message: '필수 규칙을 어기는 변경이 있습니다. 사유를 적고 「그래도 적용」하거나 변경을 고쳐 주세요.',
-      violations: uncovered.map((v) => {
-        const f = formatViolation(v, { nameOf, month: plan.month })
-        return f.detail ? `${f.title} · ${f.detail}` : f.title
-      }),
-    }
-
-  const now = new Date()
-  await db.transaction(async (tx) => {
-    for (const e of edits) {
-      const before = at.get(`${e.userId}|${e.date}`)!
-      const after = {
-        code: e.after.code,
-        offKind: e.after.code === 'OFF' ? (e.after.offKind ?? 'regular') : null,
-        leaveKind: null,
-        checkupHalf: before.checkupHalf,
+    // R-ADJ-7: 편집을 시작할 때 본 값과 지금 값이 다르면 전체 거부
+    const conflicts = edits.filter((e) => {
+      const c = at.get(`${e.userId}|${e.date}`)
+      return !c || !same(e.before, c)
+    })
+    if (conflicts.length)
+      return {
+        ok: false,
+        message: `다른 곳에서 먼저 바뀐 칸이 있습니다: ${conflicts.map((e) => `${nameOf(e.userId)} ${formatMD(e.date)}`).join(', ')}. 새로 불러와 주세요.`,
       }
-      await tx
-        .update(scheduleCells)
-        .set({ ...after, source: 'admin', editedBy: actor.id, editedAt: now })
-        .where(
-          and(
-            eq(scheduleCells.monthPlanId, plan.id),
-            eq(scheduleCells.userId, e.userId),
-            eq(scheduleCells.date, e.date),
-          ),
-        )
-      await tx.insert(cellEditLogs).values({
-        monthPlanId: plan.id,
-        userId: e.userId,
-        date: e.date,
-        before: {
-          code: before.code,
-          offKind: before.offKind,
-          leaveKind: before.leaveKind,
-          checkupHalf: before.checkupHalf,
-        },
-        after,
-        editedBy: actor.id,
-        editedAt: now,
-        reason: 'manual',
-        note: e.override?.reason.trim() ?? null,
-      })
-    }
-    // 2-8 R-SWAP-9: 바뀐 칸이 걸린 대기 교환 요청은 무효
-    await invalidateSwapsForCells(
-      tx,
-      plan.id,
-      edits.map((e) => ({ userId: e.userId, date: e.date })),
-      INVALID_BY_ADMIN,
+
+    // R-ADJ-6: 서버 재검사, 예외 사유가 가려 주지 않는 새 필수 위반은 거부
+    const input = await adjustCheckInput(tdb, plan)
+    const diff = newViolations(
+      checkSchedule(input),
+      checkSchedule({ ...input, cells: applyEdits(input.cells, edits) }),
     )
+    const uncovered = uncoveredViolations(diff.hardViolations, edits)
+    if (uncovered.length)
+      return {
+        ok: false,
+        message: '필수 규칙을 어기는 변경이 있습니다. 사유를 적고 「그래도 적용」하거나 변경을 고쳐 주세요.',
+        violations: uncovered.map((v) => {
+          const f = formatViolation(v, { nameOf, month: plan.month })
+          return f.detail ? `${f.title} · ${f.detail}` : f.title
+        }),
+      }
+
+    const now = new Date()
+    {
+      for (const e of edits) {
+        const before = at.get(`${e.userId}|${e.date}`)!
+        const after = {
+          code: e.after.code,
+          offKind: e.after.code === 'OFF' ? (e.after.offKind ?? 'regular') : null,
+          leaveKind: null,
+          checkupHalf: before.checkupHalf,
+        }
+        await tx
+          .update(scheduleCells)
+          .set({ ...after, source: 'admin', editedBy: actor.id, editedAt: now })
+          .where(
+            and(
+              eq(scheduleCells.monthPlanId, plan.id),
+              eq(scheduleCells.userId, e.userId),
+              eq(scheduleCells.date, e.date),
+            ),
+          )
+        await tx.insert(cellEditLogs).values({
+          monthPlanId: plan.id,
+          userId: e.userId,
+          date: e.date,
+          before: {
+            code: before.code,
+            offKind: before.offKind,
+            leaveKind: before.leaveKind,
+            checkupHalf: before.checkupHalf,
+          },
+          after,
+          editedBy: actor.id,
+          editedAt: now,
+          reason: 'manual',
+          note: e.override?.reason.trim() ?? null,
+        })
+      }
+      // 2-8 R-SWAP-9: 바뀐 칸이 걸린 대기 교환 요청은 무효
+      await invalidateSwapsForCells(
+        tx,
+        plan.id,
+        edits.map((e) => ({ userId: e.userId, date: e.date })),
+        INVALID_BY_ADMIN,
+      )
+    }
+    return { ok: true as const, saved: edits.length }
   })
-  return { ok: true, saved: edits.length }
 }
 
 // R-ADJ-11: 마감일 뒤 ~ 대상 월 말일
