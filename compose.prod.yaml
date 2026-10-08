@@ -1,6 +1,27 @@
-# 운영 한 벌: db + solver + web (+ 1회성 migrate). TLS(Caddy)·백업은 3-1 Deployment에서 추가한다.
-# 사용: docker compose -f compose.prod.yaml --env-file .env.prod up -d --build
+# 운영 한 벌: caddy(유일한 공개 진입점) + web + solver + db + backup (+ 1회성 migrate). Build Spec 3-1
+# 사용: docker compose -f compose.prod.yaml --env-file .env.prod up -d --build   (설치·운영 절차: docs/operations.md)
+x-logging: &logging
+  driver: json-file
+  options: { max-size: 10m, max-file: '3' }
+
 services:
+  caddy:
+    image: caddy:2-alpine
+    environment:
+      DOMAIN: ${DOMAIN:?DOMAIN이 필요합니다}
+    ports:
+      - '80:80'
+      - '443:443'
+      - '443:443/udp'
+    volumes:
+      - ./deploy/Caddyfile:/etc/caddy/Caddyfile:ro
+      - caddy-data:/data
+      - caddy-config:/config
+    depends_on:
+      web: { condition: service_healthy }
+    restart: unless-stopped
+    logging: *logging
+
   db:
     image: postgres:16-alpine
     environment:
@@ -15,6 +36,7 @@ services:
       timeout: 3s
       retries: 30
     restart: unless-stopped
+    logging: *logging
 
   migrate:
     build: { context: ., dockerfile: apps/web/Dockerfile, target: tools }
@@ -25,6 +47,7 @@ services:
     depends_on:
       db: { condition: service_healthy }
     restart: 'no'
+    logging: *logging
 
   web:
     build: { context: ., dockerfile: apps/web/Dockerfile, target: runner }
@@ -32,21 +55,35 @@ services:
       DATABASE_URL: postgres://${POSTGRES_USER:-duty}:${POSTGRES_PASSWORD}@db:5432/${POSTGRES_DB:-duty}
       # 공공데이터포털 「한국천문연구원_특일 정보」 Decoding 인증키(선택). 없으면 공휴일 가져오기 버튼이 비활성
       HOLIDAY_API_KEY: ${HOLIDAY_API_KEY:-}
-      # 듀티 생성 솔버 (compose 내부망에서만 노출)
+      # 듀티 생성 솔버 (compose 내부망에서만)
       SOLVER_URL: http://solver:8100
-    ports:
-      - '3000:3000'
+    # 호스트에 포트를 공개하지 않는다 — Caddy만 들어온다(R-OPS-1)
+    expose: ['3000']
+    healthcheck:
+      test:
+        [
+          'CMD',
+          'node',
+          '-e',
+          "fetch('http://127.0.0.1:3000/api/health').then(r=>process.exit(r.ok?0:1),()=>process.exit(1))",
+        ]
+      interval: 10s
+      timeout: 5s
+      retries: 6
+      start_period: 20s
     depends_on:
       migrate: { condition: service_completed_successfully }
       solver: { condition: service_healthy }
     restart: unless-stopped
+    logging: *logging
 
   # CP-SAT 솔버 (Build Spec 2-6). 상태·DB 없음, 포트를 호스트에 공개하지 않는다
   solver:
     build: { context: services/solver }
     environment:
-      SOLVER_WORKERS: ${SOLVER_WORKERS:-8}
-    mem_limit: 512m
+      # VM vCPU 수에 맞춘다(e2-medium = 2)
+      SOLVER_WORKERS: ${SOLVER_WORKERS:-2}
+    mem_limit: 1g
     healthcheck:
       test:
         [
@@ -59,6 +96,26 @@ services:
       timeout: 3s
       retries: 20
     restart: unless-stopped
+    logging: *logging
+
+  # 매일 03:00(서울) 암호화 백업 → /backups 14일 + BACKUP_REMOTE(Cloud Storage). R-OPS-3·4
+  backup:
+    build: { context: deploy/backup }
+    environment:
+      PGHOST: db
+      PGUSER: ${POSTGRES_USER:-duty}
+      PGPASSWORD: ${POSTGRES_PASSWORD}
+      PGDATABASE: ${POSTGRES_DB:-duty}
+      BACKUP_AGE_RECIPIENT: ${BACKUP_AGE_RECIPIENT:?BACKUP_AGE_RECIPIENT(age 공개키)가 필요합니다}
+      BACKUP_REMOTE: ${BACKUP_REMOTE:-}
+    volumes:
+      - ${BACKUP_DIR:-./backups}:/backups
+    depends_on:
+      db: { condition: service_healthy }
+    restart: unless-stopped
+    logging: *logging
 
 volumes:
   db-data:
+  caddy-data:
+  caddy-config:

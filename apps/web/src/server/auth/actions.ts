@@ -6,6 +6,7 @@ import { z } from 'zod'
 import { getDb } from '../db/client'
 import { authenticate, changePassword, createSession, deleteSession } from './service'
 import { clearSessionCookie, getSession, getSessionToken, writeSessionCookie } from './session'
+import { clientIp, loginLimiter } from './ip-limit'
 import { safeNext } from './tokens'
 
 export type LoginState = {
@@ -38,7 +39,16 @@ export async function loginAction(_prev: LoginState, formData: FormData): Promis
   try {
     const now = new Date()
     const db = getDb()
+    // 3-1 R-OPS-7: 한 IP에서 실패가 많으면 계정과 무관하게 잠시 막는다(프록시 뒤에서만 IP를 안다)
+    const ip = clientIp(await headers())
+    const ipBlocked = ip ? loginLimiter.blockedUntil(ip, now.getTime()) : null
+    if (ipBlocked)
+      return {
+        employeeNo,
+        error: `이 네트워크에서 로그인 실패가 많아 잠시 막았습니다. ${hhmm(new Date(ipBlocked))} 이후 다시 시도해 주세요.`,
+      }
     const r = await authenticate(db, { ...parsed.data, now })
+    if (!r.ok && ip) loginLimiter.recordFailure(ip, now.getTime())
     if (!r.ok) {
       return r.error === 'locked'
         ? {

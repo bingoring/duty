@@ -39,12 +39,7 @@ pnpm test:int      # 통합 (duty_test DB)
 pnpm test:e2e      # Playwright (duty_e2e DB를 자동 생성·초기화)
 ```
 
-## 운영 최초 부팅
+## 운영
 
-```sh
-docker compose -f compose.prod.yaml --env-file .env.prod up -d --build     # POSTGRES_PASSWORD 필요
-docker compose -f compose.prod.yaml --env-file .env.prod run --rm migrate pnpm db:bootstrap   # ADMIN_EMPLOYEE_NO, ADMIN_NAME
-docker compose -f compose.prod.yaml --env-file .env.prod run --rm -v "$PWD/.local:/data:ro" migrate pnpm db:import-roster /data/roster.csv
-```
-
-운영 쿠키는 `Secure`이므로 HTTPS 뒤에서 실행해야 한다(TLS는 3-1 Deployment에서 추가).
+GCP 서울 VM 한 대에 `compose.prod.yaml`(Caddy 자동 TLS · web · solver · db · 매일 암호화 백업)로 운영한다.
+설치·최초 부팅·업데이트·되돌리기·백업 확인·복구·장애 대응은 [docs/operations.md](docs/operations.md), 운영 변수는 [.env.prod.example](.env.prod.example).

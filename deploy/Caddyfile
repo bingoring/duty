@@ -1,0 +1,14 @@
+# Build Spec 3-1 — 유일한 공개 진입점. DOMAIN은 .env.prod (리허설은 localhost → Caddy 내부 인증서)
+{$DOMAIN} {
+	encode zstd gzip
+	header {
+		Strict-Transport-Security "max-age=31536000"
+		-Server
+	}
+	# 들어온 X-Forwarded-For는 믿지 않고 실제 연결 IP로 정한다(로그인 IP 제한 R-OPS-7)
+	reverse_proxy web:3000
+	log {
+		output stdout
+		format console
+	}
+}
