@@ -33,7 +33,8 @@ updated: 2026-10-09
 - [x] `/api/health/backup` + 단위 테스트(없음·오래됨·정상, 본문 최소)
 - [x] `deploy/gcp/monitoring.sh`(채널·업타임 2·알림 정책 4·예산, DRY_RUN 확인), `deploy/gcp/ops-agent.sh`(지표만)
 - [x] `docs/operations.md`: 감시·알림 절(4-1), 배포 직후 백업 1회
-- [ ] 운영 적용(사람 승인): 서버 갱신 → 백업 1회 → `/api/health/backup` 200 → 스크립트 실행 → 테스트 알림 수신
+- [x] 운영 적용(사람 승인): 서버 갱신 → 백업 1회 → `/api/health/backup` 200 → 스크립트 실행(채널·업타임 2·정책 4·예산) → Ops Agent(VM 재시작, 디스크 지표 `/dev/sda1` 확인) (2026-10-09)
+- [ ] 테스트 알림 수신(사용자)
 - [ ] 복구 리허설(사용자 PC) → 행 수 대조
 
 ## §3. 미해결 질문
@@ -51,4 +52,5 @@ updated: 2026-10-09
 |---|---|---|
 | R-MON-4 30분 간격 | 15분 | 업타임 체크 주기는 1·5·10·15분만 |
 | R-MON-8 gcloud 명령 | 알림 채널·정책은 Monitoring REST API(v3)를 curl로 | gcloud는 alpha/beta에만 있고 구성 요소 설치 확인 화면에서 멈춘다 |
+| R-MON-8 예산 생성 | `--billing-project`로 이 프로젝트를 할당량 프로젝트로 지정 | gcloud 기본 프로젝트가 다른 프로젝트라 예산 API가 그쪽에서 막혔다 |
 | §2 Ops Agent 설치 | VM 접근 범위에 `monitoring.write` 추가(재시작) + 서비스 계정 `monitoring.metricWriter`, 로그 파이프라인은 끔 | 3-1 VM은 저장소 범위만 있었다. 로그는 보내지 않아 개인정보가 GCP 로깅에 남지 않는다 |
