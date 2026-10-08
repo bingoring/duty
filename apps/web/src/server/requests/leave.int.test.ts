@@ -4,6 +4,7 @@ import { beforeEach, describe, expect, it } from 'vitest'
 import { resetDb, setupTestDb } from '../../test/db'
 import { cellEditLogs, leaveRequests, monthPlans, scheduleCells, users } from '../db/schema'
 import { seedDev } from '../seed/dev'
+import { adjustBalances } from '../staff/service'
 import { projectedLeaveBalance } from './balance'
 import { ensureRequestPlan } from './plan'
 import { cancelLeave, decideLeave, leaveImpact, saveLeave, saveShiftRequest, submitRequests } from './service'
@@ -38,6 +39,34 @@ beforeEach(async () => {
 })
 
 describe('saveLeave (R-LEAVE-1~5·8)', () => {
+  it('12월에 다음 해 1월 휴가를 신청하면 올해 잔여가 아니라 다음 해 몫으로 검사한다 (R-1)', async () => {
+    const me = await actor('00103')
+    const admin = await actor('00101')
+    // 올해 특별휴가·검진 반차를 다 쓴 상태
+    await adjustBalances(
+      db,
+      { userId: me.id, values: { special_leave: 0, checkup: 0 }, note: '소진' },
+      admin.id,
+    )
+    const DEC = '2026-12-10'
+    await ensureRequestPlan(db, { year: 2027, month: 1 }, DEC, DEFAULT_RULES)
+    const special = await saveLeave(db, me, { userId: me.id, type: 'special', startDate: '2027-01-12' }, DEC)
+    expect(special).toMatchObject({ ok: true })
+    const checkup = await saveLeave(db, me, { userId: me.id, type: 'checkup', startDate: '2027-01-13' }, DEC)
+    expect(checkup).toMatchObject({ ok: true })
+    // 다음 해 연차는 연초에 관리자가 넣으므로 막지 않는다
+    expect(
+      await saveLeave(db, me, { userId: me.id, type: 'annual', startDate: '2027-01-14' }, DEC),
+    ).toMatchObject({
+      ok: true,
+    })
+    // 반대로 올해 휴가 검사에 다음 해 신청을 빼지 않는다: 올해 특별휴가 0이면 올해 신청은 막힌다
+    await ensureRequestPlan(db, { year: 2026, month: 12 }, '2026-11-10', DEFAULT_RULES)
+    expect(
+      await saveLeave(db, me, { userId: me.id, type: 'special', startDate: '2026-12-21' }, '2026-11-10'),
+    ).toMatchObject({ ok: false })
+  })
+
   it('경조사는 사유 일수로 종료일 자동, 간호사 저장은 임시', async () => {
     const me = await actor('00103')
     const id = idOf(

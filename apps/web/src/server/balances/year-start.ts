@@ -20,6 +20,16 @@ async function alreadyStarted(db: Db, year: number) {
   )
 }
 
+// 원장이 그해 값을 담고 있는가: 연초 처리를 했거나, 시스템 첫해(원장이 모두 그해에 생성 — R-YEAR-7)
+export async function yearReady(db: Db, year: number): Promise<boolean> {
+  if (await alreadyStarted(db, year)) return true
+  const older = await db.$count(
+    balanceEntries,
+    lt(balanceEntries.createdAt, new Date(`${year}-01-01T00:00:00+09:00`)),
+  )
+  return older === 0
+}
+
 export async function ensureYearStart(db: Db, today: string): Promise<YearStartResult> {
   const year = Number(today.slice(0, 4))
   if (await alreadyStarted(db, year)) return 'done'

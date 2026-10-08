@@ -302,8 +302,11 @@ export async function saveLeave(
     const account = leaveAccount(input.type)
     if (account && account in BALANCE_LABEL) {
       const [label, field] = BALANCE_LABEL[account as keyof typeof BALANCE_LABEL]
-      const available = (await projectedLeaveBalance(db, input.userId, today))[field]
-      if (days > available)
+      const bal = await projectedLeaveBalance(db, input.userId, today, {
+        year: Number(input.startDate.slice(0, 4)),
+      })
+      const available = bal[field]
+      if (!(field === 'annual' && bal.annualUnknown) && days > available)
         return deny(`${label} 잔여를 넘습니다 (신청 ${days}일 / 잔여 ${Math.max(0, available)}일).`)
     }
     const [row] = await db
