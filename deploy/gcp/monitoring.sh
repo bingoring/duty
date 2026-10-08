@@ -127,10 +127,11 @@ agent_policy duty-memory memory/percent_used 90 \
 # 4) 월 예산 (R-MON-6) — 결제 계정 관리자 이메일 + 알림 채널
 BILLING=$(gcloud billing projects describe "$PROJECT_ID" --format='value(billingAccountName)' | sed 's#billingAccounts/##')
 NUMBER=$(gcloud projects describe "$PROJECT_ID" --format='value(projectNumber)')
-if gcloud billing budgets list --billing-account="$BILLING" --format='value(displayName)' 2>/dev/null | grep -qx duty-monthly; then
+# 예산 API는 할당량 프로젝트가 필요하다 — gcloud 기본 프로젝트가 다른 곳이어도 이 프로젝트로 부른다
+if gcloud billing budgets list --billing-project="$PROJECT_ID" --billing-account="$BILLING" --format='value(displayName)' 2>/dev/null | grep -qx duty-monthly; then
   echo "예산 duty-monthly 있음 — 건너뜀"
 else
-  run gcloud billing budgets create --billing-account="$BILLING" --display-name=duty-monthly \
+  run gcloud billing budgets create --billing-project="$PROJECT_ID" --billing-account="$BILLING" --display-name=duty-monthly \
     --budget-amount="${BUDGET_KRW}KRW" --filter-projects="projects/$NUMBER" \
     --threshold-rule=percent=0.5 --threshold-rule=percent=0.9 --threshold-rule=percent=1.0 \
     --notifications-rule-monitoring-notification-channels="$CHANNEL"
