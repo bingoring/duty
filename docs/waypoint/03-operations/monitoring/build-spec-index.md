@@ -1,7 +1,7 @@
 ---
 build-spec: monitoring
 stage: 03-operations/02-monitoring
-status: READY
+status: IMPLEMENTED
 depth: light
 updated: 2026-10-09
 ---
@@ -34,17 +34,17 @@ updated: 2026-10-09
 - [x] `deploy/gcp/monitoring.sh`(채널·업타임 2·알림 정책 4·예산, DRY_RUN 확인), `deploy/gcp/ops-agent.sh`(지표만)
 - [x] `docs/operations.md`: 감시·알림 절(4-1), 배포 직후 백업 1회
 - [x] 운영 적용(사람 승인): 서버 갱신 → 백업 1회 → `/api/health/backup` 200 → 스크립트 실행(채널·업타임 2·정책 4·예산) → Ops Agent(VM 재시작, 디스크 지표 `/dev/sda1` 확인) (2026-10-09)
-- [ ] 테스트 알림 수신(사용자)
-- [ ] 복구 리허설(사용자 PC) → 행 수 대조
+- [x] 테스트 알림 수신(사용자, 2026-10-09) — 콘솔 테스트는 API가 없어 반드시 울리는 임시 정책으로 보내고 10분 뒤 삭제
+- [x] 복구 리허설(사용자 PC) → 행 수 대조: 표 8개(users 14·schedule_cells 3,299·balance_entries 219·month_settlements 99·month_plans 11·credentials 14·holidays 45·migrations 7) 운영과 일치
 
 ## §3. 미해결 질문
 없음. Q1 알림 이메일 = 사용자 주소, Q2 월 예산 = 5만 원(DECISIONS 2026-10-09).
 
 ## §4. 검증 계획
-- [ ] format·typecheck·lint·단위·통합 그린, `next build` 성공
-- [ ] 로컬 운영 compose 리허설: 백업 전 503 → 백업 뒤 200
-- [ ] 운영: 업타임 체크 두 개 통과(초록), 테스트 알림 메일 수신, 예산 생성 확인
-- [ ] 복구 리허설 행 수 일치
+- [x] format·typecheck·lint·단위 412·통합 162·E2E 43 그린, `next build` 성공
+- [x] 운영에서 확인: 백업 뒤 `/api/health/backup` 200(로컬 compose 리허설 대신, 503 경로는 단위 테스트)
+- [x] 운영: 업타임 체크 두 개·알림 정책 4개·예산 생성, 테스트 알림 메일 수신
+- [x] 복구 리허설 행 수 일치
 
 ## §5. 편차 로그 — 구현 후
 
@@ -52,5 +52,6 @@ updated: 2026-10-09
 |---|---|---|
 | R-MON-4 30분 간격 | 15분 | 업타임 체크 주기는 1·5·10·15분만 |
 | R-MON-8 gcloud 명령 | 알림 채널·정책은 Monitoring REST API(v3)를 curl로 | gcloud는 alpha/beta에만 있고 구성 요소 설치 확인 화면에서 멈춘다 |
+| R-MON-7 알림 주소 = 사용자 회사 주소 | 사용자가 콘솔에서 개인 메일로 바꿈 | 사용자 결정. 스크립트는 채널이 있으면 건드리지 않는다 |
 | R-MON-8 예산 생성 | `--billing-project`로 이 프로젝트를 할당량 프로젝트로 지정 | gcloud 기본 프로젝트가 다른 프로젝트라 예산 API가 그쪽에서 막혔다 |
 | §2 Ops Agent 설치 | VM 접근 범위에 `monitoring.write` 추가(재시작) + 서비스 계정 `monitoring.metricWriter`, 로그 파이프라인은 끔 | 3-1 VM은 저장소 범위만 있었다. 로그는 보내지 않아 개인정보가 GCP 로깅에 남지 않는다 |
