@@ -1,7 +1,7 @@
 ---
 phase: 03-operations
 stage: 02-monitoring
-status: IMPLEMENTED
+status: HUMAN_APPROVED
 updated: 2026-10-09
 ---
 
@@ -49,8 +49,8 @@ Build Spec(light): [`monitoring/build-spec-index.md`](monitoring/build-spec-inde
 
 > 아래 항목을 확인 후 frontmatter의 status를 `HUMAN_APPROVED`로 변경하세요.
 
-- [ ] Build Spec이 READY이고 감시 항목·임계값·알림 대상이 운영과 맞는가? (승인 = 구현 착수)
-- [ ] 구현 후: 알림 수신 확인(테스트 메일), 복구 리허설 행 수 일치
+- [x] Build Spec이 READY이고 감시 항목·임계값·알림 대상이 운영과 맞는가? (승인 = 구현 착수)
+- [x] 구현 후: 알림 수신 확인(테스트 메일), 복구 리허설 행 수 일치 (2026-10-09, 사용자 승인. 리허설 파일·DB 삭제 확인)
 
 ## 다음 단계
 

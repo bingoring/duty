@@ -8,6 +8,9 @@
 
 > 🔒 **개인정보:** 공개 저장소다. 간호사 이름·사번은 모두 가명이며, 실명 자료는 커밋하지 않는다([DECISIONS](DECISIONS.md) 2026-09-26).
 
+> ✅ **3-2 모니터링 승인 (2026-10-09).** 운영 감시·알림·예산·복구 검증 완료.
+> 간호사 공지 전 운영 준비: 동의서 병원 검토, 개원기념일·신청 마감일 설정, 표 순서(연차) 확인.
+>
 > 🏗️ **3-2 모니터링 구현·운영 적용 완료 → 승인 대기 (2026-10-09).** 이메일 알림(접속·백업 누락·디스크·메모리), 월 예산 5만 원, Ops Agent(지표만). 테스트 알림 수신, 실제 데이터 백업 복구 리허설 행 수 일치.
 > 행 순서도 바꿈: 수간호사 맨 위, 나머지 연차 순(DECISIONS).
 >
@@ -195,7 +198,7 @@
 | 스테이지 | 문서 | 상태 |
 |---------|------|------|
 | 3-1 Deployment ⚠️ | [01-deployment.md](03-operations/01-deployment.md) · [Build Spec](03-operations/deployment/build-spec-index.md) (IMPLEMENTED) | HUMAN_APPROVED |
-| 3-2 Monitoring | [02-monitoring.md](03-operations/02-monitoring.md) · [Build Spec](03-operations/monitoring/build-spec-index.md) (IMPLEMENTED) | IMPLEMENTED |
+| 3-2 Monitoring | [02-monitoring.md](03-operations/02-monitoring.md) · [Build Spec](03-operations/monitoring/build-spec-index.md) (IMPLEMENTED) | HUMAN_APPROVED |
 
 ---
 
