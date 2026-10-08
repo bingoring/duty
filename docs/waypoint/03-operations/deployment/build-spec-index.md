@@ -26,6 +26,7 @@ updated: 2026-10-08
 | `.env.prod.example` | 운영 변수 전부(설명 포함): DOMAIN·POSTGRES_PASSWORD·ADMIN_*·HOLIDAY_API_KEY·SOLVER_WORKERS·BACKUP_AGE_RECIPIENT·BACKUP_GCS_BUCKET | 신규 |
 | `deploy/gcp/provision.sh` | gcloud로 프로젝트 안 자원 생성: VM(e2-medium·Ubuntu 24.04·30GB), 고정 IP, 방화벽(80·443, SSH는 IAP 대역만), 서비스 계정(버킷 객체 생성 권한만), 버킷(서울·90일 삭제 규칙·버전 관리 끔) | 신규 |
 | `deploy/server-setup.sh` | VM 안: Docker 설치, 자동 보안 업데이트, 스왑 2GB, 배포 사용자 | 신규 |
+| 이력 가져오기 | `deploy/history/excel_to_bundle.py`(엑셀 → 묶음 JSON, .local/에만) + `pnpm db:import-history`(빈 DB 전용, 한 트랜잭션, `--dry-run`): 사람·자격 증명·마감/확정 달·스냅샷·원장·조정, 검증 보고(사번만) | 신규 |
 | `docs/operations.md` | 설치·최초 부팅(관리자·명단)·업데이트·되돌리기·백업 확인·복구·키 보관·장애 대응 순서 | 신규 |
 | README | 「운영」 절을 docs/operations.md로 연결 | 수정 |
 
@@ -75,4 +76,5 @@ updated: 2026-10-08
 | §1 Caddy | 인증서 안내 메일 옵션 뺌 | 비어 있으면 Caddyfile이 깨진다(리허설에서 발견). Let's Encrypt는 메일 없이 동작 |
 | §1 솔버 메모리 | 512MB → 1GB | 4GB VM, 작업자 2개 기준 여유 |
 | R-OPS-7 | 프록시(Caddy) 뒤에서만 IP를 센다. `X-Forwarded-For`가 없으면(개발·테스트) 제한하지 않음 | web 포트는 외부에 열리지 않으므로 운영 요청은 언제나 Caddy를 거친다 |
+| R-OPS-6 「최초 관리자 db:bootstrap·명단 CSV」 | 엑셀 이력 가져오기로 사람·1~10월을 한 번에(관리자 포함), 초기 비밀번호는 이름 영타 | 사용자 결정(DECISIONS 2026-10-09) |
 | (추가) E2E | 솔버 시간 한도 4→8초 | R-1의 새 소프트 항으로 모델이 커져, 전체 E2E 동시 실행 중 4초에서 신청 1건을 가끔 못 지킴(6회 중 1회). 운영은 20초 |
