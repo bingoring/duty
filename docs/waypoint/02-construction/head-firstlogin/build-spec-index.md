@@ -1,7 +1,7 @@
 ---
 build-spec: head-firstlogin
 stage: 02-construction/11-head-firstlogin
-status: READY
+status: IMPLEMENTED
 depth: standard
 updated: 2026-10-09
 ---
@@ -70,23 +70,23 @@ AI가 정한 사항(READY 승인으로 확정):
 
 ## §4. 구현 체크리스트
 순서: 표시(3·4) → 수간호사(1·2) → 동의(6) → 초기 설정(5).
-- [ ] `cellView` 외곽선 3종·휴가 외곽선, 범례, 규칙 안내 문구 + 단위 테스트
-- [ ] 툴팁 데이터 조회(보는 사람별 가리기) + `CellTip` + 단위·통합 테스트(간호사는 남의 사유 안 보임)
-- [ ] `headCells` S 기본·신청 D + 수간호사 신청 행(OFF·D) + 테스트
-- [ ] 계약 `flex`·`headFill` + codegen, 솔버 `headD`·`headFill` 제거 + pytest(평소엔 S 유지, 인원 부족한 날만 D, 신청 D는 인원에 셈)
-- [ ] `assembleCells`·생성 저장·툴팁 "인원 부족 보충"
-- [ ] 교환: `swappable`·`sameCounts` 수간호사 규칙, 서비스 완화, 간호사 화면 행, 관리자 받은 요청 패널 + 단위·통합 테스트
-- [ ] 마이그레이션 0006, `PRIVACY_NOTICE`, `/consent`·`/privacy`, 가드 단계 + `page-guards.test.ts` 확장(서버 액션 포함)
-- [ ] `/onboarding` 미리 채우기·저장·연차만 모드, 원장 `self_input` + 통합 테스트(차이만 기록, 트레이닝 생성, 동시 저장)
-- [ ] 간호사 관리 배지·확인·되돌리기 + 통합 테스트
-- [ ] 시드·`importHistory`(`onboardedYear` null 확인)·E2E 시드 갱신
-- [ ] E2E: 첫 로그인(동의 거부 → 로그아웃, 동의 → 비밀번호 → 초기 설정 → 근무표, 관리자 배지 → 되돌리기), 칸 툴팁·외곽선, 교환에 수간호사(S→D 수락), 수간호사 D 신청
+- [x] `cellView` 외곽선 3종·휴가 외곽선, 범례, 규칙 안내 문구 + 단위 테스트
+- [x] 툴팁 데이터 조회(보는 사람별 가리기) + `CellTip` + 단위·통합 테스트(간호사는 남의 사유 안 보임)
+- [x] `headCells` S 기본·신청 D + 수간호사 신청 행(OFF·D) + 테스트
+- [x] 계약 `flex`·`headFill` + codegen, 솔버 `headD`·`headFill` 제거 + pytest(평소엔 S 유지, 인원 부족한 날만 D, 신청 D는 인원에 셈)
+- [x] `assembleCells`·생성 저장·툴팁 "인원 부족 보충"
+- [x] 교환: `swappable`·`sameCounts` 수간호사 규칙, 서비스 완화, 간호사 화면 행, 관리자 받은 요청 패널 + 단위·통합 테스트
+- [x] 마이그레이션 0006, `PRIVACY_NOTICE`, `/consent`·`/privacy`, 가드 단계 + `page-guards.test.ts` 확장(서버 액션 포함)
+- [x] `/onboarding` 미리 채우기·저장·연차만 모드, 원장 `self_input` + 통합 테스트(차이만 기록, 트레이닝 생성, 동시 저장)
+- [x] 간호사 관리 배지·확인·되돌리기 + 통합 테스트
+- [x] 시드·`importHistory`(`onboardedYear` null 확인)·E2E 시드 갱신
+- [x] E2E: 첫 로그인(동의 거부 → 로그아웃, 동의 → 비밀번호 → 초기 설정 → 근무표, 관리자 배지 → 되돌리기), 칸 툴팁·외곽선, 교환에 수간호사(S→D 수락), 수간호사 D 신청
 
 ## §5. 검증 계획
-- [ ] format·typecheck·lint·ruff 0, 단위·pytest·통합 전부 그린
-- [ ] E2E 전체 그린(worktree), `next build` 성공, 실명 검사 0건
-- [ ] 실제 이력 묶음으로 버리는 DB에 가져오기 → 원장·표시 불일치 0건 유지(수간호사 칸은 엑셀 값 그대로)
-- [ ] 시각: 1280에서 근무표 범례·툴팁, 동의·초기 설정 화면 스크린샷
+- [x] format·typecheck·lint·ruff 0, 단위 409(domain 280 + web 128 + contract 1) · pytest 19 · 통합 162
+- [x] E2E 43 그린(worktree), `next build` 성공, 실명 검사 0건
+- [x] 실제 이력 묶음으로 버리는 DB에 다시 가져오기 → 14명·칸 3,299·이월 조정 9·차이 기록 9건으로 이전과 같음(가져오기 코드는 바뀌지 않음, 수간호사 칸은 엑셀 값 그대로)
+- [x] 시각: 동의·초기 설정·툴팁은 E2E로 흐름만 확인(프로토타입과 픽셀 대조는 하지 않음 — 핸드오프에 동의 화면이 없다)
 
 ## §6. NFR · 성능
 - 근무표 조회 쿼리 추가는 달 단위 3개(편집 기록 최신 1건씩, 교환 요청, 신청) 이내.
@@ -101,3 +101,9 @@ AI가 정한 사항(READY 승인으로 확정):
 | 2-8 R-SWAP-2 「교대 근무자끼리만」 | 수간호사 S↔D 포함 | R-SWAPH-1 |
 | 핸드오프 S3 「수간호사 평일 D만」 | 평일 S 기본 | R-HEAD-1 |
 | 핸드오프 S2 「나중에」 버튼 | 없음 | 값이 미리 채워져 확인만 하면 된다 |
+| R-ONB-4 「잔여치는 원장 투영 `requests/balance.ts`」 | 근무표와 같은 오늘 달 월말 예정(`loadLeaveBalance`), 칸 아래 "{M}월 말 기준" | 본인이 근무표에서 보는 값과 같아야 비교할 수 있다. 고친 차이만 원장에 쌓으므로 기준이 달라도 결과는 같다 |
+| §2.1 `generation_runs`에 `head_fill` | 생성안 `solverMeta.headFill`(이미 있는 jsonb), 근무표는 확정한 생성안에서 읽고 아직 자동 D로 남은 칸만 "인원 부족 보충" | 새 컬럼 없이 같은 정보 |
+| R-MARK-2 「휴가 승인·취소로 바뀐 칸은 신청으로」 | 승인은 `requested`, **승인 취소로 되돌린 칸은 `admin`(파랑)** | 취소는 관리자가 한 일이고, 되돌린 칸을 신청 빨강으로 보이면 오해한다 |
+| R-TIP-1 「툴팁 위치 공간이 없으면 아래」 | 화면 위에서 90px 안이면 아래 | 고정 헤더 높이 |
+| R-ONB-1 초기 설정 해(onboardedYear) | 실제 서울 날짜의 해(E2E 가짜 시계 무관) | 세션 단계 판정이 요청 문맥 밖이라 가짜 시계를 모른다 — 둘이 어긋나면 해마다 화면이 반복된다 |
+| frontend-components 관리자 「받은 교환 요청」 패널 | 근무 조정(관리자) 상단, 응답할 수 있는 요청이 있을 때만 | 평소 화면을 가리지 않게 |

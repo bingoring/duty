@@ -8,6 +8,9 @@
 
 > 🔒 **개인정보:** 공개 저장소다. 간호사 이름·사번은 모두 가명이며, 실명 자료는 커밋하지 않는다([DECISIONS](DECISIONS.md) 2026-09-26).
 
+> 🏗️ **2-11 수간호사 S·칸 출처 표시·최초 로그인 구현 완료 → 승인 대기 (2026-10-09).** 수간호사 평일 S(솔버는 필수 인원을 달리 못 채울 때만 D), 교환에 수간호사(S↔D), 외곽선 3종·툴팁 카드,
+> 최초 로그인 동의(민감정보 별도) → 비밀번호 → 초기 설정(본인 확인·수정, 관리자 확인·되돌리기). 단위 409·pytest 19·통합 162·E2E 43 그린, 편차 7건. 동의서 문안은 병원 검토 필요.
+>
 > 📝 **2-11 수간호사 S·칸 출처 표시·최초 로그인 Build Spec READY (2026-10-09).** 운영 이력 가져오기 전에 사용자 피드백 6건 반영 — 수간호사 평일 S(D는 신청·조정·필수 인원 보충만), 교환에 수간호사, 외곽선 3종(교환 = 빨간 점선)·툴팁,
 > 최초 로그인 개인정보 동의(민감정보 별도) → 비밀번호 → 초기 설정(미리 채움, 본인 확인·수정, 관리자 확인). **2-10 「S2 만들지 않음」을 뒤집음**(DECISIONS). 구현 착수 승인 대기. 3-1 이력 가져오기는 2-11 승인 뒤로 미룸.
 >
@@ -166,7 +169,7 @@
 | 2-8 근무 교환 요청 (S9 간호사, 3a) | [08-swap-requests.md](02-construction/08-swap-requests.md) · [Build Spec](02-construction/swap-requests/build-spec-index.md) (IMPLEMENTED) | HUMAN_APPROVED |
 | 2-9 통합·E2E | [09-integration-e2e.md](02-construction/09-integration-e2e.md) · [Build Spec](02-construction/integration-e2e/build-spec-index.md) (IMPLEMENTED) | HUMAN_APPROVED |
 | 2-10 동료 현황·규칙 안내 (S6·S7) | [10-peers-rules.md](02-construction/10-peers-rules.md) · [Build Spec](02-construction/peers-rules/build-spec-index.md) (IMPLEMENTED) | HUMAN_APPROVED |
-| 2-11 수간호사 S·칸 출처 표시·최초 로그인 (S2 부활) | [11-head-firstlogin.md](02-construction/11-head-firstlogin.md) · [Build Spec](02-construction/head-firstlogin/build-spec-index.md) (READY) | AI_PROPOSED |
+| 2-11 수간호사 S·칸 출처 표시·최초 로그인 (S2 부활) | [11-head-firstlogin.md](02-construction/11-head-firstlogin.md) · [Build Spec](02-construction/head-firstlogin/build-spec-index.md) (IMPLEMENTED) | IMPLEMENTED |
 
 ## Phase R — Independent Code Review 🔍 (Construction → Operations 게이트)
 

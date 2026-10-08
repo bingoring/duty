@@ -1,7 +1,7 @@
 ---
 artifact: frontend-components
 build-spec: head-firstlogin
-status: READY
+status: IMPLEMENTED
 updated: 2026-10-09
 ---
 

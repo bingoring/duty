@@ -28,15 +28,15 @@ updated: 2026-10-09
 
 ## 체크리스트
 
-- [ ] Build Spec 작성·질문 해소 → READY
-- [ ] Build Spec §4 구현 체크리스트 전 항목 완료
-- [ ] Build Spec §5 검증 통과 → IMPLEMENTED
+- [x] Build Spec 작성·질문 해소 → READY (2026-10-09)
+- [x] Build Spec §4 구현 체크리스트 전 항목 완료
+- [x] Build Spec §5 검증 통과 → IMPLEMENTED (2026-10-09)
 
 ## AI 제안 (AI Proposal)
 
 > ⚠️ 이 섹션은 AI가 작성합니다. 사람이 직접 수정하지 마세요.
 
-Build Spec(standard): [`head-firstlogin/build-spec-index.md`](head-firstlogin/build-spec-index.md) (READY 후보)
+Build Spec(standard): [`head-firstlogin/build-spec-index.md`](head-firstlogin/build-spec-index.md) (IMPLEMENTED)
 
 요지:
 - **수간호사 S:** 평일 기본 S, 빨간 날 OFF. 수간호사도 근무 신청 화면에서 OFF·D를 신청한다(빨간 외곽선). 솔버는 수간호사의 기본 S 칸을 **인원·K-tass 필수 조건을 달리 채울 수 없을 때만** D로 바꾼다(가장 큰 벌점). 이렇게 바뀐 칸은 툴팁에 "인원 부족 보충"으로 나온다.
@@ -45,6 +45,16 @@ Build Spec(standard): [`head-firstlogin/build-spec-index.md`](head-firstlogin/bu
 - **툴팁:** 브라우저 기본 `title` 대신 즉시 뜨는 툴팁 카드. 출처별로 신청 내용·교환 상대·관리자 수정 시각·이전 근무를 보여 주고, 사유·메모는 본인과 관리자만 본다(R-1 ①).
 - **최초 로그인:** 로그인 → 개인정보 동의 → 비밀번호 변경 → 초기 설정 → 근무표. 초기 설정은 가져온 값을 미리 채우고 본인이 확인·수정한다. 잔여치·자격 값을 바꾸면 원장(`self_input`)과 제출 기록에 남고, 간호사 관리에 "본인 입력 확인 필요"로 표시되어 관리자가 확인·되돌린다. 해마다 1월 첫 로그인에는 올해 연차만 다시 묻는다.
 - **동의:** 필수 항목 동의와 민감정보(노조 가입 여부·병가 사유) 별도 동의 2개. 문구 버전이 바뀌면 다시 동의받는다. 문구는 초안이며 운영 전에 병원 개인정보 담당이 검토한다.
+
+### 구현 결과 (2026-10-09)
+
+- 수간호사: `headCells` 평일 S, 신청 화면 수간호사 행(OFF·D 하나), 계약 `heads[].cells[].flex`·응답 `headFill`, 솔버 보충 벌점 20000, 툴팁 "인원 부족 보충".
+- 교환: 수간호사 S↔D(S는 OFF로 셈), 관리자 근무 조정 상단 "받은 교환 요청".
+- 표시: 외곽선 3종(교환 = 빨간 점선)·휴가 칸 신청 표시·범례, 즉시 뜨는 툴팁 카드(`CellTip`)와 출처 줄(`schedule/notes.ts`, 사유는 본인·관리자만).
+- 최초 로그인: 마이그레이션 0006(`privacy_consents`·`onboarding_submissions`), 세션 `pendingStep`(동의 → 비밀번호 → 초기 설정 → 해마다 연차), 페이지·서버 액션 공통 가드, `/consent`·`/privacy`·`/onboarding`, 원장 `self_input`, 간호사 관리 "본인 입력 확인 필요"·확인·되돌리기·동의 여부.
+- 검증: 단위 409 · pytest 19 · 통합 162 · E2E 43 · 빌드 · 실명 검사 0건. 편차 §7.
+- 확인: 처음 로그인하는 계정으로 로그인 → 동의(거부하면 로그아웃) → 비밀번호 → 초기 설정 → 근무표. 관리자는 간호사 관리에서 바뀐 값을 확인·되돌린다. 근무표 칸에 마우스를 올리면 출처가 뜬다.
+- **운영 전 확인 필요:** 동의서 문안(business-rules §7)은 초안이다 — 병원 개인정보 담당 검토.
 
 ## 검토 게이트 (Human Gate)
 
