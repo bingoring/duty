@@ -16,7 +16,8 @@ export type LoginState = {
 
 const LoginSchema = z.object({
   employeeNo: z.string().trim().min(1, '사번을 입력해 주세요.').max(20, '사번을 확인해 주세요.'),
-  password: z.string().min(1, '비밀번호를 입력해 주세요.'),
+  // 상한: 비로그인 요청마다 argon2를 돌리므로 아주 긴 입력을 막는다(R-1)
+  password: z.string().min(1, '비밀번호를 입력해 주세요.').max(128, '비밀번호를 확인해 주세요.'),
 })
 
 const pad = (n: number) => String(n).padStart(2, '0')

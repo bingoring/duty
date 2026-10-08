@@ -1,7 +1,7 @@
 // Build Spec 2-1 business-logic-model §1. 시계(now)는 인자로 받는다(잠금·만료 테스트용).
 // 쿠키·리다이렉트는 여기서 다루지 않는다 — Next 문맥은 actions.ts / session.ts가 맡는다.
 import { EmployeeNoSchema } from '@duty/domain'
-import { and, eq, ne } from 'drizzle-orm'
+import { and, eq, gte, ne, sql } from 'drizzle-orm'
 import type { Db } from '../db/client'
 import { credentials, sessions, users, wards } from '../db/schema'
 import { hashPassword, validateNewPassword, verifyPassword } from './password'
@@ -51,17 +51,7 @@ export async function authenticate(
   }
 
   if (!(await verifyPassword(cred.passwordHash, input.password))) {
-    // 잠금이 끝난 뒤의 실패는 1부터 다시 센다
-    const prior = cred.lockedUntil ? 0 : cred.failedCount
-    const failed = prior + 1
-    await db
-      .update(credentials)
-      .set(
-        failed >= LOCK_THRESHOLD
-          ? { failedCount: 0, lockedUntil: new Date(input.now.getTime() + LOCK_DURATION_MS) }
-          : { failedCount: failed, lockedUntil: null },
-      )
-      .where(eq(credentials.userId, cred.userId))
+    await recordFailure(db, cred.userId, input.now)
     return { ok: false, error: 'invalid' }
   }
 
@@ -70,6 +60,24 @@ export async function authenticate(
     .set({ failedCount: 0, lockedUntil: null })
     .where(eq(credentials.userId, cred.userId))
   return { ok: true, userId: row.user.id, mustChangePassword: cred.mustChangePassword }
+}
+
+// R-AUTH-3: 실패 횟수는 DB에서 원자적으로 올린다(동시 실패 요청이 서로의 증가를 덮지 않도록, R-1).
+// 잠금이 끝난 뒤의 실패는 1부터 다시 센다
+async function recordFailure(db: Db, userId: string, now: Date) {
+  const [r] = await db
+    .update(credentials)
+    .set({
+      failedCount: sql`case when ${credentials.lockedUntil} is not null then 1 else ${credentials.failedCount} + 1 end`,
+      lockedUntil: null,
+    })
+    .where(eq(credentials.userId, userId))
+    .returning({ failed: credentials.failedCount })
+  if ((r?.failed ?? 0) >= LOCK_THRESHOLD)
+    await db
+      .update(credentials)
+      .set({ failedCount: 0, lockedUntil: new Date(now.getTime() + LOCK_DURATION_MS) })
+      .where(and(eq(credentials.userId, userId), gte(credentials.failedCount, LOCK_THRESHOLD)))
 }
 
 export async function createSession(
@@ -183,7 +191,15 @@ export async function changePassword(
 
   // 임시 비밀번호 상태(첫 로그인)에서는 현재 비밀번호를 묻지 않는다
   if (!row.cred.mustChangePassword) {
+    // R-1: 세션을 가진 사람이 현재 비밀번호를 무제한 추측하지 못하게 로그인과 같은 잠금을 쓴다
+    if (row.cred.lockedUntil && row.cred.lockedUntil > input.now)
+      return {
+        ok: false,
+        field: 'current',
+        message: '현재 비밀번호를 여러 번 틀려 잠겼습니다. 15분 뒤 다시 시도해 주세요.',
+      }
     if (input.current === undefined || !(await verifyPassword(row.cred.passwordHash, input.current))) {
+      await recordFailure(db, input.userId, input.now)
       return { ok: false, field: 'current', message: '현재 비밀번호가 올바르지 않습니다.' }
     }
   }

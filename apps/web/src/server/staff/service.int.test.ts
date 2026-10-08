@@ -197,9 +197,17 @@ describe('reissuePassword (R-STAFF-PW-1)', () => {
     await createSession(db, { userId: id, keep: false, now: NOW })
     await db.update(credentials).set({ failedCount: 3 }).where(eq(credentials.userId, id))
     const r = await reissuePassword(db, id)
+    if (!r.ok) throw new Error(r.message)
     expect(await db.$count(sessions, eq(sessions.userId, id))).toBe(0)
     const auth = await authenticate(db, { employeeNo: '00103', password: r.tempPassword, now: NOW })
     expect(auth).toMatchObject({ ok: true, mustChangePassword: true })
+  })
+
+  it('없거나 제거된 간호사는 발급하지 않는다 (R-1)', async () => {
+    const id = await idOf('00103')
+    await db.update(users).set({ active: false }).where(eq(users.id, id))
+    expect(await reissuePassword(db, id)).toEqual({ ok: false, message: '간호사를 찾을 수 없습니다.' })
+    expect(await reissuePassword(db, '00000000-0000-4000-8000-000000000000')).toMatchObject({ ok: false })
   })
 })
 

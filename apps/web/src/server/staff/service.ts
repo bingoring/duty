@@ -305,7 +305,13 @@ export async function removeStaff(db: Db, userId: string, ctx: StaffCtx): Promis
   })
 }
 
-export async function reissuePassword(db: Db, userId: string): Promise<{ tempPassword: string }> {
+export async function reissuePassword(
+  db: Db,
+  userId: string,
+): Promise<{ ok: true; tempPassword: string } | { ok: false; message: string }> {
+  const [u] = await db.select({ active: users.active }).from(users).where(eq(users.id, userId))
+  // R-1: 없거나 제거된 간호사에게 쓸 수 없는 임시 비밀번호를 보여 주지 않는다
+  if (!u?.active) return { ok: false, message: '간호사를 찾을 수 없습니다.' }
   const tempPassword = generateTempPassword()
   const passwordHash = await hashPassword(tempPassword)
   await db.transaction(async (tx) => {
@@ -315,7 +321,7 @@ export async function reissuePassword(db: Db, userId: string): Promise<{ tempPas
       .where(eq(credentials.userId, userId))
     await tx.delete(sessions).where(eq(sessions.userId, userId))
   })
-  return { tempPassword }
+  return { ok: true, tempPassword }
 }
 
 export async function adjustBalances(db: Db, input: BalanceAdjustInput, adminId: string): Promise<void> {

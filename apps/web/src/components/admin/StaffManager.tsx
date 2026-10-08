@@ -532,6 +532,7 @@ export function StaffManager({
       setMenu(null)
       const r = await reissuePasswordAction(row.id)
       if (r.ok) setDlg({ kind: 'temp', name: row.name, employeeNo: row.employeeNo, password: r.tempPassword })
+      else setError(r.message)
     })
   const remove = (row: StaffRow) =>
     start(async () => {

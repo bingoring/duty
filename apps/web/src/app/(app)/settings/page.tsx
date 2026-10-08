@@ -1,6 +1,8 @@
 import { PasswordForm } from '@/components/auth/PasswordForm'
+import { requireUser } from '@/server/auth/guards'
 
-export default function SettingsPage() {
+export default async function SettingsPage() {
+  await requireUser()
   return (
     <div className="flex flex-col gap-4 px-7 py-6">
       <h1 className="text-[22px] font-bold tracking-[-0.02em]">내 설정</h1>

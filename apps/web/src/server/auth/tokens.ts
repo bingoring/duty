@@ -21,7 +21,9 @@ export function generateTempPassword(length = 12): string {
 const AUTH_PATHS = ['/login', '/password']
 
 export function safeNext(next: string | null | undefined): string {
-  if (!next || !next.startsWith('/') || next.startsWith('//') || next.startsWith('/\\')) return '/'
+  if (!next || !next.startsWith('/') || next.startsWith('//')) return '/'
+  // URL 파서는 탭·개행을 지우고 \를 /로 읽는다 → "/\t/evil"·"/\\evil"이 //evil이 된다(R-1)
+  if (/[\x00-\x20\x7f\\]/.test(next)) return '/'
   const pathname = next.split(/[?#]/)[0] ?? ''
   if (AUTH_PATHS.includes(pathname)) return '/'
   return next

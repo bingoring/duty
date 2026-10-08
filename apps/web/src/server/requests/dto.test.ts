@@ -101,6 +101,22 @@ describe('buildRequestsView — 권한 (1-2 §8, R-REQ-VIEW)', () => {
     expect(JSON.stringify(v)).not.toContain('부고')
   })
 
+  it('동료 휴가는 종류만, 경조·공가 사유는 본인과 관리자만 (R-1)', () => {
+    const peer = cellOf(buildRequestsView(raw(), { id: 'me', role: 'nurse' }), 'a', '2026-11-19')
+    expect(peer.leave).toMatchObject({ type: 'family', kindLabel: '경조사', reasonCode: null })
+    expect(JSON.stringify(buildRequestsView(raw(), { id: 'me', role: 'nurse' }))).not.toContain(
+      'parent_death',
+    )
+    for (const viewer of [
+      { id: 'a', role: 'nurse' as const },
+      { id: 'head', role: 'admin' as const },
+    ])
+      expect(cellOf(buildRequestsView(raw(), viewer), 'a', '2026-11-19').leave).toMatchObject({
+        kindLabel: '경조사 · 본인·배우자 부모 사망',
+        reasonCode: 'parent_death',
+      })
+  })
+
   it('관리자: 코멘트 전문이 보인다', () => {
     const v = buildRequestsView(raw(), { id: 'head', role: 'admin' })
     expect(cellOf(v, 'a', '2026-11-13').comment).toBe('오후 병원')

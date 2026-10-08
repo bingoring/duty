@@ -242,12 +242,13 @@ export function buildRequestsView(
           leave: {
             id: l.id,
             type: l.type,
-            reasonCode: l.reasonCode,
+            // 사유(경조·공가 세부)는 본인과 관리자만. 동료에게는 종류만(R-1, DECISIONS 2026-10-08)
+            reasonCode: mine || isAdmin ? l.reasonCode : null,
             status: l.status,
             startDate: l.startDate,
             endDate: l.endDate,
             days: l.days,
-            kindLabel: leaveKindLabel(l.type, l.reasonCode),
+            kindLabel: leaveKindLabel(l.type, mine || isAdmin ? l.reasonCode : null),
             ...(l.rejectReason && mine ? { rejectReason: l.rejectReason } : {}),
           },
           ...(scheduled ? { scheduled } : {}),

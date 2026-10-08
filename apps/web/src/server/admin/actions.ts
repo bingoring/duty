@@ -77,11 +77,12 @@ export async function removeStaffAction(userId: string): Promise<Result> {
 
 export async function reissuePasswordAction(
   userId: string,
-): Promise<{ ok: true; tempPassword: string } | typeof DENIED> {
+): Promise<{ ok: true; tempPassword: string } | { ok: false; message: string }> {
   const admin = await adminOnly()
   if (!admin) return DENIED
-  const r = await reissuePassword(getDb(), z.string().uuid().parse(userId))
-  return { ok: true, ...r }
+  const id = z.string().uuid().safeParse(userId)
+  if (!id.success) return { ok: false, message: '간호사를 찾을 수 없습니다.' }
+  return reissuePassword(getDb(), id.data)
 }
 
 export async function adjustBalancesAction(input: unknown): Promise<Result> {

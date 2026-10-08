@@ -47,6 +47,15 @@ describe('authenticate', () => {
     expect(cred!.failedCount).toBe(0)
   })
 
+  it('동시에 틀려도 실패 횟수를 잃지 않는다 (R-1: 읽고-쓰기 경합)', async () => {
+    const user = await createUserWithPassword(db, wardId)
+    await Promise.all(
+      Array.from({ length: 5 }, () => authenticate(db, { employeeNo: '00103', password: 'wrong', now: T0 })),
+    )
+    const [cred] = await db.select().from(credentials).where(eq(credentials.userId, user.id))
+    expect(cred!.lockedUntil).toEqual(minutes(15))
+  })
+
   it('잠금 중에는 올바른 비밀번호도 locked로 거부한다 (R-AUTH-4)', async () => {
     await createUserWithPassword(db, wardId)
     for (let i = 0; i < 5; i++) await authenticate(db, { employeeNo: '00103', password: 'wrong', now: T0 })
@@ -184,6 +193,26 @@ describe('changePassword', () => {
       now: T0,
     })
     expect(r).toEqual({ ok: false, field: 'current', message: '현재 비밀번호가 올바르지 않습니다.' })
+  })
+
+  it('자발적 변경에서 현재 비밀번호를 5번 틀리면 로그인처럼 잠긴다 (R-1)', async () => {
+    const user = await createUserWithPassword(db, wardId)
+    const s = await createSession(db, { userId: user.id, keep: false, now: T0 })
+    const attempt = (current: string) =>
+      changePassword(db, {
+        userId: user.id,
+        sessionToken: s.token,
+        current,
+        next: 'new-pass-1',
+        confirm: 'new-pass-1',
+        now: T0,
+      })
+    for (let i = 0; i < 5; i++) await attempt('wrong')
+    expect(await attempt('right-password')).toMatchObject({
+      ok: false,
+      field: 'current',
+      message: expect.stringContaining('잠겼'),
+    })
   })
 
   it('정책 위반은 필드 오류를 돌려준다', async () => {

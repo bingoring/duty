@@ -9,6 +9,20 @@ const nextConfig: NextConfig = {
   devIndicators: false,
   transpilePackages: ['@duty/domain', '@duty/contract'],
   serverExternalPackages: ['@node-rs/argon2'],
+  // R-1: 클릭재킹(확정·마감 버튼)·MIME 추측·리퍼러 노출 방지
+  async headers() {
+    return [
+      {
+        source: '/:path*',
+        headers: [
+          { key: 'X-Frame-Options', value: 'DENY' },
+          { key: 'Content-Security-Policy', value: "frame-ancestors 'none'" },
+          { key: 'X-Content-Type-Options', value: 'nosniff' },
+          { key: 'Referrer-Policy', value: 'same-origin' },
+        ],
+      },
+    ]
+  },
   experimental: {
     // forbidden() 사용 (Next 16 실험 옵션)
     authInterrupts: true,

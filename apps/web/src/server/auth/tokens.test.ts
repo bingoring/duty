@@ -41,6 +41,11 @@ describe('safeNext (오픈 리다이렉트 방지)', () => {
     expect(safeNext('https://evil.example')).toBe('/')
     expect(safeNext('//evil.example')).toBe('/')
     expect(safeNext('/\\evil.example')).toBe('/')
+    // R-1: URL 파서가 지우는 탭·개행·제어문자를 끼우면 //evil이 된다
+    expect(safeNext('/\t/evil.example')).toBe('/')
+    expect(safeNext('/\n/evil.example')).toBe('/')
+    expect(safeNext('/\r/evil.example')).toBe('/')
+    expect(safeNext('/a\\b')).toBe('/')
     expect(safeNext(null)).toBe('/')
     expect(safeNext('')).toBe('/')
   })
