@@ -11,7 +11,7 @@ const DENIED = { ok: false as const, message: '로그인이 필요합니다.' }
 
 async function sessionActor() {
   const s = await getSession()
-  return s && !s.mustChangePassword ? { id: s.user.id } : null
+  return s && !s.pendingStep ? { id: s.user.id } : null
 }
 
 export async function ackNoticesAction(seenUpTo: unknown) {

@@ -78,7 +78,7 @@ export type RequestsRaw = {
     negotiationStart: string
     negotiationEnd: string
   } | null
-  users: { id: string; name: string; seniorityRank: number }[]
+  users: { id: string; name: string; seniorityRank: number; head?: boolean }[]
   requests: RawRequest[]
   leaves: RawLeave[]
   // 확정된 달: 칸 코드(표시용)
@@ -124,6 +124,8 @@ export type RequestRowDTO = {
   userId: string
   name: string
   me: boolean
+  // 2-11 R-HEAD-2: 수간호사 행(OFF·D 하나만)
+  head: boolean
   cells: RequestCellDTO[]
   count: number
 }
@@ -224,7 +226,10 @@ export function buildRequestsView(
   const schedAt = new Map(r.scheduled.map((s) => [`${s.userId}|${s.date}`, s.label]))
 
   const users = [...r.users].sort(
-    (a, b) => Number(b.id === viewer.id) - Number(a.id === viewer.id) || a.seniorityRank - b.seniorityRank,
+    (a, b) =>
+      Number(b.id === viewer.id) - Number(a.id === viewer.id) ||
+      Number(!!b.head) - Number(!!a.head) ||
+      a.seniorityRank - b.seniorityRank,
   )
   const rows: RequestRowDTO[] = users.map((u) => {
     const cells = days.map((date): RequestCellDTO => {
@@ -284,13 +289,20 @@ export function buildRequestsView(
     const count =
       r.requests.filter((q) => q.userId === u.id && q.submittedAt).length +
       r.leaves.filter((l) => l.userId === u.id && ['SUBMITTED', 'APPROVED'].includes(l.status)).length
-    return { userId: u.id, name: u.name, me: u.id === viewer.id, cells, count }
+    return { userId: u.id, name: u.name, me: u.id === viewer.id, head: !!u.head, cells, count }
   })
 
   // R-REQ-VIEW-3: 제출된 OFF 단일 신청 수
   const offCounts: Record<string, number> = {}
+  const heads = new Set(r.users.filter((u) => u.head).map((u) => u.id))
   for (const q of r.requests)
-    if (q.submittedAt && !q.special && q.options.length === 1 && q.options[0] === 'OFF')
+    if (
+      q.submittedAt &&
+      !q.special &&
+      q.options.length === 1 &&
+      q.options[0] === 'OFF' &&
+      !heads.has(q.userId)
+    )
       offCounts[q.date] = (offCounts[q.date] ?? 0) + 1
 
   let cards: RequestsView['cards'] = null

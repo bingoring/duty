@@ -18,3 +18,17 @@ describe('페이지 가드', () => {
     else expect(src).toMatch(guard)
   })
 })
+
+// 2-11 R-ONB-1: 서버 액션도 남은 단계(동의·비밀번호·초기 설정)가 있으면 막는다 — 비밀번호 플래그만 보면 동의 전에 쓸 수 있다
+describe('서버 액션 가드', () => {
+  const server = path.join(import.meta.dirname, '..', 'server')
+  const actions = readdirSync(server, { recursive: true })
+    .map(String)
+    .filter((f) => f.endsWith('actions.ts'))
+  it.each(actions)('%s', (rel) => {
+    const src = readFileSync(path.join(server, rel), 'utf8')
+    expect(src).not.toMatch(/if \(!s \|\| s\.mustChangePassword\)|!s\.mustChangePassword/)
+    if (/getSession\(\)/.test(src) && !rel.startsWith('auth') && !rel.startsWith('privacy'))
+      expect(src).toMatch(/s\.pendingStep/)
+  })
+})

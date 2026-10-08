@@ -10,6 +10,8 @@ import {
 } from '@/server/admin/actions'
 import type { StaffRow } from '@/server/staff/service'
 import { Dialog, Field, btnPrimary, btnSecondary, inputCls, useHydrated } from './ui'
+import type { PendingSubmission } from '@/server/onboarding/service'
+import { SubmissionPanel } from './SubmissionPanel'
 
 // S10 간호사 관리 (Build Spec 2-4 frontend-components §2, 핸드오프 1k)
 type Params = { trainingMonths: number; newbieTripleWeeks: number; experiencedTripleWeeks: number }
@@ -513,10 +515,15 @@ export function StaffManager({
   rows,
   params,
   notice,
+  submissions = [],
+  consents = {},
 }: {
   rows: StaffRow[]
   params: Params
   notice: string | null
+  // 2-11 R-ONB-7·R-CONSENT: 본인 입력 확인 필요, 동의 시각(M/D)
+  submissions?: (Omit<PendingSubmission, 'submittedAt'> & { at: string })[]
+  consents?: Record<string, string>
 }) {
   const [q, setQ] = useState('')
   const [dlg, setDlg] = useState<Dlg>(null)
@@ -569,6 +576,7 @@ export function StaffManager({
             {error}
           </div>
         )}
+        <SubmissionPanel items={submissions} names={Object.fromEntries(rows.map((r) => [r.id, r.name]))} />
         <div className="overflow-visible rounded-xl border border-line bg-surface text-[13px]">
           <div className="grid grid-cols-[1.2fr_1.2fr_.8fr_.8fr_1fr_1.4fr_.6fr] border-b border-line bg-panel px-4 py-2.5 text-xs text-ink-2">
             <span>성명</span>
@@ -586,7 +594,19 @@ export function StaffManager({
               aria-label={r.name}
               className="relative grid grid-cols-[1.2fr_1.2fr_.8fr_.8fr_1fr_1.4fr_.6fr] items-center border-b border-line-soft px-4 py-[11px]"
             >
-              <span className="font-semibold">{r.name}</span>
+              <span className="flex flex-col">
+                <span className="flex items-center gap-1.5 font-semibold">
+                  {r.name}
+                  {submissions.some((x) => x.userId === r.id) && (
+                    <span className="rounded-full bg-warn-bg px-1.5 text-[10px] font-bold text-warn-ink">
+                      본인 입력 확인 필요
+                    </span>
+                  )}
+                </span>
+                <span className="text-[11px] text-ink-3">
+                  {consents[r.id] ? `동의 ${consents[r.id]}` : '미동의'}
+                </span>
+              </span>
               <span className="text-ink-2">{r.employeeNo}</span>
               <span>{r.years ?? '—'}</span>
               <span className={r.kTass ? 'font-semibold text-primary' : 'text-ink-4'}>

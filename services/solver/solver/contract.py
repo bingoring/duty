@@ -109,6 +109,7 @@ class Cell(BaseModel):
     date: Annotated[str, Field(pattern='^\\d{4}-\\d{2}-\\d{2}$')]
     code: Code
     offKind: OffKind | None = None
+    flex: bool | None = None
 
 
 class Head(BaseModel):
@@ -182,6 +183,14 @@ class Cell1(BaseModel):
     offKind: OffKind | None = None
 
 
+class HeadFillItem(BaseModel):
+    model_config = ConfigDict(
+        extra='forbid',
+    )
+    userId: str
+    date: Annotated[str, Field(pattern='^\\d{4}-\\d{2}-\\d{2}$')]
+
+
 TermsAdditionalProperty = TypeAliasType(
     "TermsAdditionalProperty",
     Annotated[int, Field(ge=-9007199254740991, le=9007199254740991)],
@@ -223,6 +232,7 @@ class SolverResponse1(BaseModel):
     )
     status: Status
     cells: list[Cell1]
+    headFill: list[HeadFillItem] | None = None
     objective: Objective
     wallTimeSec: float
     seed: Annotated[int, Field(ge=-9007199254740991, le=9007199254740991)]

@@ -29,7 +29,7 @@ test.describe('S10 간호사 관리', () => {
     // 새 계정의 첫 로그인
     const other = await browser.newPage()
     await login(other, '00150', pw)
-    await expect(other).toHaveURL('/password')
+    await expect(other).toHaveURL('/consent')
     await other.close()
 
     // 비밀번호 재발급: 새 임시 비밀번호만 통한다 (2-9 커버리지 보강)
@@ -42,7 +42,7 @@ test.describe('S10 간호사 관리', () => {
     await login(again, '00150', pw)
     await expect(again).toHaveURL(/\/login/)
     await login(again, '00150', pw2)
-    await expect(again).toHaveURL('/password')
+    await expect(again).toHaveURL('/consent')
     await again.close()
 
     // 제거

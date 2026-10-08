@@ -90,10 +90,10 @@ test('11월 한 달: 신청·휴가 → 생성·확정 → 교환·관리자 조
     const grid = me.getByRole('grid')
     await expect(
       grid.getByRole('row', { name: A.name }).locator(`[data-date="${REQ_DATE}"]`),
-    ).toHaveAttribute('title', /off.*신청 반영/)
+    ).toHaveAttribute('data-tip', /off[\s\S]*신청 반영/)
     await expect(
       grid.getByRole('row', { name: B.name }).locator(`[data-date="${LEAVE_DATE}"]`),
-    ).toHaveAttribute('title', /휴/)
+    ).toHaveAttribute('data-tip', /휴/)
   })
 
   // 생성 결과에 따라 칸이 달라지므로 규칙을 통과하는 교환·편집을 도메인 검사기로 고른다
@@ -132,7 +132,7 @@ test('11월 한 달: 신청·휴가 → 생성·확정 → 교환·관리자 조
     await t.goto('/?ym=2026-11')
     await expect(
       t.getByRole('grid').getByRole('row', { name: T.name }).locator(`[data-date="${pair.date}"]`),
-    ).toHaveAttribute('title', new RegExp(`${lab(pair.ca)}.*교환 반영`))
+    ).toHaveAttribute('data-tip', new RegExp(`${lab(pair.ca)}[\\s\\S]*교환 반영`))
   })
 
   // 교환 당사자는 빼야 편집이 교환을 되돌려 안내가 비는 경우(X→Y→X)가 없다
@@ -156,7 +156,7 @@ test('11월 한 달: 신청·휴가 → 생성·확정 → 교환·관리자 조
     await expect(bar).toContainText(`${lab(edit.before)} → ${lab(edit.after)}`)
     await expect(
       e.getByRole('grid').getByRole('row', { name: E.name }).locator(`[data-date="${edit.date}"]`),
-    ).toHaveAttribute('title', /관리자 수정/)
+    ).toHaveAttribute('data-tip', /관리자 수정/)
   })
 
   await test.step('10/21 협의 기간이 끝나면 교환 요청을 보낼 수 없다', async () => {

@@ -1,3 +1,4 @@
+import Link from 'next/link'
 import { PasswordForm } from '@/components/auth/PasswordForm'
 import { requireUser } from '@/server/auth/guards'
 
@@ -10,6 +11,10 @@ export default async function SettingsPage() {
         <h2 className="text-base font-bold">비밀번호 변경</h2>
         <PasswordForm mode="voluntary" />
       </section>
+      {/* 2-11 R-CONSENT-6 */}
+      <Link href="/privacy" className="text-[13px] text-ink-2 underline">
+        개인정보 처리 안내
+      </Link>
     </div>
   )
 }

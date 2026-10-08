@@ -3,9 +3,9 @@ import { expect, test, type Page } from '@playwright/test'
 import { and, eq } from 'drizzle-orm'
 import { adjustCheckInput } from '../src/server/adjust/service'
 import { createDb } from '../src/server/db/client'
-import { monthPlans, users } from '../src/server/db/schema'
+import { monthPlans, scheduleCells, users } from '../src/server/db/schema'
 import { loginAndWait, setToday, waitHydrated } from './fixtures'
-import { findSwapPair, lab, mdOf } from './search'
+import { findHeadSwap, findSwapPair, lab, mdOf } from './search'
 
 // Build Spec 2-8 §4 E2E. 오늘(10/13 고정)에 협의 기간인 확정된 달을 만들려고 10월 협의 기간을 10/10–10/20으로 바꾸고 끝나면 되돌린다
 if (existsSync('.env')) process.loadEnvFile('.env')
@@ -70,8 +70,8 @@ test('교환 요청: 요청 보내기 → 상대 근무표 띠·메뉴 배지 �
     await other.goto('/?ym=2026-10')
     const row = other.getByRole('grid').getByRole('row', { name: B.name })
     await expect(row.locator(`[data-date="${pair.date}"]`)).toHaveAttribute(
-      'title',
-      new RegExp(`${lab(pair.ca)}.*교환 반영`),
+      'data-tip',
+      new RegExp(`${lab(pair.ca)}[\\s\\S]*교환 반영`),
     )
     await Promise.all([me.close(), other.close()])
   } finally {
@@ -149,4 +149,80 @@ test('교환 요청: 상대가 거절하면 종료, 요청자는 대기 요청�
   await waitHydrated(other)
   await expect(other.getByRole('button', { name: '수락' })).toHaveCount(0)
   await Promise.all([me.context().close(), other.context().close()])
+})
+
+test('수간호사 교환: 간호사 D → OFF + 수간호사 S → D, 수간호사가 근무 조정 화면에서 수락 (2-11 R-SWAPH)', async ({
+  browser,
+}) => {
+  test.setTimeout(120_000)
+  const { db, close } = createDb(url)
+  const [oct] = await db
+    .select()
+    .from(monthPlans)
+    .where(and(eq(monthPlans.year, 2026), eq(monthPlans.month, 10)))
+  const orig = { negotiationStart: oct!.negotiationStart, negotiationEnd: oct!.negotiationEnd }
+  await db
+    .update(monthPlans)
+    .set({ negotiationStart: '2026-10-10', negotiationEnd: '2026-10-20' })
+    .where(eq(monthPlans.id, oct!.id))
+  const people = await db.select({ id: users.id, no: users.employeeNo, name: users.name }).from(users)
+  const head = people.find((p) => p.no === '00101')!
+  const nurses = people.filter((p) => p.no !== '00101')
+  const found = findHeadSwap(
+    await adjustCheckInput(db, oct!),
+    head.id,
+    nurses.map((p) => p.id),
+    '2026-10-14',
+  )
+  const N = nurses.find((p) => p.id === found.nurse)!
+  const at = (userId: string) =>
+    and(
+      eq(scheduleCells.monthPlanId, oct!.id),
+      eq(scheduleCells.userId, userId),
+      eq(scheduleCells.date, found.date),
+    )
+  const [hOrig] = await db.select().from(scheduleCells).where(at(head.id))
+  const [nOrig] = await db.select().from(scheduleCells).where(at(N.id))
+  await db.update(scheduleCells).set({ code: 'S', offKind: null }).where(at(head.id))
+
+  try {
+    const me = await browser.newPage()
+    await loginAndWait(me, N.no)
+    await me.goto('/adjust')
+    await waitHydrated(me)
+    await me.getByRole('button', { name: '근무 조정' }).click()
+    await me.getByRole('checkbox', { name: `${head.name} 선택` }).click()
+    await me.getByRole('button', { name: `${mdOf(found.date)} 재배정` }).click()
+    const pop = me.getByRole('dialog', { name: `${mdOf(found.date)} 근무 재배정` })
+    await pop.getByRole('button', { name: `${N.name} 변경 후 D` }).click()
+    await pop.getByRole('button', { name: `${head.name} 변경 후 S` }).click()
+    await expect(pop.getByRole('button', { name: `${N.name} 변경 후 OFF` })).toBeVisible()
+    await expect(pop.getByRole('button', { name: `${head.name} 변경 후 D` })).toBeVisible()
+    await expect(pop.getByText('규칙 검사 통과')).toBeVisible()
+    await pop.getByRole('button', { name: '요청 보내기' }).click()
+    await expect(me.getByRole('status')).toContainText(`${head.name}에게 교환을 요청했습니다`)
+
+    const admin = await browser.newPage()
+    await loginAndWait(admin, head.no)
+    await admin.goto('/adjust?ym=2026-10')
+    await waitHydrated(admin)
+    const inbox = admin.getByRole('region', { name: '받은 교환 요청' })
+    const card = inbox.getByRole('article').filter({ hasText: `${N.name} 님의 요청` })
+    await expect(card).toContainText(`${head.name} S→D`)
+    await card.getByRole('button', { name: '수락' }).click()
+    await expect(admin.getByRole('status')).toContainText('모두 수락해 근무표에 반영했습니다')
+    await admin.goto('/?ym=2026-10')
+    const row = admin.getByRole('grid').getByRole('row', { name: head.name })
+    await expect(row.locator(`[data-date="${found.date}"]`)).toHaveAttribute(
+      'data-tip',
+      /D[\s\S]*교환 반영 · 상대/,
+    )
+    await Promise.all([me.close(), admin.close()])
+  } finally {
+    // 다른 스펙이 보는 10월 칸을 되돌린다
+    await db.update(scheduleCells).set(hOrig!).where(at(head.id))
+    await db.update(scheduleCells).set(nOrig!).where(at(N.id))
+    await db.update(monthPlans).set(orig).where(eq(monthPlans.id, oct!.id))
+    await close()
+  }
 })

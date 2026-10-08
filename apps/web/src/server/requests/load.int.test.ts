@@ -20,11 +20,12 @@ beforeEach(async () => {
 })
 
 describe('loadRequestsRaw', () => {
-  it('11월: 계획을 만들고 교대 근무자 10명(수간호사 제외), 내 카드의 월초 값은 10월 투영', async () => {
+  it('11월: 계획을 만들고 수간호사 포함 11명(2-11 R-HEAD-2), 내 카드의 월초 값은 10월 투영', async () => {
     const me = await actor('00103')
     const r = await loadRequestsRaw(db, { ym: { year: 2026, month: 11 }, viewer: me, today: TODAY })
     expect(r.plan?.status).toBe('REQUESTING')
-    expect(r.users).toHaveLength(10)
+    expect(r.users).toHaveLength(11)
+    expect(r.users.filter((u) => u.head)).toHaveLength(1)
     // 11월 기준 OFF = 주말 9, 정하늘 10월 월말 누적 +4·잔여 N 3
     expect(r.viewerCard).toEqual({ baseline: 9, offCarry: 4, nightBank: 3, weekendMissedLastMonth: null })
   })

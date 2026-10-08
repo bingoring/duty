@@ -156,7 +156,7 @@ export function buildRulesGuide(rules: RuleSet, version: number | null): RulesGu
           tag: toggled(t.balanceShiftTypes),
         },
         {
-          text: '근무표에서 신청이 반영된 칸은 빨간 외곽선, 관리자가 수정한 칸은 파란 외곽선으로 표시합니다.',
+          text: '근무표에서 신청(휴가 포함)이 반영된 칸은 빨간 실선, 교환한 칸은 빨간 점선, 관리자가 수정한 칸은 파란 실선으로 표시합니다. 칸에 마우스를 올리면 출처를 볼 수 있습니다.',
           tag: 'info',
         },
       ],

@@ -1,7 +1,7 @@
 import { DEFAULT_RULES } from '@duty/domain'
 import { describe, expect, it } from 'vitest'
 import type { MonthViewData, RowBalance, ScheduleCellRow, ViewUser } from './types'
-import { buildScheduleView } from './view'
+import { buildScheduleView, cellView } from './view'
 
 const user = (id: string, rank: number, over: Partial<ViewUser> = {}): ViewUser => ({
   id,
@@ -130,7 +130,7 @@ describe('칸 (R-VIEW-5~7)', () => {
     expect(c).toHaveLength(31)
   })
 
-  it('외곽선: 관리자 수정 > 신청 반영, 휴가 칸은 외곽선 없음', () => {
+  it('외곽선: 관리자 수정·교환·신청 반영, 휴가 칸도 신청 (2-11 R-MARK-1·2)', () => {
     const c = cellsOf([
       cell('me', '2026-10-01', 'D', { source: 'admin' }),
       cell('me', '2026-10-02', 'OFF', { source: 'requested' }),
@@ -140,8 +140,8 @@ describe('칸 (R-VIEW-5~7)', () => {
     expect([c[0]!.outline, c[1]!.outline, c[5]!.outline, c[6]!.outline]).toEqual([
       'admin',
       'requested',
-      null,
-      null,
+      'requested',
+      'swap',
     ])
   })
 
@@ -151,10 +151,19 @@ describe('칸 (R-VIEW-5~7)', () => {
       cell('me', '2026-10-14', 'LEAVE', { leaveKind: 'sick' }),
       cell('me', '2026-10-15', 'D', { checkupHalf: true, source: 'admin' }),
     ])
-    expect(c[12]!.title).toBe('10/13 (화) · off · 슬리핑오프 · 신청 반영')
+    expect(c[12]!.title).toBe('10/13 (화) · off · 슬리핑오프\n신청 반영')
     expect(c[13]!.title).toBe('10/14 (수) · 휴 · 병가')
-    expect(c[14]!.title).toBe('10/15 (목) · D · 검진 반차 · 관리자 수정')
+    expect(c[14]!.title).toBe('10/15 (목) · D · 검진 반차\n관리자 수정')
     expect(c[14]!.checkupHalf).toBe(true)
+  })
+
+  it('툴팁: 조회한 출처 줄이 있으면 이름 대신 그 줄 (R-TIP-2)', () => {
+    const v = cellView(
+      { userId: 'me', date: '2026-10-07', code: 'D', checkupHalf: false, source: 'swap' },
+      { date: '2026-10-07', day: 7, weekday: '수', red: false, color: 'plain', today: false },
+      ['교환 반영 · 상대 정하늘 · 10/5 09:00'],
+    )
+    expect(v.title).toBe('10/7 (수) · D\n교환 반영 · 상대 정하늘 · 10/5 09:00')
   })
 
   it('빨간 날 열의 칸은 weekend 표시', () => {

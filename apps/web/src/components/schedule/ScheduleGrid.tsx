@@ -1,5 +1,6 @@
 import Link from 'next/link'
 import type { GridCellView, GridRow, ScheduleView } from '@/server/schedule/view'
+import { CellTip } from './CellTip'
 
 // 1c 격자 (Build Spec 2-3 frontend-components §2). 수치는 프로토타입 스타일 JS의 hdStyleB·wdStyleB·c.wrap·c.style·nameStyle·numStyle
 const CHIP: Record<NonNullable<GridCellView['chip']>, string> = {
@@ -10,8 +11,10 @@ const CHIP: Record<NonNullable<GridCellView['chip']>, string> = {
   off: 'bg-shift-off',
   leave: 'bg-shift-leave',
 }
-const OUTLINE = {
+// 2-11 R-MARK-1: 관리자 수정 = 파란 실선, 교환 = 빨간 점선, 신청 반영 = 빨간 실선
+export const OUTLINE = {
   admin: 'shadow-[inset_0_0_0_2px_var(--color-admin)]',
+  swap: 'outline-[1.5px] -outline-offset-[1.5px] outline-dashed outline-danger',
   requested: 'shadow-[inset_0_0_0_1.5px_var(--color-danger)]',
 }
 const DAY_COLOR = { sun: 'text-danger', sat: 'text-admin', plain: 'text-ink-2' }
@@ -96,7 +99,7 @@ function Cell({
     return (
       <button
         type="button"
-        title={v.title}
+        data-tip={v.title}
         data-date={c.date}
         data-selected={selected || undefined}
         data-pending={pending ? true : undefined}
@@ -112,7 +115,8 @@ function Cell({
     )
   return (
     <div
-      title={v.title}
+      data-tip={v.title}
+      aria-label={v.title.replaceAll('\n', ' · ')}
       data-date={c.date}
       data-selected={selected || undefined}
       data-today={c.today || undefined}
@@ -254,6 +258,7 @@ export function ScheduleGrid({ view, ui }: { view: ScheduleView; ui?: GridIntera
           <Row key={r.userId} r={r} ui={ui} />
         ))}
       </div>
+      <CellTip />
     </div>
   )
 }

@@ -16,7 +16,11 @@ test.describe('S3 근무표', () => {
     await expect(rows.nth(1)).toHaveAttribute('data-kind', 'me')
     // 정하늘 누적 off = 종이 +4, 10/1 N
     await expect(rows.nth(1).locator('[data-col="acc"]')).toHaveText('+4')
-    await expect(rows.nth(1).locator('[data-date="2026-10-01"]')).toHaveAttribute('title', '10/1 (목) · N')
+    await expect(rows.nth(1).locator('[data-date="2026-10-01"]')).toHaveAttribute('data-tip', '10/1 (목) · N')
+    // 2-11 R-TIP-1: 칸에 올리면 바로 툴팁 카드
+    await rows.nth(1).locator('[data-date="2026-10-01"]').hover()
+    await expect(page.getByTestId('cell-tip')).toHaveText('10/1 (목) · N')
+    await expect(page.getByText('교환', { exact: true }).first()).toBeVisible()
     const cards = page.getByLabel('내 요약')
     for (const label of ['이번달 OFF', '누적 OFF (이월 포함)', '잔여 나이트', '연차 / 특휴'])
       await expect(cards.getByText(label)).toBeVisible()

@@ -16,6 +16,7 @@ import type { AdjustView } from '@/server/adjust/view'
 import { cellView, type GridCellView } from '@/server/schedule/view'
 import { useHydrated } from '../admin/ui'
 import { CellBody, DockFrame, ReplacementBody, cellLabel, type DockMode, type DockTarget } from './Dock'
+import { ReceivedList } from './NurseAdjust'
 
 // S9 근무 조정 · 관리자 시점 (Build Spec 2-7, 핸드오프 v5 5a·5b 하단 편집 도크)
 const btn2 =
@@ -226,6 +227,10 @@ export function AdjustScreen({ view }: { view: AdjustView }) {
           신청 (OFF·D·E·N 모두)
         </span>
         <span className="inline-flex items-center gap-1">
+          <span className="h-3.5 w-3.5 rounded outline-[1.5px] -outline-offset-[1.5px] outline-dashed outline-danger" />
+          교환
+        </span>
+        <span className="inline-flex items-center gap-1">
           <span className="h-3.5 w-3.5 rounded shadow-[inset_0_0_0_2px_var(--color-admin)]" />
           관리자 수정
         </span>
@@ -234,6 +239,18 @@ export function AdjustScreen({ view }: { view: AdjustView }) {
         )}
       </div>
 
+      {/* 2-11 R-SWAPH-4: 간호사가 수간호사를 넣어 보낸 교환 요청 */}
+      {(view.swap?.received.some((q) => q.canRespond) ?? false) && (
+        <section aria-label="받은 교환 요청" className="flex flex-col gap-2 rounded-xl bg-warn-bg p-3">
+          <span className="text-[13px] font-bold">받은 교환 요청 · 수간호사 근무(S ↔ D)</span>
+          <div className="grid grid-cols-[repeat(auto-fill,minmax(260px,1fr))] gap-2.5">
+            <ReceivedList
+              received={view.swap!.received.filter((q) => q.canRespond)}
+              onDone={(text, kind = 'ok') => (setMsg({ kind, text }), router.refresh())}
+            />
+          </div>
+        </section>
+      )}
       {view.blockedReason && view.plan?.status !== 'CONFIRMED' && (
         <div className="rounded-lg bg-panel px-3 py-2 text-xs text-ink-2">
           {view.blockedReason}{' '}

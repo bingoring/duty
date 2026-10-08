@@ -4,7 +4,14 @@ import { headers } from 'next/headers'
 import { redirect } from 'next/navigation'
 import { z } from 'zod'
 import { getDb } from '../db/client'
-import { authenticate, changePassword, createSession, deleteSession } from './service'
+import {
+  STEP_PATH,
+  authenticate,
+  changePassword,
+  createSession,
+  deleteSession,
+  validateSession,
+} from './service'
 import { clearSessionCookie, getSession, getSessionToken, writeSessionCookie } from './session'
 import { clientIp, loginLimiter } from './ip-limit'
 import { safeNext } from './tokens'
@@ -65,7 +72,9 @@ export async function loginAction(_prev: LoginState, formData: FormData): Promis
       now,
     })
     await writeSessionCookie(s.token, s.persistent, s.expiresAt)
-    destination = r.mustChangePassword ? '/password' : safeNext(String(formData.get('next') ?? ''))
+    // 2-11 R-ONB-1: 남은 단계(동의 → 비밀번호 → 초기 설정)가 있으면 그 화면으로
+    const v = await validateSession(db, s.token, now, { renew: false })
+    destination = v?.pendingStep ? STEP_PATH[v.pendingStep] : safeNext(String(formData.get('next') ?? ''))
   } catch (e) {
     console.error('login failed', e instanceof Error ? e.name : 'unknown')
     return { employeeNo, error: '일시적인 오류입니다. 잠시 후 다시 시도해 주세요.' }
@@ -90,6 +99,8 @@ export async function changePasswordAction(_prev: PasswordState, formData: FormD
   const s = await getSession()
   const token = await getSessionToken()
   if (!s || !token) redirect('/login')
+  // 2-11: 동의 전에는 비밀번호도 바꿀 수 없다(동의 화면으로)
+  if (s.pendingStep === 'consent') redirect('/consent')
   const forced = s.mustChangePassword
   const current = formData.get('current')
   const r = await changePassword(getDb(), {
@@ -101,6 +112,7 @@ export async function changePasswordAction(_prev: PasswordState, formData: FormD
     now: new Date(),
   })
   if (!r.ok) return { fieldErrors: { [r.field]: r.message } }
+  // 다음 단계(초기 설정)가 남았으면 가드가 그쪽으로 보낸다
   if (forced) redirect('/')
   return { done: true }
 }

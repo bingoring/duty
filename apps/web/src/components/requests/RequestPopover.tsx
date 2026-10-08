@@ -44,6 +44,7 @@ type Mode = 'shift' | 'leave' | 'edu'
 export function RequestPopover({
   userId,
   userName,
+  head = false,
   cell,
   sameDay,
   mode: allowed,
@@ -52,6 +53,8 @@ export function RequestPopover({
 }: {
   userId: string
   userName: string
+  // 2-11 R-HEAD-2: 수간호사는 OFF·D 중 하나만
+  head?: boolean
   cell: RequestCellDTO
   sameDay: string
   mode: 'all' | 'leave'
@@ -103,7 +106,7 @@ export function RequestPopover({
     )
 
   const toggle = (o: RequestOption) =>
-    setOptions(options.includes(o) ? options.filter((x) => x !== o) : [...options, o])
+    setOptions(options.includes(o) ? options.filter((x) => x !== o) : head ? [o] : [...options, o])
   const chipBtn = (active: boolean) =>
     `cursor-pointer rounded-md px-3 py-1.5 text-xs ${active ? 'border-2 border-ink font-bold' : 'border border-line bg-surface text-ink-2'}`
 
@@ -155,11 +158,11 @@ export function RequestPopover({
   return (
     <Shell
       title={`${formatMD(cell.date)} (${weekdayKo(cell.date)}) · 신청`}
-      note="근무는 복수 선택 · or"
+      note={head ? '평일 기본 S · OFF 또는 D 하나' : '근무는 복수 선택 · or'}
       onClose={onClose}
     >
-      <div className="grid grid-cols-4 gap-1.5">
-        {(['OFF', 'D', 'E', 'N'] as const).map((o) => (
+      <div className={`grid gap-1.5 ${head ? 'grid-cols-2' : 'grid-cols-4'}`}>
+        {(head ? (['OFF', 'D'] as const) : (['OFF', 'D', 'E', 'N'] as const)).map((o) => (
           <button
             key={o}
             type="button"

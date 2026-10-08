@@ -35,15 +35,18 @@ describe('leaveToCell · specialToCell (2-5 applyLeave와 같은 칸)', () => {
 })
 
 describe('headCells (수간호사 고정 칸)', () => {
-  it('빨간 날 OFF, 그 외 D. 승인 휴가·본인 OFF 신청이 이긴다', () => {
+  it('빨간 날 OFF, 그 외 S. 승인 휴가·본인 D·OFF 신청이 이긴다 (2-11 R-HEAD-1·2)', () => {
     const h = nurse('h', { rotation: 'fixed_weekday' })
     const cells = headCells(h, NOV, RED, {
       fixed: new Map([['2026-11-03', { code: 'AL' as const }]]),
       offRequests: new Set(['2026-11-04']),
+      dRequests: new Set(['2026-11-05', '2026-11-08', '2026-11-03']),
     })
     const at = (d: string) => cells.find((c) => c.date === d)
     expect(at('2026-11-01')).toMatchObject({ code: 'OFF', offKind: 'regular' }) // 일
-    expect(at('2026-11-02')).toMatchObject({ code: 'D' })
+    expect(at('2026-11-02')).toMatchObject({ code: 'S' })
+    expect(at('2026-11-05')).toMatchObject({ code: 'D' })
+    expect(at('2026-11-08')).toMatchObject({ code: 'D' }) // 일요일이어도 본인 D 신청
     expect(at('2026-11-03')).toMatchObject({ code: 'AL' })
     expect(at('2026-11-04')).toMatchObject({ code: 'OFF', offKind: 'regular' })
     expect(cells).toHaveLength(30)

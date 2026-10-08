@@ -65,9 +65,13 @@ test('관리자 칸 편집: 필수 위반 차단 → 사유 입력 후 적용 �
   await page.getByRole('button', { name: '저장 · 재배포' }).click()
   await expect(page.getByRole('status')).toContainText('1건을 저장했습니다')
   await expect(page.getByRole('button', { name: `${HONG.name} 2026-10-17` })).toHaveAttribute(
-    'title',
-    /D.*관리자 수정/,
+    'data-tip',
+    /D[\s\S]*관리자 수정/,
   )
+  // 2-11 R-TIP-2: 수정자·이전 근무
+  await page.getByRole('button', { name: `${HONG.name} 2026-10-17` }).hover()
+  await expect(page.getByTestId('cell-tip')).toContainText('관리자 수정 · 한수정')
+  await expect(page.getByTestId('cell-tip')).toContainText('이전 off')
 
   // 인원이 모자라지는 변경이면 대체 후보를 제안한다(↔). 적용하지 않고 닫는다(Esc)
   await page.getByRole('button', { name: '윤채원 2026-10-02' }).click()

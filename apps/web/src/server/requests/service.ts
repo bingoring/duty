@@ -85,6 +85,17 @@ export async function saveShiftRequest(
     if (denied) return denied
     const parsed = ShiftRequestInputSchema.safeParse(input)
     if (!parsed.success) return deny(parsed.error.issues[0]?.message ?? '신청 내용을 확인해 주세요.')
+    // 2-11 R-HEAD-2: 수간호사는 OFF 또는 D 하나만(평일 기본 S)
+    const [target] = await db
+      .select({ rotation: users.rotation })
+      .from(users)
+      .where(eq(users.id, input.userId))
+    if (
+      target?.rotation === 'fixed_weekday' &&
+      !input.special &&
+      !(input.options.length === 1 && (input.options[0] === 'OFF' || input.options[0] === 'D'))
+    )
+      return deny('수간호사는 OFF 또는 D 하나만 신청할 수 있습니다.')
     const leaveSameDay = await db.$count(
       leaveRequests,
       and(
@@ -439,9 +450,10 @@ export async function decideLeave(
           leaveKind: next.leaveKind ?? null,
           checkupHalf: next.checkupHalf,
         }
+        // 2-11 R-MARK-2: 승인 휴가로 바뀐 칸은 관리자 개입이 아니라 신청 반영(빨간 실선)
         await tx
           .update(scheduleCells)
-          .set({ ...after, source: 'admin', editedBy: actor.id, editedAt: now })
+          .set({ ...after, source: 'requested', editedBy: actor.id, editedAt: now })
           .where(
             and(
               eq(scheduleCells.monthPlanId, plan.id),

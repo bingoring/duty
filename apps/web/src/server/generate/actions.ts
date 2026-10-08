@@ -13,9 +13,7 @@ const BAD = { ok: false as const, kind: 'blocked' as const, message: '입력 형
 
 async function adminOnly() {
   const s = await getSession()
-  return s && !s.mustChangePassword && s.user.role === 'admin'
-    ? { id: s.user.id, role: 'admin' as const }
-    : null
+  return s && !s.pendingStep && s.user.role === 'admin' ? { id: s.user.id, role: 'admin' as const } : null
 }
 
 const GenerateSchema = z.object({

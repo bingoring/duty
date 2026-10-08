@@ -243,7 +243,7 @@ describe('제출·승인·반려·취소 (R-LEAVE-6, R-APPROVE-1·2·4)', () => 
       code: 'LEAVE',
       leaveKind: 'sick',
       offKind: null,
-      source: 'admin',
+      source: 'requested',
     })
     expect(await cell(me.id, '2026-10-16')).toMatchObject({ code: before, checkupHalf: true })
     const logs = await db.select().from(cellEditLogs).where(eq(cellEditLogs.userId, me.id))

@@ -52,6 +52,8 @@ export type SolverMeta = {
   priorities: Priorities
   prevMonthConfirmed: boolean
   solverVersion: string
+  // 2-11 R-HEAD-5: 솔버가 인원 부족으로 D를 넣은 수간호사 칸("userId|date")
+  headFill?: string[]
 }
 
 type Actor = { id: string; role: 'nurse' | 'admin' }
@@ -187,7 +189,8 @@ async function generateOnce(
   }
 
   // 1-3 §3: 솔버 안은 TS 검사기로 재검사한 뒤에만 저장한다
-  const cells = assembleCells(g, out.res.cells)
+  const headFill = (out.res.headFill ?? []).map((f) => `${f.userId}|${f.date}`)
+  const cells = assembleCells(g, out.res.cells, headFill)
   const check = checkSchedule({ ...g.input, cells })
   if (check.hardViolations.length) {
     console.error('solver_hard_violation', {
@@ -205,6 +208,7 @@ async function generateOnce(
     priorities: opts.priorities,
     prevMonthConfirmed: g.prevMonthConfirmed,
     solverVersion: out.res.solverVersion,
+    ...(headFill.length ? { headFill } : {}),
   }
   const version = await ruleVersionNo(db)
   const saved = await db.transaction(async (tx) => {

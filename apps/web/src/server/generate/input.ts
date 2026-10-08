@@ -221,7 +221,19 @@ export async function buildGenerationInput(db: Db, plan: PlanRow): Promise<Gener
           .filter((r) => r.userId === h.id && r.options.includes('OFF') && !r.options.includes('D'))
           .map((r) => r.date),
       ),
+      // 2-11 R-HEAD-2: 수간호사 단일 D 신청
+      dRequests: new Set(
+        input.requests
+          .filter((r) => r.userId === h.id && r.options.length === 1 && r.options[0] === 'D')
+          .map((r) => r.date),
+      ),
     }),
+  )
+  // R-HEAD-3: 고정·신청이 아닌 기본 S 칸만 솔버가 D로 바꿀 수 있다
+  const flexKey = new Set(
+    head
+      .filter((c) => c.code === 'S' && !fixed.get(c.userId)?.has(c.date))
+      .map((c) => `${c.userId}|${c.date}`),
   )
   const trainees = new Set(
     input.trainings
@@ -284,7 +296,12 @@ export async function buildGenerationInput(db: Db, plan: PlanRow): Promise<Gener
       junior: h.seniorityTier === 'junior',
       cells: head
         .filter((c) => c.userId === h.id)
-        .map((c) => ({ date: c.date, code: c.code, ...(c.offKind ? { offKind: c.offKind } : {}) })),
+        .map((c) => ({
+          date: c.date,
+          code: c.code,
+          ...(c.offKind ? { offKind: c.offKind } : {}),
+          ...(flexKey.has(`${c.userId}|${c.date}`) ? { flex: true } : {}),
+        })),
     })),
     trainings: input.trainings
       .filter((t) => rotIds.has(t.traineeId) && rotIds.has(t.preceptorId))
@@ -347,8 +364,16 @@ export function toSolverRequest(
 }
 
 // 솔버 결과 칸 + 수간호사 칸 + 검진 반차 표시 → 검사기·저장용 칸
-export function assembleCells(g: GenerationInput, solved: SolverRequest['prevTail']): GridCell[] {
-  const out: GridCell[] = [...g.headCells]
+export function assembleCells(
+  g: GenerationInput,
+  solved: SolverRequest['prevTail'],
+  headFill: readonly string[] = [],
+): GridCell[] {
+  // 2-11 R-HEAD-3: 솔버가 D로 바꾼 수간호사 기본 S 칸
+  const fill = new Set(headFill)
+  const out: GridCell[] = g.headCells.map((c) =>
+    fill.has(`${c.userId}|${c.date}`) && c.code === 'S' ? { ...c, code: 'D' as const } : c,
+  )
   for (const c of solved) {
     const cell: GridCell = {
       userId: c.userId,

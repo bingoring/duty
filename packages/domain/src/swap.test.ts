@@ -28,6 +28,23 @@ describe('sameCounts', () => {
     expect(sameCounts(items)).toBe(true)
     expect(sameCounts([{ userId: 'a', before: { code: 'D' }, after: { code: 'OFF' } }])).toBe(false)
   })
+  it('수간호사의 S는 OFF로 센다 (2-11 R-SWAPH-3)', () => {
+    const items = [
+      { userId: 'a', before: { code: 'D' as const }, after: { code: 'OFF' as const } },
+      { userId: 'h', before: { code: 'S' as const }, after: { code: 'D' as const } },
+    ]
+    expect(sameCounts(items, new Set(['h']))).toBe(true)
+    expect(sameCounts(items)).toBe(false)
+    // 수간호사가 아닌 사람의 S는 그대로
+    expect(sameCounts(items, new Set(['a']))).toBe(false)
+  })
+})
+
+describe('swappable (2-11 R-SWAPH-2 수간호사)', () => {
+  it('수간호사 칸은 S·D만', () => {
+    expect(['S', 'D', 'E', 'N'].map((c) => swappable(cell(c), true))).toEqual([true, true, false, false])
+    expect(swappable(cell('OFF', 'regular'), true)).toBe(false)
+  })
 })
 
 describe('swapToEdits', () => {

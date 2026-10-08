@@ -22,6 +22,7 @@ def hard_violations(req: dict, res: dict) -> list[str]:
     r = req["rules"]
     out: list[str] = []
     heads = {(h["id"], c["date"]): c["code"] for h in req["heads"] for c in h["cells"]}
+    heads.update({(f["userId"], f["date"]): "D" for f in res.get("headFill", [])})
     trainees = {t["traineeId"]: t for t in req["trainings"]}
     for d in req["days"]:
         for s in "DEN":

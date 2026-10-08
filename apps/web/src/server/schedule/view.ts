@@ -28,7 +28,7 @@ export type GridCellView = {
   date: IsoDate
   label: string
   chip: 'd' | 'e' | 'n' | 's' | 'off' | 'leave' | null
-  outline: 'admin' | 'requested' | null
+  outline: 'admin' | 'swap' | 'requested' | null
   checkupHalf: boolean
   weekend: boolean
   today: boolean
@@ -100,7 +100,11 @@ export function signed(n: number): string {
   return r > 0 ? `+${r}` : r < 0 ? `−${-r}` : '0'
 }
 
-export function cellView(c: ScheduleCellRow | undefined, day: DayHead): GridCellView {
+export function cellView(
+  c: ScheduleCellRow | undefined,
+  day: DayHead,
+  notes: readonly string[] = [],
+): GridCellView {
   const { date, red: weekend, today } = day
   if (!c)
     return {
@@ -116,27 +120,23 @@ export function cellView(c: ScheduleCellRow | undefined, day: DayHead): GridCell
   const leave = c.code === 'AL' || c.code === 'LEAVE'
   const label = c.code === 'OFF' ? 'off' : leave ? '휴' : c.code
   const chip = leave ? 'leave' : c.code === 'OFF' ? 'off' : (c.code.toLowerCase() as GridCellView['chip'])
-  // R-VIEW-6: 관리자 수정 > 신청 반영, 휴가 칸은 외곽선 없음
-  const outline = leave
-    ? null
-    : c.source === 'admin'
-      ? 'admin'
-      : c.source === 'requested'
-        ? 'requested'
-        : null
+  // 2-11 R-MARK-1·2: 관리자 수정 > 교환 > 신청 반영(휴가 칸 포함)
+  const outline = c.source === 'admin' || c.source === 'swap' || c.source === 'requested' ? c.source : null
   const kind = KIND_LABEL[c.offKind ?? c.leaveKind ?? ''] ?? (c.code === 'AL' ? '연차' : undefined)
-  const title = [
-    withDay(date),
-    label,
-    kind,
-    c.checkupHalf ? '검진 반차' : undefined,
-    outline === 'admin' ? '관리자 수정' : outline === 'requested' ? '신청 반영' : undefined,
-    // 2-8 R-SWAP-13: 교환 반영 칸은 외곽선 없이 설명만
-    c.source === 'swap' ? '교환 반영' : undefined,
-  ]
+  const head = [withDay(date), label, kind, c.checkupHalf ? '검진 반차' : undefined]
     .filter(Boolean)
     .join(' · ')
-  return { date, label, chip, outline, checkupHalf: c.checkupHalf, weekend, today, title }
+  const fallback =
+    outline === 'admin'
+      ? '관리자 수정'
+      : outline === 'swap'
+        ? '교환 반영'
+        : outline === 'requested'
+          ? '신청 반영'
+          : undefined
+  // 첫 줄 = 날짜·표시·종류, 이후 줄 = 출처(R-TIP-1·2). 조회한 줄이 없으면 출처 이름만
+  const lines = [head, ...(notes.length ? notes : fallback ? [fallback] : [])]
+  return { date, label, chip, outline, checkupHalf: c.checkupHalf, weekend, today, title: lines.join('\n') }
 }
 
 // R-VIEW-2
@@ -226,7 +226,7 @@ export function buildScheduleView(d: MonthViewData): ScheduleView {
       carryOff: num(b.offCarryBefore),
       carryN: num(b.nightBankBefore),
       cells: days.map((day) => {
-        const v = cellView(cellAt.get(`${u.id}|${day.date}`), day)
+        const v = cellView(cellAt.get(`${u.id}|${day.date}`), day, d.notes?.get(`${u.id}|${day.date}`))
         return d.preview?.warnCells.has(`${u.id}|${day.date}`) ? { ...v, warn: true } : v
       }),
       accOff: signed(b.offCarryAfter),

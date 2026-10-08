@@ -1,8 +1,16 @@
 import { addDays, weekendPairs } from '@duty/domain'
-import { eq } from 'drizzle-orm'
+import { and, eq } from 'drizzle-orm'
 import { beforeEach, describe, expect, it } from 'vitest'
 import { resetDb, setupTestDb } from '../../test/db'
-import { balanceEntries, monthPlans, monthSettlements, scheduleCells, users } from '../db/schema'
+import {
+  balanceEntries,
+  cellEditLogs,
+  monthPlans,
+  monthSettlements,
+  scheduleCells,
+  shiftRequests,
+  users,
+} from '../db/schema'
 import { seedDev } from '../seed/dev'
 import { loadLeaveBalance, loadMonthView, planSettlements } from './load'
 
@@ -213,5 +221,50 @@ describe('성능 (1-3 §7)', () => {
     for (let i = 0; i < 5; i++)
       await loadMonthView(db, { year: 2026, month: 10, viewerId: viewer, today: '2026-10-01' })
     expect((performance.now() - t0) / 5).toBeLessThan(300)
+  })
+})
+
+describe('칸 툴팁 출처 줄 (2-11 R-TIP-2·3)', () => {
+  it('관리자 수정은 수정자·이전 근무, 메모·코멘트는 본인과 관리자만', async () => {
+    const me = await userId('00103')
+    const head = await userId('00101')
+    const [plan] = await db.select().from(monthPlans).where(eq(monthPlans.month, 10))
+    const at = (d: string) => and(eq(scheduleCells.userId, me), eq(scheduleCells.date, d))
+    const [c] = await db.select().from(scheduleCells).where(at('2026-10-14'))
+    await db.update(scheduleCells).set({ source: 'admin' }).where(at('2026-10-14'))
+    await db.insert(cellEditLogs).values({
+      monthPlanId: plan!.id,
+      userId: me,
+      date: '2026-10-14',
+      before: { code: 'E' },
+      after: { code: c!.code },
+      editedBy: head,
+      editedAt: new Date('2026-10-02T00:30:00Z'),
+      reason: 'manual',
+      note: '인원 부족으로 예외',
+    })
+    await db.update(scheduleCells).set({ source: 'requested' }).where(at('2026-10-20'))
+    await db.insert(shiftRequests).values({
+      userId: me,
+      year: 2026,
+      month: 10,
+      date: '2026-10-20',
+      options: ['OFF', 'D'],
+      comment: '가족 행사',
+      submittedAt: new Date(),
+    })
+    const tip = async (viewer: string, date: string) => {
+      const v = await oct(viewer)
+      return v.notes?.get(`${me}|${date}`)
+    }
+    // 수정자 이름은 가명 시드 그대로 (00101)
+    const [h] = await db.select({ name: users.name }).from(users).where(eq(users.id, head))
+    expect(await tip('00103', '2026-10-14')).toEqual([
+      `관리자 수정 · ${h!.name} · 10/2 09:30 · 이전 E`,
+      '메모: 인원 부족으로 예외',
+    ])
+    expect(await tip('00104', '2026-10-14')).toEqual([`관리자 수정 · ${h!.name} · 10/2 09:30 · 이전 E`])
+    expect(await tip('00101', '2026-10-20')).toEqual(['신청 반영 · 신청: OFF/D', '코멘트: 가족 행사'])
+    expect(await tip('00104', '2026-10-20')).toEqual(['신청 반영 · 신청: OFF/D'])
   })
 })

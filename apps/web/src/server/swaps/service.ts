@@ -1,4 +1,5 @@
 import {
+  HEAD_SWAP_CODES,
   SWAP_CODES,
   applyEdits,
   checkSchedule,
@@ -63,11 +64,13 @@ export async function createSwap(
   if (ids.length < 2 || ids.length > MAX_PEOPLE) return deny(`교환은 2~${MAX_PEOPLE}명이 합니다.`)
   if (!input.date.startsWith(`${plan.year}-${String(plan.month).padStart(2, '0')}`))
     return deny('대상 월의 날짜가 아닙니다.')
-  if (input.items.some((i) => !SWAP_CODES.includes(i.after))) return deny('바꿀 수 없는 근무입니다.')
 
   const people = await db.select().from(users).where(inArray(users.id, ids))
-  if (people.length !== ids.length || people.some((u) => u.rotation !== 'rotating'))
-    return deny('교대 근무자끼리만 교환할 수 있습니다.')
+  if (people.length !== ids.length) return deny('교환할 수 없는 사람이 있습니다.')
+  // 2-11 R-SWAPH-1·2: 수간호사도 넣을 수 있고, 수간호사 칸은 S ↔ D만
+  const heads = new Set(people.filter((u) => u.rotation === 'fixed_weekday').map((u) => u.id))
+  if (input.items.some((i) => !(heads.has(i.userId) ? HEAD_SWAP_CODES : SWAP_CODES).includes(i.after)))
+    return deny('바꿀 수 없는 근무입니다.')
   const cells = await db
     .select()
     .from(scheduleCells)
@@ -86,14 +89,19 @@ export async function createSwap(
     checkupHalf: c.checkupHalf,
     ...(c.offKind ? { offKind: c.offKind as 'regular' } : {}),
   })
-  if (ids.some((id) => !swappable(cellOf.get(id) ? toGrid(cellOf.get(id)!) : undefined)))
-    return deny('휴가·교육·슬리핑오프·S 칸은 교환할 수 없습니다.')
+  if (ids.some((id) => !swappable(cellOf.get(id) ? toGrid(cellOf.get(id)!) : undefined, heads.has(id))))
+    return deny(
+      ids.some((id) => heads.has(id) && !swappable(cellOf.get(id) && toGrid(cellOf.get(id)!), true))
+        ? '수간호사는 S·D 근무만 교환할 수 있습니다.'
+        : '휴가·교육·슬리핑오프·S 칸은 교환할 수 없습니다.',
+    )
   const items: SwapItem[] = input.items.map((i) => ({
     userId: i.userId,
     before: { code: cellOf.get(i.userId)!.code as SwapCode },
     after: { code: i.after },
   }))
-  if (!sameCounts(items)) return deny('그날 D/E/N·OFF 개수가 달라집니다. 서로 맞바꾸는 조합이어야 합니다.')
+  if (!sameCounts(items, heads))
+    return deny('그날 D/E/N·OFF 개수가 달라집니다. 서로 맞바꾸는 조합이어야 합니다.')
   if (items.every((i) => i.before.code === i.after.code)) return deny('바뀌는 근무가 없습니다.')
 
   // R-SWAP-4: 새로 생기는 필수 위반이 있으면 거부
@@ -201,10 +209,12 @@ export async function respondSwap(
     }))
     const edits = swapToEdits(q.date, swapItems)
     const check = await adjustCheckInput(tx as unknown as Db, plan)
+    const heads = new Set(check.nurses.filter((n) => n.rotation === 'fixed_weekday').map((n) => n.id))
     let invalid: string | null = null
     for (const i of swapItems) {
       const c = check.cells.find((x) => x.userId === i.userId && x.date === q.date)
-      if (!c || c.code !== i.before.code || !swappable(c)) invalid = '요청 뒤 근무가 바뀌었습니다'
+      if (!c || c.code !== i.before.code || !swappable(c, heads.has(i.userId)))
+        invalid = '요청 뒤 근무가 바뀌었습니다'
     }
     if (!invalid) {
       const hard = newViolations(
@@ -409,7 +419,9 @@ export async function listSwaps(db: Db, viewer: Actor, planId: string, today: st
       (pendingByCell[`${i.userId}|${q.date}`] ??= []).push(q.id)
   const received = cards.filter((c) => {
     const q = reqs.find((r) => r.id === c.id)!
-    return viewer.role !== 'admin' && q.requesterId !== viewer.id
+    // 2-11 R-SWAPH-4: 관리자(수간호사)는 자신이 들어간 요청만 받은 요청으로
+    const mine = items.some((i) => i.requestId === q.id && i.userId === viewer.id)
+    return q.requesterId !== viewer.id && (viewer.role !== 'admin' || mine)
   })
   const sent =
     viewer.role === 'admin'

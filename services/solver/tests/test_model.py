@@ -169,6 +169,29 @@ def test_목표_OFF가_공평하게_나뉜다():
     assert res["objective"]["terms"]["offShortMax"] == 0
 
 
+def test_수간호사는_평소_S이고_인원이_모자란_날만_D로_보충한다():
+    req = request(time_limit=5)
+    assert "headFill" not in solve(req)
+    # 11/18(수) 교대 근무자 5명만 남으면 D·E·N 2명씩(6명)을 채우려면 수간호사 D가 필요하다
+    for n in req["nurses"][:5]:
+        n["fixed"] = [{"date": "2026-11-18", "code": "LEAVE"}]
+    res = solve(req)
+    assert res["status"] in ("OPTIMAL", "FEASIBLE")
+    assert res["headFill"] == [{"userId": "h", "date": "2026-11-18"}]
+    assert hard_violations(req, res) == []
+
+
+def test_수간호사_고정_D는_인원에_센다():
+    req = request(time_limit=5)
+    for n in req["nurses"][:5]:
+        n["fixed"] = [{"date": "2026-11-18", "code": "LEAVE"}]
+    cell = next(c for c in req["heads"][0]["cells"] if c["date"] == "2026-11-18")
+    cell.update(code="D", flex=False)
+    res = solve(req)
+    assert "headFill" not in res
+    assert hard_violations(req, res) == []
+
+
 def test_인원이_모자라면_불가능과_원인을_돌려준다():
     req = request(time_limit=5)
     for n in req["nurses"][:7]:

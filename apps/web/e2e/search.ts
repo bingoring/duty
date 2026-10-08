@@ -65,3 +65,24 @@ export function findSafeEdit(input: ScheduleInput, userIds: string[], from: stri
 
 export const mdOf = (d: string) => `${Number(d.slice(5, 7))}/${Number(d.slice(8))}`
 export const lab = (c: string) => (c === 'OFF' ? 'off' : c)
+
+// 2-11 R-SWAPH: 수간호사 칸을 S로 두었을 때, 그날 D인 간호사가 OFF로 빠지고 수간호사가 D를 맡아도 새 필수 위반이 없는 날
+export function findHeadSwap(input: ScheduleInput, headId: string, userIds: string[], from: string) {
+  for (const date of datesFrom(input, from)) {
+    const h = input.cells.find((c) => c.userId === headId && c.date === date)
+    if (!h || (h.code !== 'S' && h.code !== 'D')) continue
+    const cells = input.cells.map((c) => (c === h ? { ...c, code: 'S' as const } : c))
+    const withS = { ...input, cells }
+    const base = checkSchedule(withS)
+    for (const userId of userIds) {
+      const c = cells.find((x) => x.userId === userId && x.date === date)
+      if (c?.code !== 'D') continue
+      const edits = swapToEdits(date, [
+        { userId, before: { code: 'D' }, after: { code: 'OFF' } },
+        { userId: headId, before: { code: 'S' }, after: { code: 'D' } },
+      ])
+      if (passes(withS, base, edits)) return { date, nurse: userId, headBefore: h.code }
+    }
+  }
+  throw new Error('수간호사 교환 날짜 없음')
+}

@@ -18,9 +18,7 @@ const BAD = { ok: false as const, message: '입력 형식이 올바르지 않습
 
 async function adminOnly() {
   const s = await getSession()
-  return s && !s.mustChangePassword && s.user.role === 'admin'
-    ? { id: s.user.id, role: 'admin' as const }
-    : null
+  return s && !s.pendingStep && s.user.role === 'admin' ? { id: s.user.id, role: 'admin' as const } : null
 }
 
 const date = z.string().refine(isIsoDate)

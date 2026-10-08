@@ -441,7 +441,7 @@ export function RequestsScreen({
                 <div
                   className={`flex h-9 items-center gap-1 truncate border-r border-b border-line border-b-line-soft pl-2 font-semibold ${r.me ? 'shadow-[inset_3px_0_0_var(--color-primary)]' : ''}`}
                 >
-                  {r.name}
+                  <span className={r.head ? 'text-admin' : ''}>{r.name}</span>
                   {r.me && (
                     <span className="rounded-full bg-primary px-1.5 text-[10px] font-bold text-white">
                       나
@@ -556,6 +556,7 @@ export function RequestsScreen({
               key={`${sel.userId}|${sel.date}`}
               userId={sel.userId}
               userName={selRow.name}
+              head={selRow.head}
               cell={selCell}
               sameDay={sameDay}
               mode={view.editable === 'all' ? 'all' : 'leave'}

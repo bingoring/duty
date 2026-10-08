@@ -19,6 +19,8 @@ import { cancelSwapAction, createSwapAction, respondSwapAction } from '@/server/
 import type { AdjustView } from '@/server/adjust/view'
 import type { SwapCard } from '@/server/swaps/service'
 import type { GridCellView } from '@/server/schedule/view'
+import { CellTip } from '../schedule/CellTip'
+import { OUTLINE } from '../schedule/ScheduleGrid'
 import { useHydrated } from '../admin/ui'
 
 // S9 근무 조정 · 간호사 시점 (Build Spec 2-8 frontend-components, 핸드오프 v5 3a)
@@ -35,6 +37,7 @@ const CODE_CLS: Record<SwapCode, string> = {
   E: 'bg-shift-e',
   N: 'bg-shift-n',
   OFF: 'bg-shift-off',
+  S: 'bg-shift-s',
 }
 const SEL_ROW = 'bg-[#FFF9E8]'
 const PANEL_KEY = 'duty.swapPanel.collapsed'
@@ -79,7 +82,8 @@ export function NurseAdjust({ view, viewerId }: { view: AdjustView; viewerId: st
   const [msg, setMsg] = useState<{ kind: 'ok' | 'err'; text: string } | null>(null)
   const swap = view.swap
   const open = !!swap?.window.open
-  const rows = view.grid.rows.filter((r) => r.kind !== 'head')
+  // 2-11 R-SWAPH-1: 수간호사 행도 보이고 고를 수 있다
+  const rows = view.grid.rows
   const nameOf = (id: string) => view.names[id]?.name ?? id
   const received = swap?.received.filter((c) => c.status === 'PENDING' && c.canRespond).length ?? 0
 
@@ -268,6 +272,7 @@ export function NurseAdjust({ view, viewerId }: { view: AdjustView; viewerId: st
                 )
               })}
             </div>
+            <CellTip />
           </div>
         )}
         <p className="text-xs text-ink-2">
@@ -324,7 +329,7 @@ function Cell({
   const cls = `relative flex h-8 items-center justify-center border-r border-b border-line-soft ${colSel ? 'bg-warn-bg' : rowSel ? SEL_ROW : c.weekend ? 'bg-weekend-cell' : ''} ${rowSel && colSel ? 'z-10 outline-2 -outline-offset-2 outline-ink' : ''}`
   const chip = c.chip && (
     <span
-      className={`flex h-5 w-5 items-center justify-center rounded-[5px] font-bold text-ink ${c.label === 'off' ? 'text-[8.5px]' : 'text-[10.5px]'} ${CHIP[c.chip]} ${c.outline === 'requested' ? 'shadow-[inset_0_0_0_1.5px_var(--color-danger)]' : c.outline === 'admin' ? 'shadow-[inset_0_0_0_2px_var(--color-admin)]' : ''}`}
+      className={`flex h-5 w-5 items-center justify-center rounded-[5px] font-bold text-ink ${c.label === 'off' ? 'text-[8.5px]' : 'text-[10.5px]'} ${CHIP[c.chip]} ${c.outline ? OUTLINE[c.outline] : ''}`}
     >
       {c.label}
     </span>
@@ -332,7 +337,7 @@ function Cell({
   return onClick ? (
     <button
       type="button"
-      title={c.title}
+      data-tip={c.title}
       data-date={c.date}
       onClick={onClick}
       className={`${cls} cursor-pointer`}
@@ -340,7 +345,7 @@ function Cell({
       {chip}
     </button>
   ) : (
-    <div title={c.title} data-date={c.date} className={cls}>
+    <div data-tip={c.title} data-date={c.date} className={cls}>
       {chip}
     </div>
   )
@@ -361,9 +366,12 @@ function SwapPopup(props: {
   const [comment, setComment] = useState('')
   const [err, setErr] = useState('')
   const cells = people.map((id) => input.cells.find((c) => c.userId === id && c.date === date))
-  const blocked = people.filter((_, i) => !swappable(cells[i]))
+  // 2-11 R-SWAPH-2·3: 수간호사 칸은 S ↔ D만, 수간호사의 S는 OFF 자리로 센다
+  const heads = new Set(people.filter((id) => view.names[id]?.rotation === 'fixed_weekday'))
+  const isHead = (i: number) => heads.has(people[i]!)
+  const blocked = people.filter((id, i) => !swappable(cells[i], heads.has(id)))
   const [after, setAfter] = useState<SwapCode[]>(() =>
-    cells.map((c) => (swappable(c) ? (c!.code as SwapCode) : 'OFF')),
+    cells.map((c, i) => (swappable(c, isHead(i)) ? (c!.code as SwapCode) : 'OFF')),
   )
   const [pick, setPick] = useState<number | null>(null)
   const items: SwapItem[] = people.map((id, i) => ({
@@ -391,11 +399,16 @@ function SwapPopup(props: {
     if (pick === i) return setPick(null)
     const next = [...after]
     ;[next[pick], next[i]] = [next[i]!, next[pick]!]
-    setAfter(next)
+    // 수간호사가 받은 OFF는 S, 교대 근무자가 받은 S는 OFF. 수간호사는 E·N을 받을 수 없다
+    const fixed = next.map((c, k) => (isHead(k) ? (c === 'OFF' ? 'S' : c) : c === 'S' ? 'OFF' : c))
     setPick(null)
+    if (fixed.some((c, k) => isHead(k) && c !== 'S' && c !== 'D'))
+      return setErr('수간호사는 S·D 근무만 맡을 수 있습니다.')
+    setErr('')
+    setAfter(fixed)
   }
   const others = people.filter((id) => id !== props.viewerId)
-  const canSend = !pending && changed && !blocked.length && hard.length === 0 && sameCounts(items)
+  const canSend = !pending && changed && !blocked.length && hard.length === 0 && sameCounts(items, heads)
 
   return (
     <div
@@ -417,7 +430,7 @@ function SwapPopup(props: {
         <span className="font-semibold text-ink">변경 후</span>
         {people.map((id, i) => {
           const me = id === props.viewerId
-          const ok = swappable(cells[i])
+          const ok = swappable(cells[i], isHead(i))
           const cur = (cells[i]?.code ?? '') as SwapCode
           const a = after[i]!
           return (
@@ -451,7 +464,7 @@ function SwapPopup(props: {
       {blocked.length > 0 ? (
         <div className="rounded-lg bg-danger-bg px-2.5 py-2 text-xs leading-[1.5] text-danger-ink">
           <b>교환할 수 없는 칸</b> · {blocked.map(nameOf).join(', ')}의 {md(date)} 칸은
-          휴가·교육·슬리핑오프·S라 바꿀 수 없습니다
+          휴가·교육·슬리핑오프·S(수간호사는 OFF·휴가)라 바꿀 수 없습니다
         </div>
       ) : !changed ? (
         <div className="rounded-lg bg-panel px-2.5 py-2 text-xs text-ink-2">
@@ -567,58 +580,7 @@ function SwapPanel(props: {
         </button>
       </div>
       {tab === 'recv' ? (
-        <div className="flex flex-col gap-2.5">
-          {props.received.length === 0 && <div className="text-xs text-ink-3">받은 요청이 없습니다.</div>}
-          {props.received.map((q) => (
-            <div
-              role="article"
-              aria-label={q.title}
-              key={q.id}
-              className={`flex flex-col gap-1.5 rounded-xl border bg-surface p-3 ${q.canRespond ? 'border-ink' : 'border-line'}`}
-            >
-              <div className="flex items-center justify-between">
-                <span className="font-bold">{q.from} 님의 요청</span>
-                <span className="text-[11px] text-ink-3">{q.when}</span>
-              </div>
-              <div className="font-semibold">{q.title}</div>
-              <div className="text-xs text-ink-2">{q.detail}</div>
-              {q.comment && (
-                <div className="rounded-md bg-panel px-2 py-1.5 text-xs text-nav-ink">{q.comment}</div>
-              )}
-              {q.canRespond ? (
-                <div className="flex gap-1.5">
-                  {(['reject', 'accept'] as const).map((d) => (
-                    <button
-                      key={d}
-                      type="button"
-                      disabled={pending}
-                      onClick={() =>
-                        run(async () => {
-                          const r = await respondSwapAction({ id: q.id, decision: d })
-                          if (!r.ok) return props.onDone(r.message, 'err')
-                          const rr = r as { applied: boolean; message?: string }
-                          props.onDone(
-                            rr.message ??
-                              (d === 'reject'
-                                ? '요청을 거절했습니다.'
-                                : rr.applied
-                                  ? '모두 수락해 근무표에 반영했습니다.'
-                                  : '수락했습니다. 다른 당사자의 응답을 기다립니다.'),
-                          )
-                        })
-                      }
-                      className={`h-[34px] flex-1 cursor-pointer rounded-lg text-xs ${d === 'accept' ? 'bg-primary font-bold text-white' : 'border border-line bg-surface'}`}
-                    >
-                      {d === 'accept' ? '수락' : '거절'}
-                    </button>
-                  ))}
-                </div>
-              ) : (
-                <div className="text-xs font-semibold text-ink-2">{q.statusLabel}</div>
-              )}
-            </div>
-          ))}
-        </div>
+        <ReceivedList received={props.received} onDone={props.onDone} />
       ) : (
         <div className="flex flex-col gap-2.5">
           {props.sent.length === 0 && <div className="text-xs text-ink-3">보낸 요청이 없습니다.</div>}
@@ -667,5 +629,67 @@ function SwapPanel(props: {
         </div>
       )}
     </aside>
+  )
+}
+
+// 받은 교환 요청 카드 목록 (간호사 패널·관리자 근무 조정의 수간호사 받은 요청, 2-11 R-SWAPH-4)
+export function ReceivedList(props: {
+  received: SwapCard[]
+  onDone: (text: string, kind?: 'ok' | 'err') => void
+}) {
+  const [pending, run] = useTransition()
+  return (
+    <div className="flex flex-col gap-2.5">
+      {props.received.length === 0 && <div className="text-xs text-ink-3">받은 요청이 없습니다.</div>}
+      {props.received.map((q) => (
+        <div
+          role="article"
+          aria-label={q.title}
+          key={q.id}
+          className={`flex flex-col gap-1.5 rounded-xl border bg-surface p-3 ${q.canRespond ? 'border-ink' : 'border-line'}`}
+        >
+          <div className="flex items-center justify-between">
+            <span className="font-bold">{q.from} 님의 요청</span>
+            <span className="text-[11px] text-ink-3">{q.when}</span>
+          </div>
+          <div className="font-semibold">{q.title}</div>
+          <div className="text-xs text-ink-2">{q.detail}</div>
+          {q.comment && (
+            <div className="rounded-md bg-panel px-2 py-1.5 text-xs text-nav-ink">{q.comment}</div>
+          )}
+          {q.canRespond ? (
+            <div className="flex gap-1.5">
+              {(['reject', 'accept'] as const).map((d) => (
+                <button
+                  key={d}
+                  type="button"
+                  disabled={pending}
+                  onClick={() =>
+                    run(async () => {
+                      const r = await respondSwapAction({ id: q.id, decision: d })
+                      if (!r.ok) return props.onDone(r.message, 'err')
+                      const rr = r as { applied: boolean; message?: string }
+                      props.onDone(
+                        rr.message ??
+                          (d === 'reject'
+                            ? '요청을 거절했습니다.'
+                            : rr.applied
+                              ? '모두 수락해 근무표에 반영했습니다.'
+                              : '수락했습니다. 다른 당사자의 응답을 기다립니다.'),
+                      )
+                    })
+                  }
+                  className={`h-[34px] flex-1 cursor-pointer rounded-lg text-xs ${d === 'accept' ? 'bg-primary font-bold text-white' : 'border border-line bg-surface'}`}
+                >
+                  {d === 'accept' ? '수락' : '거절'}
+                </button>
+              ))}
+            </div>
+          ) : (
+            <div className="text-xs font-semibold text-ink-2">{q.statusLabel}</div>
+          )}
+        </div>
+      ))}
+    </div>
   )
 }

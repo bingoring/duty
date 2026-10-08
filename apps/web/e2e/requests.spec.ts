@@ -124,7 +124,7 @@ test.describe('S4-A 확정된 달 휴가', () => {
 
     await admin.goto('/?ym=2026-10')
     const row = admin.getByRole('grid').getByRole('row', { name: CHAE.name })
-    await expect(row.locator('[data-date="2026-10-02"]')).toHaveAttribute('title', /휴 · 병가/)
+    await expect(row.locator('[data-date="2026-10-02"]')).toHaveAttribute('data-tip', /휴 · 병가/)
 
     // 2-7 Q4: 확정된 달의 승인 휴가 취소 → 승인 전 칸(D)으로 복원
     await admin.goto('/adjust?ym=2026-10')
@@ -136,7 +136,10 @@ test.describe('S4-A 확정된 달 휴가', () => {
       .getByRole('button', { name: '휴가 취소' })
       .click()
     await expect(admin.getByRole('status')).toContainText('휴가를 취소했습니다. 1일을 되돌렸습니다.')
-    await expect(admin.getByRole('button', { name: `${CHAE.name} 2026-10-02` })).toHaveAttribute('title', /D/)
+    await expect(admin.getByRole('button', { name: `${CHAE.name} 2026-10-02` })).toHaveAttribute(
+      'data-tip',
+      /D/,
+    )
     await Promise.all([me.close(), admin.close()])
   })
 })
@@ -145,4 +148,24 @@ test('간호사는 휴가 승인 패널을 보지 않는다', async ({ browser }
   const me = await as(browser, NURSE.employeeNo)
   await expect(me.getByRole('complementary', { name: '휴가 승인' })).toHaveCount(0)
   await me.close()
+})
+
+test('수간호사 행: OFF·D 중 하나만 신청 (2-11 R-HEAD-2)', async ({ browser }) => {
+  const admin = await as(browser, ADMIN.employeeNo)
+  const cell = admin.getByRole('button', { name: `${ADMIN.name} 2026-11-18` })
+  await cell.click()
+  const pop = admin.getByRole('dialog')
+  await expect(pop.getByText('평일 기본 S · OFF 또는 D 하나')).toBeVisible()
+  await expect(pop.getByRole('button', { name: 'E', exact: true })).toHaveCount(0)
+  await pop.getByRole('button', { name: 'OFF', exact: true }).click()
+  await pop.getByRole('button', { name: 'D', exact: true }).click()
+  await expect(pop.getByRole('button', { name: 'OFF', exact: true })).toHaveAttribute('aria-pressed', 'false')
+  await pop.getByRole('button', { name: '저장', exact: true }).click()
+  await expect(cell).toHaveText('D')
+  // 다른 스펙(생성)에 영향을 주지 않게 지운다
+  await cell.click()
+  await admin.getByRole('dialog').getByRole('button', { name: '삭제' }).click()
+  // 내 행의 빈 칸은 + 자리 표시
+  await expect(cell).toHaveText('+')
+  await admin.close()
 })

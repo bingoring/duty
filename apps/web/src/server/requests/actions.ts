@@ -22,7 +22,7 @@ const BAD = { ok: false as const, message: '입력 형식이 올바르지 않습
 
 async function sessionActor(): Promise<Actor | null> {
   const s = await getSession()
-  if (!s || s.mustChangePassword) return null
+  if (!s || s.pendingStep) return null
   return { id: s.user.id, role: s.user.role === 'admin' ? 'admin' : 'nurse' }
 }
 

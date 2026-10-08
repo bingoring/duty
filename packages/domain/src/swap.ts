@@ -3,22 +3,27 @@ import { diffDays, type IsoDate } from './dates'
 import type { GridCell } from './types'
 
 // Build Spec 2-8 domain-entities §3 — 간호사 교환 요청 (한 요청 = 한 날짜, Q2)
-export type SwapCode = 'D' | 'E' | 'N' | 'OFF'
+// 2-11 R-SWAPH-2: 수간호사 칸은 S ↔ D만
+export type SwapCode = 'D' | 'E' | 'N' | 'OFF' | 'S'
 export type SwapItem = { userId: string; before: { code: SwapCode }; after: { code: SwapCode } }
 
 export const SWAP_CODES: readonly SwapCode[] = ['D', 'E', 'N', 'OFF']
+export const HEAD_SWAP_CODES: readonly SwapCode[] = ['S', 'D']
 
 // R-SWAP-3: D·E·N·일반 OFF만. 휴가·교육·슬리핑오프·S는 바꾸지 않는다
-export function swappable(c: GridCell | undefined): boolean {
+export function swappable(c: GridCell | undefined, head = false): boolean {
   if (!c) return false
+  if (head) return c.code === 'S' || c.code === 'D'
   if (c.code === 'OFF') return !c.offKind || c.offKind === 'regular'
   return c.code === 'D' || c.code === 'E' || c.code === 'N'
 }
 
-// 그날 D/E/N 개수 유지 = before·after 코드 다중집합이 같다
-export function sameCounts(items: readonly SwapItem[]): boolean {
+// 그날 D/E/N 개수 유지 = before·after 코드 다중집합이 같다.
+// 2-11 R-SWAPH-3: 수간호사의 S는 교대 인원이 아니므로 OFF와 같게 센다
+export function sameCounts(items: readonly SwapItem[], heads: ReadonlySet<string> = new Set()): boolean {
+  const norm = (i: SwapItem, c: SwapCode) => (heads.has(i.userId) && c === 'S' ? 'OFF' : c)
   const key = (xs: string[]) => [...xs].sort().join()
-  return key(items.map((i) => i.before.code)) === key(items.map((i) => i.after.code))
+  return key(items.map((i) => norm(i, i.before.code))) === key(items.map((i) => norm(i, i.after.code)))
 }
 
 const asCell = (code: SwapCode) => (code === 'OFF' ? { code, offKind: 'regular' as const } : { code })

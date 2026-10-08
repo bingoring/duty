@@ -55,10 +55,12 @@ describe('buildGenerationInput (business-logic-model §2)', () => {
     expect(req.prevTail.find((c) => c.userId === bae && c.date === '2026-10-31')?.code).toBe('N')
     expect(req.prevTail.some((c) => c.userId === req.heads[0]!.id)).toBe(false)
 
-    // 수간호사: 11/1(일) OFF, 11/2(월) D
+    // 수간호사: 11/1(일) OFF, 11/2(월) 기본 S — 솔버가 필요할 때만 D로 바꾸는 flex 칸(2-11 R-HEAD-1·3)
     const head = req.heads[0]!.cells
     expect(head.find((c) => c.date === '2026-11-01')).toMatchObject({ code: 'OFF' })
-    expect(head.find((c) => c.date === '2026-11-02')).toMatchObject({ code: 'D' })
+    expect(head.find((c) => c.date === '2026-11-02')).toMatchObject({ code: 'S' })
+    expect(head.find((c) => c.date === '2026-11-02')).toMatchObject({ flex: true })
+    expect(head.find((c) => c.date === '2026-11-01')).not.toHaveProperty('flex')
 
     // 빨간 날: 11월 주말 9일 + 전월 꼬리의 빨간 날
     expect(req.redDays.filter((d) => d.startsWith('2026-11'))).toHaveLength(9)

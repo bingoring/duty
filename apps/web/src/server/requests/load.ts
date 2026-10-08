@@ -49,7 +49,8 @@ export async function loadRequestsRaw(
     .where(and(lte(leaveRequests.startDate, last), gte(leaveRequests.endDate, first)))
   const involved = new Set([...requests.map((r) => r.userId), ...leaves.map((l) => l.userId)])
   const people = (await db.select().from(users).orderBy(asc(users.seniorityRank))).filter(
-    (u) => u.rotation === 'rotating' && (u.active || involved.has(u.id)),
+    // 2-11 R-HEAD-2: 수간호사도 행이 있다(OFF·D만 신청)
+    (u) => u.active || involved.has(u.id),
   )
   const names = new Map(
     (await db.select({ id: users.id, name: users.name }).from(users)).map((u) => [u.id, u.name]),
@@ -164,7 +165,12 @@ export async function loadRequestsRaw(
           negotiationEnd: plan.negotiationEnd,
         }
       : null,
-    users: people.map((u) => ({ id: u.id, name: u.name, seniorityRank: u.seniorityRank })),
+    users: people.map((u) => ({
+      id: u.id,
+      name: u.name,
+      seniorityRank: u.seniorityRank,
+      head: u.rotation === 'fixed_weekday',
+    })),
     requests: requests.map((q) => ({
       userId: q.userId,
       date: q.date,

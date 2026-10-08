@@ -197,7 +197,10 @@ export async function loadGenerateView(
     const warnCells = new Set(
       check.softWarnings.flatMap((v) => v.userIds.flatMap((u) => v.dates.map((d) => `${u}|${d}`))),
     )
-    const grid = buildScheduleView(await loadDraftView(db, { plan, cells, today, warnCells }))
+    const draft = await loadDraftView(db, { plan, cells, today, warnCells })
+    // 2-11 R-HEAD-5: 솔버가 인원 부족으로 D를 넣은 수간호사 칸
+    draft.notes = new Map((meta.headFill ?? []).map((k) => [k, ['인원 부족 보충']]))
+    const grid = buildScheduleView(draft)
     const balance = new Map(grid.rows.map((r) => [r.userId, r]))
     const rotating = g.input.nurses.filter((n) => n.rotation === 'rotating').map((n) => n.id)
     const summary = grid.rows

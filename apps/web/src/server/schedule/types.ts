@@ -70,6 +70,8 @@ export type MonthViewData = {
   todayCell: ScheduleCellRow | null
   // 2-6 S8 생성안 미리보기: 확정 전 칸을 근무표 격자로 보여 준다
   preview?: { warnCells: Set<string> }
+  // 2-11 R-TIP-2: 칸별 출처 줄("userId|date" → 줄)
+  notes?: Map<string, string[]>
 }
 
 export type LeaveBalanceSummary = {

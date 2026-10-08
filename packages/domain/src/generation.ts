@@ -74,12 +74,17 @@ export function fixedCells(a: {
   return { fixed, checkupDates }
 }
 
-// 수간호사(fixed_weekday): 빨간 날 OFF, 그 외 D. 승인 휴가·특수 신청과 본인의 OFF 신청이 이긴다
+// 수간호사(fixed_weekday): 빨간 날 OFF, 그 외 S(2-11 R-HEAD-1). 승인 휴가·특수 신청 > 본인 D 신청 > 본인 OFF 신청.
+// 기본 S 칸은 솔버가 필수 인원을 달리 채울 수 없을 때만 D로 바꾼다(R-HEAD-3, 입력의 flex)
 export function headCells(
   n: NurseProfile,
   days: readonly IsoDate[],
   red: ReadonlySet<IsoDate>,
-  over: { fixed: ReadonlyMap<IsoDate, FixedCell>; offRequests: ReadonlySet<IsoDate> },
+  over: {
+    fixed: ReadonlyMap<IsoDate, FixedCell>
+    offRequests: ReadonlySet<IsoDate>
+    dRequests?: ReadonlySet<IsoDate>
+  },
 ): GridCell[] {
   return days
     .filter((d) => isEmployed(n, d))
@@ -87,9 +92,10 @@ export function headCells(
       const f = over.fixed.get(d)
       const base = { userId: n.id, date: d, checkupHalf: false }
       if (f) return { ...base, ...strip(f) }
+      if (over.dRequests?.has(d)) return { ...base, code: 'D' as const }
       if (isRedDay(d, red) || over.offRequests.has(d))
         return { ...base, code: 'OFF' as const, offKind: 'regular' as const }
-      return { ...base, code: 'D' as const }
+      return { ...base, code: 'S' as const }
     })
 }
 

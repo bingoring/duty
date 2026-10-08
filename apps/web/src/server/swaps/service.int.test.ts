@@ -259,3 +259,76 @@ describe('동시 실행 (R-1)', () => {
     }
   })
 })
+
+describe('수간호사 교환 (2-11 R-SWAPH-1~4)', () => {
+  // 수간호사 칸을 S로 두고, 그날 D인 간호사가 OFF로 빠져도 새 필수 위반이 없는 날을 찾는다
+  async function headCase() {
+    const head = await actor('00101')
+    const plan = (await findPlan(db, OCT))!
+    const input = await adjustCheckInput(db, plan)
+    for (const date of [...new Set(input.cells.map((c) => c.date))].sort().filter((d) => d >= '2026-10-05')) {
+      const h = input.cells.find((c) => c.userId === head.id && c.date === date)
+      if (!h || (h.code !== 'S' && h.code !== 'D')) continue
+      const withS = input.cells.map((c) => (c === h ? { ...c, code: 'S' as const } : c))
+      for (const c of withS.filter((x) => x.date === date && x.code === 'D' && noOf.has(x.userId))) {
+        const edits = swapToEdits(date, [
+          { userId: c.userId, before: { code: 'D' }, after: { code: 'OFF' } },
+          { userId: head.id, before: { code: 'S' }, after: { code: 'D' } },
+        ])
+        const hard = newViolations(
+          checkSchedule({ ...input, cells: withS }),
+          checkSchedule({ ...input, cells: applyEdits(withS, edits) }),
+        ).hardViolations
+        if (hard.length) continue
+        await db
+          .update(scheduleCells)
+          .set({ code: 'S', offKind: null })
+          .where(and(eq(scheduleCells.userId, head.id), eq(scheduleCells.date, date)))
+        return { head, nurse: await actor(noOf.get(c.userId)!), date, planId: plan.id }
+      }
+    }
+    throw new Error('수간호사 교환 날짜를 찾지 못했습니다')
+  }
+
+  it('간호사 D → OFF + 수간호사 S → D: 수간호사가 수락하면 반영, 칸은 교환(swap)', async () => {
+    const { head, nurse, date, planId } = await headCase()
+    const r = await createSwap(
+      db,
+      nurse,
+      {
+        planId,
+        date,
+        items: [
+          { userId: nurse.id, after: 'OFF' },
+          { userId: head.id, after: 'D' },
+        ],
+      },
+      IN,
+    )
+    if (!r.ok) throw new Error(r.message)
+    // 관리자(수간호사)의 받은 요청에 보인다
+    const list = await listSwaps(db, head, planId, IN)
+    expect(list.received.map((q) => [q.id, q.canRespond])).toEqual([[r.id, true]])
+    expect(await respondSwap(db, head, r.id, 'accept', IN)).toEqual({ ok: true, applied: true })
+    expect(await cellOf(head.id, date)).toMatchObject({ code: 'D', source: 'swap' })
+    expect(await cellOf(nurse.id, date)).toMatchObject({ code: 'OFF', offKind: 'regular', source: 'swap' })
+  })
+
+  it('수간호사는 E·N을 받을 수 없고, 개수가 맞지 않으면 거부', async () => {
+    const { head, nurse, date, planId } = await headCase()
+    const bad = (items: { userId: string; after: SwapCode }[]) =>
+      createSwap(db, nurse, { planId, date, items }, IN)
+    expect(
+      await bad([
+        { userId: nurse.id, after: 'OFF' },
+        { userId: head.id, after: 'E' },
+      ]),
+    ).toMatchObject({ ok: false, message: '바꿀 수 없는 근무입니다.' })
+    expect(
+      await bad([
+        { userId: nurse.id, after: 'D' },
+        { userId: head.id, after: 'D' },
+      ]),
+    ).toMatchObject({ ok: false })
+  })
+})

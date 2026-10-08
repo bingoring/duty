@@ -368,3 +368,44 @@ export const swapRequestItems = pgTable(
   },
   (t) => [primaryKey({ columns: [t.requestId, t.userId] }), index('swap_items_user_idx').on(t.userId)],
 )
+
+// Build Spec 2-11 §2.1 — 개인정보 수집·이용 동의(R-CONSENT-4). 지우지 않고 쌓는다
+export const privacyConsents = pgTable(
+  'privacy_consents',
+  {
+    id: id(),
+    userId: uuid('user_id')
+      .notNull()
+      .references(() => users.id),
+    version: text('version').notNull(),
+    requiredAt: tstz('required_at').notNull(),
+    // 민감정보(노조 가입 여부·병가 사유) 별도 동의 (개인정보 보호법 제23조)
+    sensitiveAt: tstz('sensitive_at').notNull(),
+    ip: text('ip'),
+    createdAt: createdAt(),
+  },
+  (t) => [index('privacy_consents_user_idx').on(t.userId, t.version)],
+)
+
+// Build Spec 2-11 §2.1 — 최초 로그인 초기 설정 제출(R-ONB-6·7). 바뀐 항목이 있을 때만
+export const onboardingSubmissions = pgTable(
+  'onboarding_submissions',
+  {
+    id: id(),
+    userId: uuid('user_id')
+      .notNull()
+      .references(() => users.id),
+    year: integer('year').notNull(),
+    // ONBOARDING_KINDS: initial(첫 설정) · annual(해마다 연차)
+    kind: text('kind').notNull(),
+    before: jsonb('before').$type<Record<string, unknown>>().notNull(),
+    after: jsonb('after').$type<Record<string, unknown>>().notNull(),
+    submittedAt: tstz('submitted_at').notNull().defaultNow(),
+    reviewedAt: tstz('reviewed_at'),
+    reviewedBy: uuid('reviewed_by').references(() => users.id),
+    // ONBOARDING_REVIEWS: confirmed · reverted
+    review: text('review'),
+    reviewNote: text('review_note'),
+  },
+  (t) => [index('onboarding_submissions_user_idx').on(t.userId, t.reviewedAt)],
+)

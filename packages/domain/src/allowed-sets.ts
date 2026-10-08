@@ -48,7 +48,12 @@ export const BALANCE_REASONS = [
   'leave_approved',
   'leave_cancelled',
   'settlement_reversed',
+  // 2-11 R-ONB-6: 최초 로그인 초기 설정에서 본인이 고친 잔여치
+  'self_input',
 ] as const
+// 2-11 최초 로그인 초기 설정 제출
+export const ONBOARDING_KINDS = ['initial', 'annual'] as const
+export const ONBOARDING_REVIEWS = ['confirmed', 'reverted'] as const
 // 2-8 교환 요청
 export const SWAP_STATUSES = ['PENDING', 'APPLIED', 'REJECTED', 'CANCELLED', 'EXPIRED', 'INVALID'] as const
 export const SWAP_RESPONSES = ['PENDING', 'ACCEPTED', 'REJECTED'] as const

@@ -443,7 +443,10 @@ export function CellBody(props: {
     <div className={bodyCls}>
       {target}
       <div className="flex gap-1.5">
-        {CHIPS.map((c) => {
+        {/* 2-11 R-HEAD-7: 수간호사 칸은 D·S·OFF만 */}
+        {CHIPS.filter(
+          (c) => view.names[userId]?.rotation !== 'fixed_weekday' || ['D', 'S', 'OFF'].includes(c.code),
+        ).map((c) => {
           const isNow = now.code === c.code
           const isOrig = !!mine && orig?.code === c.code
           const bad = pick === c.code

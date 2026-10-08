@@ -3,7 +3,9 @@
 import { EmployeeNoSchema } from '@duty/domain'
 import { and, eq, gte, ne, sql } from 'drizzle-orm'
 import type { Db } from '../db/client'
-import { credentials, sessions, users, wards } from '../db/schema'
+import { credentials, privacyConsents, sessions, users, wards } from '../db/schema'
+import { PRIVACY_NOTICE_VERSION } from '../privacy/notice'
+import { todaySeoul } from '../schedule/month'
 import { hashPassword, validateNewPassword, verifyPassword } from './password'
 import { generateSessionToken, hashSessionToken } from './tokens'
 
@@ -107,9 +109,19 @@ export type SessionUser = {
   wardName: string
 }
 
+// 2-11 R-ONB-1: 로그인 뒤 남은 단계(순서대로 하나씩). null이면 모든 화면·액션을 쓸 수 있다
+export type PendingStep = 'consent' | 'password' | 'onboarding' | 'annual'
+export const STEP_PATH: Record<PendingStep, string> = {
+  consent: '/consent',
+  password: '/password',
+  onboarding: '/onboarding',
+  annual: '/onboarding',
+}
+
 export type ValidSession = {
   user: SessionUser
   mustChangePassword: boolean
+  pendingStep: PendingStep | null
   persistent: boolean
   expiresAt: Date
   /** R-AUTH-8로 연장됐으면 새 만료 시각. 호출자가 쿠키를 다시 써야 한다. */
@@ -155,6 +167,21 @@ export async function validateSession(
   if (Object.keys(patch).length > 0) await db.update(sessions).set(patch).where(eq(sessions.id, id))
 
   const { user } = row
+  const [consent] = await db
+    .select({ id: privacyConsents.id })
+    .from(privacyConsents)
+    .where(and(eq(privacyConsents.userId, user.id), eq(privacyConsents.version, PRIVACY_NOTICE_VERSION)))
+    .limit(1)
+  const year = Number(todaySeoul(now).slice(0, 4))
+  const pendingStep: PendingStep | null = !consent
+    ? 'consent'
+    : row.mustChange
+      ? 'password'
+      : user.onboardedYear === null
+        ? 'onboarding'
+        : user.onboardedYear < year
+          ? 'annual'
+          : null
   return {
     user: {
       id: user.id,
@@ -165,6 +192,7 @@ export async function validateSession(
       wardName: row.wardName,
     },
     mustChangePassword: row.mustChange,
+    pendingStep,
     persistent: row.session.persistent,
     expiresAt,
     ...(renewedExpiresAt ? { renewedExpiresAt } : {}),

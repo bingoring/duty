@@ -19,6 +19,8 @@ export const SolverCell = z.object({
 })
 
 const FixedCell = z.object({ date: IsoDate, code: Code, offKind: OffKind.optional() })
+// 2-11 R-HEAD-3: flex = 수간호사 기본 S 칸. 필수 인원을 달리 채울 수 없을 때만 솔버가 D로 바꾼다
+const HeadCell = FixedCell.extend({ flex: z.boolean().optional() })
 
 export const SolverNurse = z.object({
   id: z.string(),
@@ -57,9 +59,9 @@ export const SolverRequest = z.object({
   // 다음 달이 이미 확정되었으면 그 달 초 칸(경계 규칙용 고정값). 없으면 생략
   nextHead: z.array(SolverCell).optional(),
   nurses: z.array(SolverNurse),
-  // 수간호사 고정 칸 (인원 보충 계산용)
+  // 수간호사 칸 (인원 계산용). flex 칸만 솔버가 S/D를 정한다
   heads: z.array(
-    z.object({ id: z.string(), kTass: z.boolean(), junior: z.boolean(), cells: z.array(FixedCell) }),
+    z.object({ id: z.string(), kTass: z.boolean(), junior: z.boolean(), cells: z.array(HeadCell) }),
   ),
   trainings: z.array(
     z.object({
@@ -140,6 +142,8 @@ export const SolverResponse = z.discriminatedUnion('status', [
   z.object({
     status: z.enum(['OPTIMAL', 'FEASIBLE']),
     cells: z.array(SolverCell),
+    // 2-11 R-HEAD-5: 솔버가 D로 바꾼 수간호사 flex 칸 (없으면 생략)
+    headFill: z.array(z.object({ userId: z.string(), date: IsoDate })).optional(),
     objective: z.object({ total: z.number().int(), terms: z.record(z.enum(TERM_KEYS), z.number().int()) }),
     wallTimeSec: z.number(),
     seed: z.number().int(),

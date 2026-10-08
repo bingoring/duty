@@ -169,7 +169,16 @@ class Builder:
     def staffing(self) -> None:
         r = self.req["rules"]
         heads = self.req["heads"]
-        head_at = {(h["id"], c["date"]): c["code"] for h in heads for c in h["cells"]}
+        # 2-11 R-HEAD-1·3: flex(기본 S) 칸은 솔버가 D로 바꿀 수 있다. 바꾸면 D 인원에 세고 큰 벌점(headFill)
+        head_at = {(h["id"], c["date"]): c["code"] for h in heads for c in h["cells"] if not c.get("flex")}
+        self.head_d: dict[tuple[str, str], Lit] = {}
+        for h in heads:
+            for c in h["cells"]:
+                if c.get("flex") and c["date"] in self.month:
+                    v = self.m.new_bool_var(f"hd:{h['id']}:{c['date']}")
+                    self.head_d[(h["id"], c["date"])] = v
+                    if not self.diagnose:
+                        self.terms["headFill"].append(v)
         # 3인 근무 기간 뒤 처음 서는 N (R-STAFF-5): 트레이닝별 누적 N 수로 판정
         triple_n: dict[tuple[str, str], Lit] = {}
         for t in self.req["trainings"]:
@@ -215,23 +224,25 @@ class Builder:
                 self.counted[(d, s)] = members
                 h = sum(1 for hd in heads if head_at.get((hd["id"], d)) == s)
                 hk = sum(1 for hd in heads if hd["kTass"] and head_at.get((hd["id"], d)) == s)
+                flex = [
+                    (hd, self.head_d[(hd["id"], d)])
+                    for hd in heads
+                    if s == "D" and (hd["id"], d) in self.head_d
+                ]
                 cnt = self.true * 0 + sum(v for _, v in members)
                 kts = self.true * 0 + sum(kt)
-                self.m.add(cnt + h >= r["minStaff"]).only_enforce_if(self.guard(f"STAFF:{d}:{s}"))
-                self.m.add(kts + hk >= r["minKTass"]).only_enforce_if(self.guard(f"KTASS:{d}:{s}"))
+                fx = self.true * 0 + sum(v for _, v in flex)
+                fxk = self.true * 0 + sum(v for hd, v in flex if hd["kTass"])
+                self.m.add(cnt + fx + h >= r["minStaff"]).only_enforce_if(self.guard(f"STAFF:{d}:{s}"))
+                self.m.add(kts + fxk + hk >= r["minKTass"]).only_enforce_if(self.guard(f"KTASS:{d}:{s}"))
                 if self.diagnose:
                     continue
-                # S-HEAD-FILL: 교대 근무자만으로 못 채우면 벌점
-                if h > 0 or hk > 0:
-                    ok = self.m.new_bool_var("")
-                    self.m.add(cnt >= r["minStaff"]).only_enforce_if(ok)
-                    self.m.add(kts >= r["minKTass"]).only_enforce_if(ok)
-                    self.terms["headFill"].append(~ok)
-                # S-JUNIOR-ONLY
+                # S-JUNIOR-ONLY: 그날 고연차 수간호사가 그 근무면 면제
                 if self.req["priorities"]["avoidJuniorOnly"]:
                     head_senior = any(not hd["junior"] and head_at.get((hd["id"], d)) == s for hd in heads)
                     if not head_senior:
                         seniors = [v for nid, v in members if not self.byId[nid]["junior"]]
+                        seniors += [v for hd, v in flex if not hd["junior"]]
                         self.terms["juniorOnly"].append(~self._or(seniors))
 
     # ---- 트레이닝 -------------------------------------------------------
@@ -583,9 +594,11 @@ def solve(req: dict) -> dict:
                         cell["offKind"] = "sleeping" if s.value(b.sleeping[(nid, d)]) else "regular"
                 cells.append(cell)
         terms = {k: int(sum(_value(s, e) for e in v)) for k, v in b.terms.items()}
+        fill = [{"userId": u, "date": d} for (u, d), v in sorted(b.head_d.items()) if s.boolean_value(v)]
         return {
             "status": "OPTIMAL" if status == cp_model.OPTIMAL else "FEASIBLE",
             "cells": cells,
+            **({"headFill": fill} if fill else {}),
             "objective": {"total": int(s.objective_value), "terms": terms},
             "wallTimeSec": round(time.monotonic() - t0, 3),
             "seed": req["seed"],

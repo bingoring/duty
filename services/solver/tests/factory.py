@@ -72,7 +72,11 @@ def request(seed: int = 1, y: int = 2026, m: int = 11, time_limit: float = 3.0) 
                     "id": "h",
                     "kTass": True,
                     "junior": False,
-                    "cells": [{"date": d, "code": "OFF" if d in red else "D"} for d in days],
+                    # 2-11 R-HEAD-1: 평일 기본 S(flex), 빨간 날 OFF
+                    "cells": [
+                        {"date": d, "code": "OFF"} if d in red else {"date": d, "code": "S", "flex": True}
+                        for d in days
+                    ],
                 }
             ],
             "trainings": [],

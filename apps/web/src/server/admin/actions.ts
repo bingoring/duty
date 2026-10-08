@@ -31,7 +31,7 @@ const DENIED = { ok: false as const, message: '권한이 없습니다.' }
 
 async function adminOnly(): Promise<string | null> {
   const s = await getSession()
-  return s && !s.mustChangePassword && s.user.role === 'admin' ? s.user.id : null
+  return s && !s.pendingStep && s.user.role === 'admin' ? s.user.id : null
 }
 
 function fieldErrors(e: z.ZodError): FieldErrors {

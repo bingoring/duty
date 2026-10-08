@@ -6,7 +6,8 @@ WEIGHTS: dict[str, int] = {
     "offOver": 500,
     "requestMissMax": 1500,
     "requestMiss": 300,
-    "headFill": 800,
+    # 2-11 R-HEAD-3: 수간호사 기본 S 칸을 D로 바꾸는 것은 필수 인원을 달리 채울 수 없을 때만
+    "headFill": 20000,
     "weekendPair": 400,
     "weekendCarry": 400,
     "workConsec": 300,

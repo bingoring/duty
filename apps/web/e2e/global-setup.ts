@@ -3,7 +3,7 @@ import { eq } from 'drizzle-orm'
 import postgres from 'postgres'
 import { createDb } from '../src/server/db/client'
 import { runMigrations } from '../src/server/db/migrate'
-import { credentials, users } from '../src/server/db/schema'
+import { credentials, privacyConsents, users } from '../src/server/db/schema'
 import { seedDev } from '../src/server/seed/dev'
 import { hashPassword } from '../src/server/auth/password'
 import { E2E_TEMP_USER } from './fixtures'
@@ -34,12 +34,14 @@ export async function resetE2eDb() {
 
   const { db, close } = createDb(url)
   await seedDev(db)
-  // 첫 로그인 흐름용: 한 명을 임시 비밀번호 상태로 만든다
+  // 첫 로그인 흐름용: 한 명을 처음 로그인하는 상태(동의 없음·임시 비밀번호·초기 설정 전)로 만든다
   const [u] = await db.select().from(users).where(eq(users.employeeNo, E2E_TEMP_USER.employeeNo))
   await db
     .update(credentials)
     .set({ passwordHash: await hashPassword(E2E_TEMP_USER.tempPassword), mustChangePassword: true })
     .where(eq(credentials.userId, u!.id))
+  await db.delete(privacyConsents).where(eq(privacyConsents.userId, u!.id))
+  await db.update(users).set({ onboardedYear: null }).where(eq(users.id, u!.id))
   await close()
 }
 

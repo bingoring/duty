@@ -1,6 +1,9 @@
 // 개발용 시드 (R-SEED-1~4). 이름·사번은 가명이다 — 실명은 절대 넣지 않는다(공개 저장소).
 // 연차 구분·K-tass·노조 구성은 요구사항 원문 「응급실 근무자」와 같다.
-import { credentials, users } from '../db/schema'
+import { eq } from 'drizzle-orm'
+import { credentials, privacyConsents, users } from '../db/schema'
+import { PRIVACY_NOTICE_VERSION } from '../privacy/notice'
+import { todaySeoul } from '../schedule/month'
 import { hashPassword } from '../auth/password'
 import { createDb, type Db } from '../db/client'
 import { ensureBase, isMain } from './core'
@@ -44,6 +47,8 @@ export const DEV_ROSTER: RosterRow[] = [
 
 export async function seedDev(db: Db): Promise<void> {
   const passwordHash = await hashPassword(DEV_PASSWORD)
+  const now = new Date()
+  const year = Number(todaySeoul(now).slice(0, 4))
   await db.transaction(async (tx) => {
     const wardId = await ensureBase(tx)
     for (const u of DEV_ROSTER) {
@@ -54,6 +59,14 @@ export async function seedDev(db: Db): Promise<void> {
         .returning({ id: users.id })
       if (inserted) {
         await tx.insert(credentials).values({ userId: inserted.id, passwordHash, mustChangePassword: false })
+        // 2-11 R-ONB-10: 개발·E2E 시드 사용자는 동의·초기 설정을 마친 상태
+        await tx.insert(privacyConsents).values({
+          userId: inserted.id,
+          version: PRIVACY_NOTICE_VERSION,
+          requiredAt: now,
+          sensitiveAt: now,
+        })
+        await tx.update(users).set({ onboardedYear: year }).where(eq(users.id, inserted.id))
       }
     }
     await seedPaperSchedule(tx, wardId)

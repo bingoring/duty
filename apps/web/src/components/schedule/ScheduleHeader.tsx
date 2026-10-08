@@ -52,6 +52,10 @@ export function ScheduleHeader({ view }: { view: ScheduleView }) {
             신청
           </span>
           <span className="inline-flex items-center gap-1">
+            <span className="h-3.5 w-3.5 rounded outline-[1.5px] -outline-offset-[1.5px] outline-dashed outline-danger" />
+            교환
+          </span>
+          <span className="inline-flex items-center gap-1">
             <span className="h-3.5 w-3.5 rounded shadow-[inset_0_0_0_2px_var(--color-admin)]" />
             관리자 수정
           </span>

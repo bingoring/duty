@@ -96,7 +96,8 @@ export async function loadAdjustView(
         open,
         label: open ? `협의 기간 ${range} · ${daysLeft(plan, today)}일 남음` : `협의 기간 아님 (${range})`,
       },
-      selectable: people.filter((u) => u.rotation === 'rotating').map((u) => u.id),
+      // 2-11 R-SWAPH-1: 수간호사 포함
+      selectable: people.map((u) => u.id),
       ...list,
     }
     // 간호사도 재배정 팝업에서 규칙을 바로 검사한다

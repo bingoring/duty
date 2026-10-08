@@ -24,7 +24,16 @@ import {
 } from '@duty/domain'
 import { asc, eq, inArray } from 'drizzle-orm'
 import type { Db } from '../db/client'
-import { holidays, monthPlans, monthSettlements, ruleVersions, scheduleCells, users } from '../db/schema'
+import {
+  holidays,
+  monthPlans,
+  monthSettlements,
+  ruleVersions,
+  scheduleCandidates,
+  scheduleCells,
+  users,
+} from '../db/schema'
+import { loadCellNotes } from './notes'
 import { eduContInYear, grantedInYear, ledgerSums, round1, type Sums } from './balances'
 import { shiftYm, todaySeoul, type YearMonth } from './month'
 import type {
@@ -334,6 +343,16 @@ export async function loadMonthView(
       cellMap.get(todayPlan.id)?.find((c) => c.userId === args.viewerId && c.date === args.today)) ??
     null
   const viewer = allUsers.find((u) => u.id === args.viewerId)
+  const notes = shown
+    ? await loadCellNotes(db, {
+        planId: shown.id,
+        year: args.year,
+        month: args.month,
+        cells,
+        viewer: { id: args.viewerId, admin: viewer?.role === 'admin' },
+        headFill: await headFillOf(db, shown, cells),
+      })
+    : undefined
 
   return {
     year: args.year,
@@ -349,7 +368,23 @@ export async function loadMonthView(
     holidays: hol.filter((h) => h.date.startsWith(`${args.year}-`)),
     balances,
     todayCell,
+    ...(notes ? { notes } : {}),
   }
+}
+
+// R-HEAD-5: 확정한 생성안의 솔버 메타 headFill("userId|date") 중 아직 자동 D로 남은 칸
+export async function headFillOf(db: Db, plan: PlanRow, cells: ScheduleCellRow[]): Promise<Set<string>> {
+  if (!plan.confirmedCandidateId) return new Set()
+  const [cand] = await db
+    .select({ meta: scheduleCandidates.solverMeta })
+    .from(scheduleCandidates)
+    .where(eq(scheduleCandidates.id, plan.confirmedCandidateId))
+  const fill = new Set((cand?.meta?.headFill as string[] | undefined) ?? [])
+  return new Set(
+    cells
+      .filter((c) => c.source === 'auto' && c.code === 'D' && fill.has(`${c.userId}|${c.date}`))
+      .map((c) => `${c.userId}|${c.date}`),
+  )
 }
 
 // R-SHELL-2: 오늘이 속한 달의 월말 예정(확정 전이면 월초)

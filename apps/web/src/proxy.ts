@@ -15,5 +15,6 @@ export function proxy(request: NextRequest) {
 }
 
 export const config = {
-  matcher: ['/((?!_next/|api/|login|fonts/|favicon.ico).*)'],
+  // /privacy: 로그인 없이 보는 개인정보 처리 안내(2-11 R-CONSENT-6)
+  matcher: ['/((?!_next/|api/|login|privacy|fonts/|favicon.ico).*)'],
 }
