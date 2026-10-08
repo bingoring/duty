@@ -24,7 +24,7 @@ R-1까지 통과한 앱을 GCP 서울 리전의 전용 VM 한 대에 Docker Comp
 ## 체크리스트
 
 - [x] Build Spec 작성·질문 해소 → READY (2026-10-08)
-- [ ] Build Spec §4 구현 체크리스트(저장소 쪽) 완료, 로컬 리허설 통과
+- [x] Build Spec §4 구현 체크리스트(저장소 쪽) 완료, 로컬 리허설 통과 (2026-10-08)
 - [ ] GCP 구축·최초 배포(사람 승인 아래) → 운영 확인
 - [ ] 비가역 게이트 체크리스트 확인
 
@@ -40,6 +40,16 @@ Build Spec: [`deployment/build-spec-index.md`](deployment/build-spec-index.md)
 - **백업:** 매일 03:00(서울) `pg_dump` → `age` 공개키로 암호화 → 서버에 14일 보관 + Cloud Storage 버킷(서울, 90일 보관 규칙)에 복사. 복호화 개인키는 서버에 두지 않는다. 복구 절차를 리허설로 검증한다.
 - **R-1에서 넘긴 것:** 로그인 IP 속도 제한(앱, Caddy 뒤 실제 IP 기준), `/api/health` 헬스체크, 운영 env 예시, 임시 비밀번호는 `--rm` 1회 실행으로만.
 - **진행 방식:** 저장소 쪽(설정·스크립트·운영 문서)을 먼저 만들고 로컬에서 운영 구성 그대로 리허설한다. GCP 자원 생성(비용 발생)과 도메인 구매·DNS는 사람 승인 아래 진행한다.
+
+### 로컬 리허설 결과 (2026-10-08)
+
+운영 compose 그대로 `DOMAIN=localhost`(Caddy 내부 인증서)로 올렸다.
+- 공개 포트는 Caddy(80·443)뿐, web·db·solver는 호스트에 열리지 않음. HTTP→HTTPS 308, HSTS·X-Frame-Options, `Server` 헤더 없음, `/api/health` 200
+- `run --rm migrate`로 관리자 만들기·명단 가져오기(남는 컨테이너 없음) → 브라우저로 로그인·비밀번호 변경 강제·근무표·간호사 관리·규칙 안내·동료 현황·듀티 생성 화면, 세션 쿠키 Secure·HttpOnly
+- web → solver 연결 200
+- 백업 1회: age 암호화(`age-encryption.org/v1`), 파일 권한 600, 서버·원격 양쪽 저장, 다음 예약 03:00(서울)
+- 복구 2가지(컨테이너 restore.sh, 문서의 PC 복호화 → `pg_restore`) 모두 새 DB의 행 수 일치
+- 리허설에서 발견·수정: 빈 메일 옵션으로 Caddy 설정 오류, 백업 파일 권한, rclone 설정 경고
 
 ## 비가역 게이트 추가 체크리스트
 

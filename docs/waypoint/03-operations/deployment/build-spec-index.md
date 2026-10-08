@@ -50,15 +50,15 @@ updated: 2026-10-08
 | R-OPS-7 | 로그인 실패가 한 IP에서 10분에 20회를 넘으면 그 IP의 로그인을 10분 막는다(계정 잠금 5회와 별개, 병원 공용 IP를 고려해 넉넉히) |
 
 ## §4. 구현 체크리스트
-- [ ] compose·Caddyfile·헬스체크·속도 제한(+단위 테스트)
-- [ ] backup 이미지·backup.sh·restore.sh
-- [ ] .env.prod.example·provision.sh·server-setup.sh·docs/operations.md·README
-- [ ] 로컬 리허설(§5) 통과
+- [x] compose·Caddyfile·헬스체크·속도 제한(+단위 테스트)
+- [x] backup 이미지·backup.sh·restore.sh
+- [x] .env.prod.example·provision.sh·server-setup.sh·docs/operations.md·README, CI(백업 이미지 빌드·운영 compose 검증)
+- [x] 로컬 리허설(§5) 통과 (2026-10-08)
 - [ ] (승인 뒤) GCP 자원 생성 → 서버 설정 → DNS → 최초 부팅 → 운영 확인(§5)
 
 ## §5. 검증 계획
-- [ ] 저장소: format·typecheck·lint·단위·통합·E2E 그린, 이미지 빌드(CI)
-- [ ] **로컬 리허설**(`DOMAIN=localhost`, Caddy 내부 인증서): HTTPS로 로그인·근무표·듀티 생성 1회, 헬스체크 200, web·db·solver 포트가 호스트에 열리지 않음, 백업 1회(로컬 rclone 대상) → 새 DB에 복구 → 행 수 일치, 속도 제한 동작
+- [x] 저장소: format·typecheck·lint·단위 397(web 118)·E2E 40(전체 연속 3회), 이미지 빌드(CI)
+- [x] **로컬 리허설**(`DOMAIN=localhost`, Caddy 내부 인증서): HTTPS로 로그인·근무표·듀티 생성 1회, 헬스체크 200, web·db·solver 포트가 호스트에 열리지 않음, 백업 1회(로컬 rclone 대상) → 새 DB에 복구 → 행 수 일치, 속도 제한 동작
 - [ ] **운영 확인**: 도메인 HTTPS(인증서 정상), 관리자 로그인·비밀번호 변경, 명단 11명, 간호사 1명 로그인, 첫 백업이 버킷에 올라감, 복구 리허설 1회(별도 DB)
 
 ## §6. NFR
@@ -70,4 +70,9 @@ updated: 2026-10-08
 
 | SoT | 실제 구현 | 사유 |
 |---|---|---|
-|  |  |  |
+| §1 서비스 계정 "버킷 객체 생성 권한만" | 객체 생성 + 객체 보기(삭제 권한 없음) | rclone이 올릴 때 대상 확인에 읽기가 필요. 삭제 불가는 유지 |
+| R-OPS-4 복구 | 문서의 운영 복구는 **PC에서 복호화한 덤프만** 서버로 올려 `pg_restore`. `restore.sh`(키를 받는 스크립트)는 리허설·키가 있는 곳 전용 | 개인키를 서버에 잠시라도 올리지 않게 |
+| §1 Caddy | 인증서 안내 메일 옵션 뺌 | 비어 있으면 Caddyfile이 깨진다(리허설에서 발견). Let's Encrypt는 메일 없이 동작 |
+| §1 솔버 메모리 | 512MB → 1GB | 4GB VM, 작업자 2개 기준 여유 |
+| R-OPS-7 | 프록시(Caddy) 뒤에서만 IP를 센다. `X-Forwarded-For`가 없으면(개발·테스트) 제한하지 않음 | web 포트는 외부에 열리지 않으므로 운영 요청은 언제나 Caddy를 거친다 |
+| (추가) E2E | 솔버 시간 한도 4→8초 | R-1의 새 소프트 항으로 모델이 커져, 전체 E2E 동시 실행 중 4초에서 신청 1건을 가끔 못 지킴(6회 중 1회). 운영은 20초 |
