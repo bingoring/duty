@@ -1,5 +1,5 @@
 import { expect, test } from '@playwright/test'
-import { NURSE, loginAndWait } from './fixtures'
+import { NURSE, loginAndWait, waitHydrated } from './fixtures'
 
 // Build Spec 2-10 §4 E2E. 오늘 10/13 고정 → 10월은 종이 근무표(가명) 확정본
 test('S6 동료 현황: 교대 근무자 10명, 누적 OFF 오름차순, 내 행 "나", 확정 전 달은 빈 상태', async ({
@@ -45,9 +45,15 @@ test('S7 규칙 안내: 목차 7개, 근무 카드, 규칙 값·태그', async (
     '사용 안 함',
   )
 
+  await waitHydrated(page)
   await toc.getByRole('link', { name: '응급실 지침' }).click()
   await expect(page).toHaveURL(/#er$/)
   await expect(toc.getByRole('link', { name: '응급실 지침' })).toHaveAttribute('aria-current', 'true')
+  // 끝까지 스크롤해도 마지막 섹션이 활성으로 남는다(R-1)
+  await page.mouse.wheel(0, 5000)
+  await expect(toc.getByRole('link', { name: '응급실 지침' })).toHaveAttribute('aria-current', 'true', {
+    timeout: 3000,
+  })
   await page.setViewportSize({ width: 1280, height: 760 })
   await page.goto('/rules')
   await page.screenshot({ path: 'test-results/rules-1280x760.png' })
