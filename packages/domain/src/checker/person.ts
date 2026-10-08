@@ -139,7 +139,8 @@ export function checkPerson(n: NurseProfile, ctx: PersonCtx): Violation[] {
     out.push(violation('S-NIGHT-TARGET', [n.id], nightDates, { count: nights, target: nightTarget }))
 
   const sleepingDates = monthCells.filter((c) => c.offKind === 'sleeping').map((c) => c.date)
-  const allowed = Math.floor((n.nightBankBefore + nights) / p.sleepingOffPerN)
+  // 잔여 N이 음수여도(관리자 예외 적용 등) 한도는 0 아래로 내려가지 않는다(R-1)
+  const allowed = Math.floor(Math.max(0, n.nightBankBefore + nights) / p.sleepingOffPerN)
   if (sleepingDates.length > allowed)
     out.push(
       violation('H-SLEEPING', [n.id], sleepingDates, {

@@ -1,6 +1,7 @@
 'use server'
 
 import { refresh } from 'next/cache'
+import { z } from 'zod'
 import { getSession } from '../auth/session'
 import { getDb } from '../db/client'
 import { ackNotices } from './service'
@@ -13,10 +14,12 @@ async function sessionActor() {
   return s && !s.mustChangePassword ? { id: s.user.id } : null
 }
 
-export async function ackNoticesAction() {
+export async function ackNoticesAction(seenUpTo: unknown) {
   const actor = await sessionActor()
   if (!actor) return DENIED
-  await ackNotices(getDb(), actor.id)
+  const upTo = z.iso.datetime().safeParse(seenUpTo)
+  if (!upTo.success) return { ok: false as const, message: '잘못된 요청입니다.' }
+  await ackNotices(getDb(), actor.id, new Date(upTo.data))
   refresh()
   return { ok: true as const }
 }

@@ -66,7 +66,13 @@ export type AdjustableAccount = (typeof ADJUSTABLE_ACCOUNTS)[number]
 
 export const BalanceAdjustSchema = z.object({
   userId: z.string().uuid(),
-  values: z.partialRecord(z.enum(ADJUSTABLE_ACCOUNTS), half(-99, 99)),
+  values: z
+    .partialRecord(z.enum(ADJUSTABLE_ACCOUNTS), half(-99, 99))
+    // R-1: 잔여 N은 0 이상의 정수다(솔버 계약이 정수, 음수면 슬리핑오프 한도가 어긋난다)
+    .refine((v) => v.night_bank === undefined || (Number.isInteger(v.night_bank) && v.night_bank >= 0), {
+      message: '잔여 N은 0 이상의 정수로 입력해 주세요.',
+      path: ['night_bank'],
+    }),
   note: z.string().trim().min(1, '메모를 입력해 주세요.').max(200),
 })
 

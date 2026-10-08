@@ -37,7 +37,7 @@ export default async function SchedulePage({
   return (
     <div className="flex min-w-0 flex-col gap-3 px-4 py-[18px]">
       <h1 className="print-only text-sm font-bold">{view.title}</h1>
-      <NoticeBar items={notices.items} more={notices.more} swaps={swaps} />
+      <NoticeBar items={notices.items} more={notices.more} seenUpTo={notices.seenUpTo} swaps={swaps} />
       <ScheduleHeader view={view} />
       {!view.empty && <SummaryCards cards={view.cards} />}
       <FocusClear focus={focus} ym={ym}>

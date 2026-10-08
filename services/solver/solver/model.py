@@ -317,12 +317,23 @@ class Builder:
                 if any(v is self.false for v in lits):
                     continue
                 self.m.add_bool_or([~v for v in lits]).only_enforce_if(g)
-            # H-SLEEPING
+            # H-SLEEPING: 슬리핑오프 수 × 기준 ≤ max(0, 잔여 N + 이번 달 N)
+            # (잔여 N이 음수일 때 "N을 그만큼 서라"는 숨은 제약이 되지 않게 0 아래를 자른다, R-1)
             sl = [v for (u, _), v in self.sleeping.items() if u == nid]
             if sl:
                 self.m.add(
-                    r["sleepingOffPerN"] * sum(sl) <= n["nightBankBefore"] + sum(nights)
+                    r["sleepingOffPerN"] * sum(sl) <= self.night_avail(nid, n["nightBankBefore"], sum(nights))
                 ).only_enforce_if(self.guard(f"SLEEPING:{nid}"))
+
+    def night_avail(self, nid: str, bank: int, nights: Any) -> Any:
+        """max(0, 잔여 N + 이번 달 N 합계식) — 사람마다 한 번만 만든다."""
+        if not hasattr(self, "_avail"):
+            self._avail: dict[str, Any] = {}
+        if nid not in self._avail:
+            v = self.m.new_int_var(0, 31 + max(0, bank), f"avail:{nid}")
+            self.m.add_max_equality(v, [bank + nights, 0])
+            self._avail[nid] = v
+        return self._avail[nid]
 
     def _is_leave(self, n: str, d: str) -> bool:
         if d not in self.month:
@@ -384,9 +395,9 @@ class Builder:
             sl = [v for (u, _), v in self.sleeping.items() if u == nid]
             allowed = self.m.new_int_var(0, 31, "")
             per = r["sleepingOffPerN"]
-            bank = n["nightBankBefore"]
-            self.m.add(per * allowed <= bank + nights)
-            self.m.add(bank + nights <= per * allowed + per - 1)
+            avail = self.night_avail(nid, n["nightBankBefore"], nights)
+            self.m.add(per * allowed <= avail)
+            self.m.add(avail <= per * allowed + per - 1)
             self.terms["sleepingShort"].append(allowed - sum(sl))
 
             # S-WEEKEND-PAIR · S-WEEKEND-CARRY (토요일이 속한 달로 센다)

@@ -80,6 +80,22 @@ def test_다음_달_안에서만_생긴_위반은_이번_달_생성을_막지_�
     assert hard_violations(req, res) == []
 
 
+def test_잔여_N이_음수여도_나이트를_강제하지_않고_풀린다():
+    # R-1: 관리자 「그래도 적용」 등으로 잔여 N이 음수가 되어도 슬리핑오프 한도는 0으로만 본다
+    req = request()
+    req["nurses"][0]["nightBankBefore"] = -8
+    res = solve(req)
+    assert res["status"] in ("OPTIMAL", "FEASIBLE")
+    assert hard_violations(req, res) == []
+    # 평일 D·주말 OFF로 고정해 N을 설 자리가 없어도(예전에는 N 5개 강제 → 불가능) 풀린다
+    req["nurses"][0]["nightBankBefore"] = -5
+    red = set(req["redDays"])
+    req["nurses"][0]["fixed"] = [{"date": d, "code": "OFF" if d in red else "D"} for d in req["days"]]
+    res = solve(req)
+    assert res["status"] in ("OPTIMAL", "FEASIBLE")
+    assert hard_violations(req, res) == []
+
+
 def test_3인_근무_신규는_인원에_세지_않고_프리셉터와_같은_근무():
     req = request()
     req["trainings"] = [

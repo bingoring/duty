@@ -74,7 +74,7 @@ def hard_violations(req: dict, res: dict) -> list[str]:
             if run > r["maxConsecutiveOff"] and month_start <= i and i - run + 1 <= month_end:
                 out.append(f"OFF_CONSEC {nid} {tl[i]}")
         sleeping = sum(1 for d in req["days"] if g.get((nid, d), {}).get("offKind") == "sleeping")
-        if sleeping * r["sleepingOffPerN"] > n["nightBankBefore"] + nights:
+        if sleeping * r["sleepingOffPerN"] > max(0, n["nightBankBefore"] + nights):
             out.append(f"SLEEPING {nid}")
         for f in n["fixed"]:
             c = g.get((nid, f["date"]))

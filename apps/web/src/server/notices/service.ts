@@ -1,5 +1,5 @@
 import { formatMD, weekdayKo } from '@duty/domain'
-import { and, desc, eq, gt, ne } from 'drizzle-orm'
+import { and, desc, eq, gt, isNull, lt, ne, or } from 'drizzle-orm'
 import { alias } from 'drizzle-orm/pg-core'
 import type { Db } from '../db/client'
 import { cellEditLogs, users } from '../db/schema'
@@ -38,7 +38,7 @@ export async function loadNotices(
   db: Db,
   viewerId: string,
   now = new Date(),
-): Promise<{ items: Notice[]; more: number }> {
+): Promise<{ items: Notice[]; more: number; seenUpTo: string | null }> {
   const [me] = await db.select({ seen: users.changesSeenAt }).from(users).where(eq(users.id, viewerId))
   const since = me?.seen ?? new Date(now.getTime() - LOOKBACK_DAYS * 86_400_000)
   const editor = alias(users, 'editor')
@@ -54,6 +54,7 @@ export async function loadNotices(
       ),
     )
     .orderBy(desc(cellEditLogs.editedAt))
+    .limit(500)
   // 같은 칸이 여러 번 바뀌면 처음 before → 마지막 after
   const byCell = new Map<string, { first: Snap; last: Snap; by: string; at: Date }>()
   for (const r of [...rows].reverse()) {
@@ -78,9 +79,16 @@ export async function loadNotices(
       at: at(v.at),
       ym: date.slice(0, 7),
     }))
-  return { items: all.slice(0, MAX_ITEMS), more: Math.max(0, all.length - MAX_ITEMS) }
+  // R-1: 「확인」은 이 화면이 읽은 변경까지만 닫는다(띠를 그린 뒤 생긴 변경이 함께 사라지지 않게)
+  const seenUpTo = rows[0]?.log.editedAt.toISOString() ?? null
+  return { items: all.slice(0, MAX_ITEMS), more: Math.max(0, all.length - MAX_ITEMS), seenUpTo }
 }
 
-export async function ackNotices(db: Db, viewerId: string) {
-  await db.update(users).set({ changesSeenAt: new Date() }).where(eq(users.id, viewerId))
+export async function ackNotices(db: Db, viewerId: string, upTo: Date, now = new Date()) {
+  const seen = upTo > now ? now : upTo
+  // 이미 더 뒤까지 읽었으면 되돌리지 않는다
+  await db
+    .update(users)
+    .set({ changesSeenAt: seen })
+    .where(and(eq(users.id, viewerId), or(isNull(users.changesSeenAt), lt(users.changesSeenAt, seen))))
 }

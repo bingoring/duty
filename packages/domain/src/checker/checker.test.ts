@@ -236,6 +236,10 @@ describe('H-SLEEPING', () => {
     const inp = solo(five, { nurses: [nurse('a', { nightBankBefore: 1 })] })
     expect(only(inp, 'H-SLEEPING')).toEqual([])
   })
+  it('잔여 N이 음수여도 슬리핑오프가 없으면 위반이 아니다 (R-1)', () => {
+    const inp = solo('N N O O N D D', { nurses: [nurse('a', { nightBankBefore: -8 })] })
+    expect(only(inp, 'H-SLEEPING')).toEqual([])
+  })
 })
 
 describe('H-EDU-UNION', () => {

@@ -7,7 +7,17 @@ import { ackNoticesAction } from '@/server/notices/actions'
 import type { Notice } from '@/server/notices/service'
 
 // Build Spec 2-7 R-NOTICE-1·2 (Q3) — 근무표 상단 "내 근무가 바뀌었습니다" 띠
-export function NoticeBar({ items, more, swaps = 0 }: { items: Notice[]; more: number; swaps?: number }) {
+export function NoticeBar({
+  items,
+  more,
+  seenUpTo,
+  swaps = 0,
+}: {
+  items: Notice[]
+  more: number
+  seenUpTo: string | null
+  swaps?: number
+}) {
   const [pending, start] = useTransition()
   const router = useRouter()
   const params = useSearchParams()
@@ -57,7 +67,7 @@ export function NoticeBar({ items, more, swaps = 0 }: { items: Notice[]; more: n
         disabled={pending}
         onClick={() =>
           start(async () => {
-            await ackNoticesAction()
+            if (seenUpTo) await ackNoticesAction(seenUpTo)
             // 확인하면 링크로 짚은 칸 강조(?focus)도 함께 지운다
             const ym = params.get('ym')
             if (params.get('focus')) router.replace(ym ? `/?ym=${ym}` : '/')
