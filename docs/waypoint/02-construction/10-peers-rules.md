@@ -1,7 +1,7 @@
 ---
 phase: 02-construction
 stage: 10-peers-rules
-status: AI_PROPOSED
+status: HUMAN_APPROVED
 updated: 2026-10-08
 ---
 
@@ -45,8 +45,8 @@ Build Spec(standard): [`peers-rules/build-spec-index.md`](peers-rules/build-spec
 
 > 아래 항목을 확인 후 frontmatter의 status를 `HUMAN_APPROVED`로 변경하세요.
 
-- [ ] Build Spec이 READY이고 S6 열·S7 항목·태그가 운영과 맞는가? (승인 = 구현 착수)
-- [ ] 구현 후: §5 검증 통과, 편차 로그(§7) 확인
+- [x] Build Spec이 READY이고 S6 열·S7 항목·태그가 운영과 맞는가? (승인 = 구현 착수)
+- [x] 구현 후: §5 검증 통과, 편차 로그(§7) 확인
 
 ## 다음 단계
 
