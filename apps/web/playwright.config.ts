@@ -47,7 +47,8 @@ export default defineConfig({
         DATABASE_URL: E2E_DB,
         DUTY_FAKE_TODAY: E2E_TODAY,
         SOLVER_URL: 'http://127.0.0.1:8102',
-        SOLVER_TIME_LIMIT_SEC: '4',
+        // 운영은 20초. 전체 E2E가 CPU를 나눠 쓰는 동안에도 R-1에서 커진 모델을 풀 만큼(4초면 가끔 신청을 못 지킴)
+        SOLVER_TIME_LIMIT_SEC: '8',
       },
     },
   ],
