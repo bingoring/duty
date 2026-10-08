@@ -2,13 +2,13 @@ import { redirect } from 'next/navigation'
 import { AuthFrame } from '@/components/auth/AuthFrame'
 import { PasswordForm } from '@/components/auth/PasswordForm'
 import { requireUser } from '@/server/auth/guards'
-import { getCurrentRules } from '@/server/rules'
+import { getRulesForAuthPage } from '@/server/rules'
 
 // 첫 로그인 강제 변경 화면(핸드오프에 없음 → S1 우측 패널 스타일, 편차 기록). 자발적 변경은 /settings.
 export default async function PasswordPage() {
   const session = await requireUser({ allowMustChange: true })
   if (!session.mustChangePassword) redirect('/settings')
-  const { params } = await getCurrentRules()
+  const { params } = await getRulesForAuthPage()
   return (
     <AuthFrame requestDeadlineDay={params.requestDeadlineDay} negotiationEndDay={params.negotiationEndDay}>
       <div className="flex flex-col gap-1">
