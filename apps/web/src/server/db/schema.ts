@@ -295,7 +295,12 @@ export const balanceEntries = pgTable(
     createdAt: createdAt(),
     note: text('note'),
   },
-  (t) => [index('balance_entries_user_account_idx').on(t.userId, t.account)],
+  (t) => [
+    index('balance_entries_user_account_idx').on(t.userId, t.account),
+    // R-1: 연초 처리 여부(요청마다)·마감 항목 조회
+    index('balance_entries_reason_year_idx').on(t.reason, t.refYear),
+    index('balance_entries_ref_reason_idx').on(t.refId, t.reason),
+  ],
 )
 
 export const monthSettlements = pgTable(

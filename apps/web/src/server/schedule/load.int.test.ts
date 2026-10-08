@@ -193,6 +193,7 @@ describe('loadLeaveBalance — 사이드바 「내 휴가 잔여」 (R-SHELL-2)'
       specialGranted: 5,
       checkup: 0.5,
       sick: 60,
+      founding: 0,
       offCarry: 4,
       nightBank: 3,
     })

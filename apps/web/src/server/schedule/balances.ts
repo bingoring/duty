@@ -64,6 +64,8 @@ export async function grantedInYear(db: Db, userId: string, year: number) {
         eq(balanceEntries.userId, userId),
         inArray(balanceEntries.account, ['annual_leave', 'special_leave']),
         gt(balanceEntries.delta, '0'),
+        // R-1: 마감 취소 역분개·음수 잔여의 연초 리셋 같은 양수 항목은 "부여"가 아니다
+        inArray(balanceEntries.reason, ['year_grant', 'initial_input', 'admin_adjust']),
         gte(balanceEntries.createdAt, from),
         lt(balanceEntries.createdAt, to),
       ),

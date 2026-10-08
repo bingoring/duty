@@ -1,0 +1,2 @@
+CREATE INDEX "balance_entries_reason_year_idx" ON "balance_entries" USING btree ("reason","ref_year");--> statement-breakpoint
+CREATE INDEX "balance_entries_ref_reason_idx" ON "balance_entries" USING btree ("ref_id","reason");
