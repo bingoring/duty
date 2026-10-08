@@ -1,7 +1,7 @@
 ---
 build-spec: deployment
 stage: 03-operations/01-deployment
-status: READY
+status: IMPLEMENTED
 depth: standard
 updated: 2026-10-08
 ---

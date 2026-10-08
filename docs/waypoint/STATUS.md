@@ -8,6 +8,9 @@
 
 > 🔒 **개인정보:** 공개 저장소다. 간호사 이름·사번은 모두 가명이며, 실명 자료는 커밋하지 않는다([DECISIONS](DECISIONS.md) 2026-09-26).
 
+> ✅ **3-1 배포 승인 (2026-10-09).** offplz.com 운영 중(실제 데이터). 2-11도 승인. 다음: 3-2 모니터링 — 실제 데이터 백업 복구 리허설 포함.
+> 간호사 공지 전 준비: 동의서 병원 검토, 개원기념일·신청 마감일 설정.
+>
 > 🚀 **3-1 운영 최초 데이터 가져오기 완료 (2026-10-09).** 서버를 2-11 코드로 갱신(마이그레이션 7개) → 이력 묶음 미리보기 = 기대값 → 가져오기(14명·마감 9달·확정 1달·칸 3,299·이월 조정 9) → 서버 파일 `shred` → 즉시 백업(서버·버킷).
 > 남은 일: 수간호사 첫 로그인 확인(동의 화면까지, 사용자), 복구 리허설(사용자 PC 개인키), 동의서 병원 검토, 개원기념일·신청 마감일 설정 → 공지.
 >
@@ -172,7 +175,7 @@
 | 2-8 근무 교환 요청 (S9 간호사, 3a) | [08-swap-requests.md](02-construction/08-swap-requests.md) · [Build Spec](02-construction/swap-requests/build-spec-index.md) (IMPLEMENTED) | HUMAN_APPROVED |
 | 2-9 통합·E2E | [09-integration-e2e.md](02-construction/09-integration-e2e.md) · [Build Spec](02-construction/integration-e2e/build-spec-index.md) (IMPLEMENTED) | HUMAN_APPROVED |
 | 2-10 동료 현황·규칙 안내 (S6·S7) | [10-peers-rules.md](02-construction/10-peers-rules.md) · [Build Spec](02-construction/peers-rules/build-spec-index.md) (IMPLEMENTED) | HUMAN_APPROVED |
-| 2-11 수간호사 S·칸 출처 표시·최초 로그인 (S2 부활) | [11-head-firstlogin.md](02-construction/11-head-firstlogin.md) · [Build Spec](02-construction/head-firstlogin/build-spec-index.md) (IMPLEMENTED) | IMPLEMENTED |
+| 2-11 수간호사 S·칸 출처 표시·최초 로그인 (S2 부활) | [11-head-firstlogin.md](02-construction/11-head-firstlogin.md) · [Build Spec](02-construction/head-firstlogin/build-spec-index.md) (IMPLEMENTED) | HUMAN_APPROVED |
 
 ## Phase R — Independent Code Review 🔍 (Construction → Operations 게이트)
 
@@ -186,7 +189,7 @@
 
 | 스테이지 | 문서 | 상태 |
 |---------|------|------|
-| 3-1 Deployment ⚠️ | [01-deployment.md](03-operations/01-deployment.md) · [Build Spec](03-operations/deployment/build-spec-index.md) (READY) | AI_PROPOSED |
+| 3-1 Deployment ⚠️ | [01-deployment.md](03-operations/01-deployment.md) · [Build Spec](03-operations/deployment/build-spec-index.md) (IMPLEMENTED) | HUMAN_APPROVED |
 | 3-2 Monitoring | 03-operations/02-monitoring.md | PENDING |
 
 ---
