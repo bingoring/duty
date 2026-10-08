@@ -92,7 +92,7 @@ const KIND_LABEL: Record<string, string> = {
 }
 
 const withDay = (d: IsoDate) => `${formatMD(d)} (${weekdayKo(d)})`
-const num = (n: number) => String(Math.round(n * 10) / 10)
+export const num = (n: number) => String(Math.round(n * 10) / 10)
 
 // R-VIEW-10: 색 없이 부호. 음수는 U+2212
 export function signed(n: number): string {

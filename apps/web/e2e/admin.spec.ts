@@ -80,6 +80,12 @@ test.describe('S11 규칙 설정', () => {
     await expect(page.getByRole('status')).toContainText('저장했습니다')
     await expect(page.getByText('최대 연속 오프 15 → 16')).toBeVisible()
     await expect(page.getByRole('button', { name: '저장 · 규칙 안내 반영' })).toBeDisabled()
+
+    // S7 규칙 안내에 바로 반영된다 (2-10 R-GUIDE-1)
+    await page.goto('/rules')
+    await expect(
+      page.getByRole('region', { name: '휴식 · 금지 패턴' }).getByText(/최대 16일까지 배정합니다/),
+    ).toBeVisible()
   })
 
   test('금지 패턴 입력: D·E·N·S·OFF 외 문자는 막고, 올바른 패턴은 대문자 칩으로', async ({ page }) => {
