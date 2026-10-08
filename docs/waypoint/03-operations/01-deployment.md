@@ -25,7 +25,7 @@ R-1까지 통과한 앱을 GCP 서울 리전의 전용 VM 한 대에 Docker Comp
 
 - [x] Build Spec 작성·질문 해소 → READY (2026-10-08)
 - [x] Build Spec §4 구현 체크리스트(저장소 쪽) 완료, 로컬 리허설 통과 (2026-10-08)
-- [ ] GCP 구축·최초 배포(사람 승인 아래) → 운영 확인
+- [ ] GCP 구축·최초 배포(사람 승인 아래) → 운영 확인 — 구축·기동 완료, 최초 데이터·운영 확인 남음
 - [ ] 비가역 게이트 체크리스트 확인
 
 ## AI 제안 (AI Proposal)
@@ -50,6 +50,14 @@ Build Spec: [`deployment/build-spec-index.md`](deployment/build-spec-index.md)
 - 백업 1회: age 암호화(`age-encryption.org/v1`), 파일 권한 600, 서버·원격 양쪽 저장, 다음 예약 03:00(서울)
 - 복구 2가지(컨테이너 restore.sh, 문서의 PC 복호화 → `pg_restore`) 모두 새 DB의 행 수 일치
 - 리허설에서 발견·수정: 빈 메일 옵션으로 Caddy 설정 오류, 백업 파일 권한, rclone 설정 경고
+
+### 운영 구축 (2026-10-08)
+
+- GCP `duty-511008`(기존 결제 계정): `deploy/gcp/provision.sh`로 API·서비스 계정·버킷 `duty-511008-backups`(서울, 90일)·고정 IP·방화벽(80·443, SSH는 IAP)·VM `duty-vm`(e2-medium, Ubuntu 24.04) 생성. 기본 SSH·RDP 전체 허용 규칙 삭제
+- 도메인 **offplz.com**(가비아, 가비아 네임서버) → A 레코드 `@`·`www` = 고정 IP. www는 기본 도메인으로 301
+- `server-setup.sh`(IAP SSH) → `.env.prod`(권한 600, DB 비밀번호는 서버에서 생성·출력 안 함, 백업 공개키) → `up -d --build`
+- 확인: Let's Encrypt 인증서, `/api/health` 200, HTTP→HTTPS, 보안 헤더, 외부에서 3000·5432·8100·22 닫힘, 첫 백업이 서버·버킷 양쪽에 올라감, 서버 서비스 계정은 버킷 백업 삭제 403
+- 남은 일: 최초 관리자·실명 명단(개인정보, 사람 확인 뒤), 운영 확인(관리자·간호사 로그인), 복구 리허설
 
 ## 비가역 게이트 추가 체크리스트
 
