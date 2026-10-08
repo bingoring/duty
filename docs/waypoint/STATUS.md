@@ -8,6 +8,9 @@
 
 > 🔒 **개인정보:** 공개 저장소다. 간호사 이름·사번은 모두 가명이며, 실명 자료는 커밋하지 않는다([DECISIONS](DECISIONS.md) 2026-09-26).
 
+> 🏗️ **2-10 동료 현황·규칙 안내 구현 완료 → 승인 대기 (2026-10-08).** S6 동료 현황(근무표와 같은 계산, 주말 통 OFF 날짜), S7 규칙 안내(목차 7개, 규칙 버전 값으로 렌더링, 태그 3종).
+> 단위 378·pytest 14·통합 137·E2E 40 그린, 편차 8건.
+>
 > 📝 **2-10 동료 현황·규칙 안내 Build Spec READY (2026-10-08).** S6: 이번 달 + 월 이동, 교대 근무자 전원의 오프·나이트·주말 통 OFF 현황(근무표와 같은 계산).
 > S7: 목차 7개, 규칙 버전 값에서 렌더링, 태그 자동 적용·권고·안내. **S2 초기 설정은 만들지 않음**(원문 §10·11과 다름, DECISIONS). 구현 착수 승인 대기.
 >
@@ -145,7 +148,7 @@
 | 2-7 근무 조정·월 마감 (S9 관리자) | [07-adjust-close.md](02-construction/07-adjust-close.md) · [Build Spec](02-construction/adjust-close/build-spec-index.md) (IMPLEMENTED) | HUMAN_APPROVED |
 | 2-8 근무 교환 요청 (S9 간호사, 3a) | [08-swap-requests.md](02-construction/08-swap-requests.md) · [Build Spec](02-construction/swap-requests/build-spec-index.md) (IMPLEMENTED) | HUMAN_APPROVED |
 | 2-9 통합·E2E | [09-integration-e2e.md](02-construction/09-integration-e2e.md) · [Build Spec](02-construction/integration-e2e/build-spec-index.md) (IMPLEMENTED) | HUMAN_APPROVED |
-| 2-10 동료 현황·규칙 안내 (S6·S7) | [10-peers-rules.md](02-construction/10-peers-rules.md) · [Build Spec](02-construction/peers-rules/build-spec-index.md) (READY) | AI_PROPOSED |
+| 2-10 동료 현황·규칙 안내 (S6·S7) | [10-peers-rules.md](02-construction/10-peers-rules.md) · [Build Spec](02-construction/peers-rules/build-spec-index.md) (IMPLEMENTED) | AI_PROPOSED |
 
 ## Phase R — Independent Code Review 🔍 (Construction → Operations 게이트)
 

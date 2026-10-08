@@ -1,7 +1,7 @@
 ---
 artifact: business-rules
 build-spec: peers-rules
-status: READY
+status: IMPLEMENTED
 updated: 2026-10-08
 ---
 
