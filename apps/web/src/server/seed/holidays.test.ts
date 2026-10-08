@@ -5,9 +5,10 @@ import { SEED_HOLIDAYS } from './holidays'
 const byYear = (y: number) => SEED_HOLIDAYS.filter((h) => h.date.startsWith(`${y}-`))
 
 describe('공휴일 시드 (business-rules R-HOL-1, §6)', () => {
-  it('연도별 개수: 2026 = 21, 2027 = 21', () => {
-    expect(byYear(2026)).toHaveLength(21)
-    expect(byYear(2027)).toHaveLength(21)
+  // 2026년 공휴일법 개정으로 제헌절이 다시 공휴일(2027년은 토요일 → 대체공휴일)
+  it('연도별 개수: 2026 = 22, 2027 = 23', () => {
+    expect(byYear(2026)).toHaveLength(22)
+    expect(byYear(2027)).toHaveLength(23)
   })
   it('날짜가 중복되지 않는다', () => {
     const dates = SEED_HOLIDAYS.map((h) => h.date)

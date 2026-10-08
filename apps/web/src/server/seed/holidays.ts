@@ -21,6 +21,8 @@ export const SEED_HOLIDAYS: SeedHoliday[] = [
   { date: '2026-05-25', name: '부처님오신날 대체공휴일', kind: S },
   { date: '2026-06-03', name: '전국동시지방선거', kind: 'election' },
   { date: '2026-06-06', name: '현충일', kind: P },
+  // 2026년 공휴일법 개정으로 18년 만에 다시 공휴일(R-1·3-1, 종이 근무표 7월 기준 OFF로 확인)
+  { date: '2026-07-17', name: '제헌절', kind: P },
   { date: '2026-08-15', name: '광복절', kind: P },
   { date: '2026-08-17', name: '광복절 대체공휴일', kind: S },
   { date: '2026-09-24', name: '추석 연휴', kind: P },
@@ -41,6 +43,9 @@ export const SEED_HOLIDAYS: SeedHoliday[] = [
   { date: '2027-05-05', name: '어린이날', kind: P },
   { date: '2027-05-13', name: '부처님오신날', kind: P },
   { date: '2027-06-06', name: '현충일', kind: P },
+  // 제헌절은 2026년부터 공휴일·대체공휴일 대상(토요일 → 다음 월요일). 관보 확정 뒤 공공데이터 가져오기로 다시 확인
+  { date: '2027-07-17', name: '제헌절', kind: P },
+  { date: '2027-07-19', name: '제헌절 대체공휴일', kind: S },
   { date: '2027-08-15', name: '광복절', kind: P },
   { date: '2027-08-16', name: '광복절 대체공휴일', kind: S },
   { date: '2027-09-14', name: '추석 연휴', kind: P },

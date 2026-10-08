@@ -15,7 +15,8 @@
     "db:migrate": "tsx --env-file-if-exists=.env src/server/db/migrate.ts",
     "db:seed": "tsx --env-file-if-exists=.env src/server/seed/dev.ts",
     "db:bootstrap": "tsx --env-file-if-exists=.env src/server/seed/bootstrap.ts",
-    "db:import-roster": "tsx --env-file-if-exists=.env src/server/seed/import-roster.ts"
+    "db:import-roster": "tsx --env-file-if-exists=.env src/server/seed/import-roster.ts",
+    "db:import-history": "tsx --env-file-if-exists=.env src/server/seed/import-history.ts"
   },
   "dependencies": {
     "@duty/contract": "workspace:*",

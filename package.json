@@ -19,7 +19,8 @@
     "db:migrate": "pnpm --filter web db:migrate",
     "db:seed": "pnpm --filter web db:seed",
     "db:bootstrap": "pnpm --filter web db:bootstrap",
-    "db:import-roster": "pnpm --filter web db:import-roster"
+    "db:import-roster": "pnpm --filter web db:import-roster",
+    "db:import-history": "pnpm --filter web db:import-history"
   },
   "devDependencies": {
     "@types/node": "^24.19.0",
