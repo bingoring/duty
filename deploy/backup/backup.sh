@@ -8,6 +8,15 @@ set -euo pipefail
 umask 077 # 백업 파일은 소유자만 읽는다
 KEEP_DAYS=${BACKUP_KEEP_DAYS:-14}
 DIR=/backups
+# 3-2 R-MON-2: 원격 업로드까지(원격이 없으면 로컬 저장까지) 성공한 시각. web이 읽기 전용으로 본다(/api/health/backup)
+STATUS_DIR=${BACKUP_STATUS_DIR:-/backup-status}
+
+mark_ok() {
+  [ -d "$STATUS_DIR" ] || return 0
+  date +%s > "$STATUS_DIR/.last-ok.tmp"
+  chmod 644 "$STATUS_DIR/.last-ok.tmp" # 백업 파일과 달리 시각뿐이라 web(비root)이 읽게 한다
+  mv "$STATUS_DIR/.last-ok.tmp" "$STATUS_DIR/last-ok"
+}
 
 run_once() {
   local name="duty-$(date +%Y%m%d-%H%M).dump.age"
@@ -21,6 +30,7 @@ run_once() {
     rclone copyto "$DIR/$name" "$BACKUP_REMOTE/$name" --retries 3 --no-check-dest
     echo "backup_uploaded $name"
   fi
+  mark_ok
 }
 
 if [ "${1:-}" = "--daemon" ]; then

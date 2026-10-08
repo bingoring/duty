@@ -5,14 +5,14 @@
 
 ## 구성
 
-| 서비스    | 역할                                                                   | 공개          |
-| --------- | ---------------------------------------------------------------------- | ------------- |
-| `caddy`   | HTTPS(Let's Encrypt 자동 발급·갱신), HTTP→HTTPS, HSTS, 역방향 프록시   | 80·443 (유일) |
-| `web`     | Next.js 앱. `/api/health`로 상태 확인                                  | 없음          |
-| `solver`  | CP-SAT 듀티 생성                                                       | 없음          |
-| `db`      | PostgreSQL 16 (볼륨 `db-data`)                                         | 없음          |
-| `backup`  | 매일 03:00 암호화 덤프 → `/opt/duty/backups` 14일 + Cloud Storage 90일 | 없음          |
-| `migrate` | 배포마다 한 번 마이그레이션, 관리자·명단 가져오기 도구                 | 없음          |
+| 서비스    | 역할                                                                                                        | 공개          |
+| --------- | ----------------------------------------------------------------------------------------------------------- | ------------- |
+| `caddy`   | HTTPS(Let's Encrypt 자동 발급·갱신), HTTP→HTTPS, HSTS, 역방향 프록시                                        | 80·443 (유일) |
+| `web`     | Next.js 앱. `/api/health`로 상태 확인                                                                       | 없음          |
+| `solver`  | CP-SAT 듀티 생성                                                                                            | 없음          |
+| `db`      | PostgreSQL 16 (볼륨 `db-data`)                                                                              | 없음          |
+| `backup`  | 매일 03:00 암호화 덤프 → `/opt/duty/backups` 14일 + Cloud Storage 90일, 성공 시각 → `backup-status/last-ok` | 없음          |
+| `migrate` | 배포마다 한 번 마이그레이션, 관리자·명단 가져오기 도구                                                      | 없음          |
 
 ## 1. GCP 준비 (한 번)
 
@@ -80,6 +80,28 @@ shred -u /tmp/roster.csv
 - 자동: 매일 03:00(서울). 로그: `docker compose -f compose.prod.yaml --env-file .env.prod logs backup | tail` → `backup_ok`·`backup_uploaded` (실패는 `backup_failed`)
 - 지금 한 번: `docker compose -f compose.prod.yaml --env-file .env.prod exec backup backup.sh`
 - 서버 사본: `/opt/duty/backups/duty-YYYYMMDD-HHMM.dump.age` (14일), 버킷 사본: `gs://<BUCKET>/duty/` (90일 뒤 자동 삭제). 서버 서비스 계정은 버킷에서 지울 수 없다.
+
+## 4-1. 감시 · 알림 (3-2)
+
+이상이 생기면 알림 채널(이메일)로 온다. 알림 메일에 이 문서의 해당 절이 적혀 있다.
+
+| 알림                  | 조건                                                      | 먼저 볼 곳                            |
+| --------------------- | --------------------------------------------------------- | ------------------------------------- |
+| `duty-down`           | `/api/health` 업타임 체크가 지역 2곳 이상에서 10분 실패   | 7. 장애 대응 「접속 안 됨」·「502」   |
+| `duty-backup-missing` | `/api/health/backup`이 503 — 26시간 안에 성공한 백업 없음 | `logs backup`, 아래 4 「지금 한 번」  |
+| `duty-disk`           | 루트 디스크 80% 초과 10분                                 | 7. 장애 대응 「디스크 부족」          |
+| `duty-memory`         | 메모리 90% 초과 10분                                      | `docker stats`, 솔버 `SOLVER_WORKERS` |
+| 예산 `duty-monthly`   | 월 예산의 50·90·100%                                      | 콘솔 결제 → 보고서                    |
+
+설정(한 번, PC에서, 비용 없음):
+
+```bash
+PROJECT_ID=<PROJECT_ID> ALERT_EMAIL=<주소> BUDGET_KRW=50000 ./deploy/gcp/monitoring.sh   # DRY_RUN=1로 먼저 확인
+PROJECT_ID=<PROJECT_ID> ./deploy/gcp/ops-agent.sh   # ⚠️ VM 접근 범위 변경 때 1분 안팎 재시작
+```
+
+- 서버를 새로 올리거나 `backup-status`가 비었으면 백업 알림이 오므로, 배포 직후 백업을 한 번 돌린다(아래 4 「지금 한 번」).
+- 알림이 실제로 오는지는 콘솔 Monitoring → 알림 → 채널 `duty-email` → 「테스트 알림 보내기」로 확인한다.
 
 ## 5. 업데이트 · 되돌리기
 

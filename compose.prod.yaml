@@ -57,6 +57,9 @@ services:
       HOLIDAY_API_KEY: ${HOLIDAY_API_KEY:-}
       # 듀티 생성 솔버 (compose 내부망에서만)
       SOLVER_URL: http://solver:8100
+    # 3-2 R-MON-3: 백업 성공 시각(읽기 전용) → /api/health/backup
+    volumes:
+      - ${BACKUP_STATUS_DIR:-./backup-status}:/backup-status:ro
     # 호스트에 포트를 공개하지 않는다 — Caddy만 들어온다(R-OPS-1)
     expose: ['3000']
     healthcheck:
@@ -110,6 +113,7 @@ services:
       BACKUP_REMOTE: ${BACKUP_REMOTE:-}
     volumes:
       - ${BACKUP_DIR:-./backups}:/backups
+      - ${BACKUP_STATUS_DIR:-./backup-status}:/backup-status
     depends_on:
       db: { condition: service_healthy }
     restart: unless-stopped

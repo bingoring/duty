@@ -10,3 +10,4 @@ test-results/
 playwright-report/
 # 운영 서버의 암호화 백업(compose backup)
 /backups/
+/backup-status/
