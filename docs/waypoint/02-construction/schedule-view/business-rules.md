@@ -12,7 +12,7 @@ updated: 2026-09-27
 | ID | 규칙 | 근거 |
 |---|---|---|
 | R-VIEW-1 | 격자는 MonthPlan 상태가 `CONFIRMED` 또는 `CLOSED`일 때만 보인다. 그 외(없음·신청 중·생성 중)는 빈 상태. 관리자에게는 `DRAFTING`일 때 "듀티 생성에서 생성안 보기" 링크를 더한다 | 1-2 §8 생성안은 관리자만 |
-| R-VIEW-2 | 행 순서: ① fixed_weekday(수간호사) — `seniorityRank` 순 ② 로그인 사용자(교대 근무자일 때) ③ 나머지 교대 근무자 `seniorityRank` 순 | 핸드오프 S3 |
+| R-VIEW-2 | 행 순서: ① fixed_weekday(수간호사) — `seniorityRank` 순 ② 교대 근무자 `seniorityRank` 순(로그인 사용자도 제자리, 강조만) — **2026-10-09 변경**(DECISIONS, 이전: 로그인 사용자를 ②로 고정) | 핸드오프 S3, 사용자 2026-10-09 |
 | R-VIEW-3 | 행 대상 = 보는 달에 칸이 있는 사용자 ∪ 활성이고 그달에 재직일이 있는 사용자. 비활성이고 칸이 없으면 뺀다 | 1-2 §2 소프트 삭제·과거 보존 |
 | R-VIEW-4 | 로그인 사용자의 행을 강조한다(bg `primary-soft`, 이름 800, 왼쪽 3px `primary` 바). 수간호사 이름은 `admin` 파랑 | 핸드오프 S3 |
 | R-VIEW-5 | 칸 표시: D/E/N/S는 코드, OFF(모든 종류)는 "off", AL과 LEAVE는 모두 "휴"(#D8E6C3). 칸 없음은 빈 칸 | 핸드오프 v2 S5 격자 표기 |
