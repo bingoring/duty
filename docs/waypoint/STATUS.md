@@ -4,10 +4,13 @@
 **Requirements:** [inputs/requirements_v3.md](inputs/requirements_v3.md) (근무 지침 원문 + 근무자 명단)
 **Design handoff:** [inputs/design-handoff_v5/](inputs/design-handoff_v5/README.md) (최신, 2026-09-30) · [v4](inputs/design-handoff_v4/README.md) · [v3](inputs/design-handoff_v3/README.md) · [v2](inputs/design-handoff_v2/README.md) · [v1](inputs/design-handoff_v1/README.md)
 **Decisions (audit):** [DECISIONS.md](DECISIONS.md)
-**Last updated:** 2026-10-08
+**Last updated:** 2026-10-09
 
 > 🔒 **개인정보:** 공개 저장소다. 간호사 이름·사번은 모두 가명이며, 실명 자료는 커밋하지 않는다([DECISIONS](DECISIONS.md) 2026-09-26).
 
+> 📝 **2-11 수간호사 S·칸 출처 표시·최초 로그인 Build Spec READY (2026-10-09).** 운영 이력 가져오기 전에 사용자 피드백 6건 반영 — 수간호사 평일 S(D는 신청·조정·필수 인원 보충만), 교환에 수간호사, 외곽선 3종(교환 = 빨간 점선)·툴팁,
+> 최초 로그인 개인정보 동의(민감정보 별도) → 비밀번호 → 초기 설정(미리 채움, 본인 확인·수정, 관리자 확인). **2-10 「S2 만들지 않음」을 뒤집음**(DECISIONS). 구현 착수 승인 대기. 3-1 이력 가져오기는 2-11 승인 뒤로 미룸.
+>
 > 🏗️ **3-1 배포 1단계 완료 (2026-10-08).** Caddy·백업·헬스체크·IP 제한·GCP 생성 스크립트·운영 문서, 로컬 리허설(HTTPS·백업·복구) 통과. 다음: GCP 자원 생성(비용 발생, 승인 필요).
 >
 > 📝 **3-1 배포 Build Spec READY (2026-10-08).** GCP 별도 프로젝트·서울 e2-medium VM 한 대 + Caddy 자동 TLS + 매일 암호화 백업(서버 14일 + Cloud Storage 90일).
@@ -149,7 +152,7 @@
 ## Phase 2 — Construction (How)
 
 > 1-3 §10의 분해(승인됨)를 핸드오프 v2에 맞춰 조정(2026-09-27): 휴가 신청은 S4 팝오버로 들어와 2-5에 포함, 간호사 교환 요청은 2-8로 분리.
-> 2차 범위 중 S6·S7은 배포 전 2-10으로 당겼다(2026-10-07). S2 초기 설정은 만들지 않는다(2026-10-08, 관리자가 S10에서 입력).
+> 2차 범위 중 S6·S7은 배포 전 2-10으로 당겼다(2026-10-07). S2 초기 설정은 만들지 않는다(2026-10-08) → 운영 전 2-11로 되살림(2026-10-09, 본인 확인·수정 + 관리자 확인).
 
 | 스테이지 | 문서 | 상태 |
 |---------|------|------|
@@ -163,6 +166,7 @@
 | 2-8 근무 교환 요청 (S9 간호사, 3a) | [08-swap-requests.md](02-construction/08-swap-requests.md) · [Build Spec](02-construction/swap-requests/build-spec-index.md) (IMPLEMENTED) | HUMAN_APPROVED |
 | 2-9 통합·E2E | [09-integration-e2e.md](02-construction/09-integration-e2e.md) · [Build Spec](02-construction/integration-e2e/build-spec-index.md) (IMPLEMENTED) | HUMAN_APPROVED |
 | 2-10 동료 현황·규칙 안내 (S6·S7) | [10-peers-rules.md](02-construction/10-peers-rules.md) · [Build Spec](02-construction/peers-rules/build-spec-index.md) (IMPLEMENTED) | HUMAN_APPROVED |
+| 2-11 수간호사 S·칸 출처 표시·최초 로그인 (S2 부활) | [11-head-firstlogin.md](02-construction/11-head-firstlogin.md) · [Build Spec](02-construction/head-firstlogin/build-spec-index.md) (READY) | AI_PROPOSED |
 
 ## Phase R — Independent Code Review 🔍 (Construction → Operations 게이트)
 
