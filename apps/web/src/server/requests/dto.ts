@@ -225,11 +225,9 @@ export function buildRequestsView(
     for (const d of leaveDates(l.startDate, l.endDate)) leaveAt.set(`${l.userId}|${d}`, l)
   const schedAt = new Map(r.scheduled.map((s) => [`${s.userId}|${s.date}`, s.label]))
 
+  // 2026-10-09 변경: 수간호사 맨 위 고정, 나머지는 연차 순(내 행은 제자리에서 강조)
   const users = [...r.users].sort(
-    (a, b) =>
-      Number(b.id === viewer.id) - Number(a.id === viewer.id) ||
-      Number(!!b.head) - Number(!!a.head) ||
-      a.seniorityRank - b.seniorityRank,
+    (a, b) => Number(!!b.head) - Number(!!a.head) || a.seniorityRank - b.seniorityRank,
   )
   const rows: RequestRowDTO[] = users.map((u) => {
     const cells = days.map((date): RequestCellDTO => {

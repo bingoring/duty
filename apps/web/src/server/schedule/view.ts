@@ -139,12 +139,14 @@ export function cellView(
   return { date, label, chip, outline, checkupHalf: c.checkupHalf, weekend, today, title: lines.join('\n') }
 }
 
-// R-VIEW-2
-function orderUsers(users: ViewUser[], viewerId: string): ViewUser[] {
-  const heads = users.filter((u) => u.rotation === 'fixed_weekday')
-  const viewer = users.find((u) => u.id === viewerId && u.rotation !== 'fixed_weekday')
-  const rest = users.filter((u) => u.rotation !== 'fixed_weekday' && u !== viewer)
-  return [...heads, ...(viewer ? [viewer] : []), ...rest]
+// R-VIEW-2 (2026-10-09 변경): 수간호사 맨 위 고정, 나머지는 연차 순(표 순서 seniorityRank, 고연차 먼저).
+// 내 줄은 위로 올리지 않고 제자리에서 강조만 한다
+function orderUsers(users: ViewUser[]): ViewUser[] {
+  const byRank = [...users].sort((a, b) => a.seniorityRank - b.seniorityRank)
+  return [
+    ...byRank.filter((u) => u.rotation === 'fixed_weekday'),
+    ...byRank.filter((u) => u.rotation !== 'fixed_weekday'),
+  ]
 }
 
 function todayCard(c: ScheduleCellRow | null) {
@@ -217,7 +219,7 @@ export function buildScheduleView(d: MonthViewData): ScheduleView {
   }
 
   const cellAt = new Map(d.cells.map((c) => [`${c.userId}|${c.date}`, c]))
-  const rows: GridRow[] = orderUsers(d.users, d.viewerId).map((u) => {
+  const rows: GridRow[] = orderUsers(d.users).map((u) => {
     const b = d.balances.get(u.id) as RowBalance
     return {
       userId: u.id,

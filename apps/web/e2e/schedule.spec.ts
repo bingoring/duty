@@ -3,7 +3,9 @@ import { ADMIN, NURSE, loginAndWait as login } from './fixtures'
 
 // Build Spec 2-3 §5. 개발 시드의 종이 2026-10(가명) 확정 근무표를 쓴다
 test.describe('S3 근무표', () => {
-  test('간호사: 10월 격자 11행, 수간호사 첫 행·내 줄 둘째 행, 요약 카드', async ({ page }) => {
+  test('간호사: 10월 격자 11행, 수간호사 첫 행·나머지 연차 순(내 줄은 제자리 강조), 요약 카드', async ({
+    page,
+  }) => {
     await login(page, NURSE.employeeNo)
     await page.goto('/?ym=2026-10')
     await expect(page.getByRole('heading', { name: '2026년 10월 · 응급실 근무표' }).last()).toBeVisible()
@@ -12,13 +14,15 @@ test.describe('S3 근무표', () => {
     await expect(rows).toHaveCount(11)
     await expect(rows.nth(0)).toHaveAttribute('aria-label', ADMIN.name)
     await expect(rows.nth(0)).toHaveAttribute('data-kind', 'head')
-    await expect(rows.nth(1)).toHaveAttribute('aria-label', NURSE.name)
-    await expect(rows.nth(1)).toHaveAttribute('data-kind', 'me')
+    // 정하늘은 표 순서 3번(박서연 다음) → 셋째 행
+    await expect(rows.nth(1)).toHaveAttribute('data-kind', 'other')
+    await expect(rows.nth(2)).toHaveAttribute('aria-label', NURSE.name)
+    await expect(rows.nth(2)).toHaveAttribute('data-kind', 'me')
     // 정하늘 누적 off = 종이 +4, 10/1 N
-    await expect(rows.nth(1).locator('[data-col="acc"]')).toHaveText('+4')
-    await expect(rows.nth(1).locator('[data-date="2026-10-01"]')).toHaveAttribute('data-tip', '10/1 (목) · N')
+    await expect(rows.nth(2).locator('[data-col="acc"]')).toHaveText('+4')
+    await expect(rows.nth(2).locator('[data-date="2026-10-01"]')).toHaveAttribute('data-tip', '10/1 (목) · N')
     // 2-11 R-TIP-1: 칸에 올리면 바로 툴팁 카드
-    await rows.nth(1).locator('[data-date="2026-10-01"]').hover()
+    await rows.nth(2).locator('[data-date="2026-10-01"]').hover()
     await expect(page.getByTestId('cell-tip')).toHaveText('10/1 (목) · N')
     await expect(page.getByText('교환', { exact: true }).first()).toBeVisible()
     const cards = page.getByLabel('내 요약')

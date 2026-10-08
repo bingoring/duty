@@ -89,12 +89,12 @@ function data(over: Partial<MonthViewData> = {}): MonthViewData {
 }
 
 describe('행 (R-VIEW-2~4)', () => {
-  it('수간호사 → 나 → 나머지 순위 순', () => {
+  it('수간호사 맨 위, 나머지는 연차 순 — 내 줄은 제자리에서 강조 (2026-10-09 변경)', () => {
     const v = buildScheduleView(data())
     expect(v.rows.map((r) => [r.userId, r.kind])).toEqual([
       ['head', 'head'],
-      ['me', 'me'],
       ['b', 'other'],
+      ['me', 'me'],
       ['c', 'other'],
     ])
   })
@@ -222,9 +222,9 @@ describe('우측 컬럼 (R-VIEW-9·10)', () => {
       ['c', bal({ offCarryAfter: 0.5, checkup: 0 })],
     ])
     const rows = buildScheduleView(data({ balances })).rows
-    // 행 순서: head → me → b → c
-    expect(rows.map((r) => r.accOff)).toEqual(['0', '+4', '−2', '+0.5'])
-    expect(rows.map((r) => r.special)).toEqual(['5/-', '5/-', '3/1', '5/-'])
+    // 행 순서: head → b → me → c
+    expect(rows.map((r) => r.accOff)).toEqual(['0', '−2', '+4', '+0.5'])
+    expect(rows.map((r) => r.special)).toEqual(['5/-', '3/1', '5/-', '5/-'])
     expect(rows.map((r) => r.checkup)).toEqual(['0.5', '0.5', '0.5', '0'])
     expect(rows.find((r) => r.userId === 'me')).toMatchObject({
       carryOff: '4',
