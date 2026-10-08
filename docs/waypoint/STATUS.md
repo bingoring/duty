@@ -4,10 +4,13 @@
 **Requirements:** [inputs/requirements_v3.md](inputs/requirements_v3.md) (근무 지침 원문 + 근무자 명단)
 **Design handoff:** [inputs/design-handoff_v5/](inputs/design-handoff_v5/README.md) (최신, 2026-09-30) · [v4](inputs/design-handoff_v4/README.md) · [v3](inputs/design-handoff_v3/README.md) · [v2](inputs/design-handoff_v2/README.md) · [v1](inputs/design-handoff_v1/README.md)
 **Decisions (audit):** [DECISIONS.md](DECISIONS.md)
-**Last updated:** 2026-10-07
+**Last updated:** 2026-10-08
 
 > 🔒 **개인정보:** 공개 저장소다. 간호사 이름·사번은 모두 가명이며, 실명 자료는 커밋하지 않는다([DECISIONS](DECISIONS.md) 2026-09-26).
 
+> 📝 **2-10 동료 현황·규칙 안내 Build Spec READY (2026-10-08).** S6: 이번 달 + 월 이동, 교대 근무자 전원의 오프·나이트·주말 통 OFF 현황(근무표와 같은 계산).
+> S7: 목차 7개, 규칙 버전 값에서 렌더링, 태그 자동 적용·권고·안내. **S2 초기 설정은 만들지 않음**(원문 §10·11과 다름, DECISIONS). 구현 착수 승인 대기.
+>
 > ✅ **2-9 통합·E2E 승인 (2026-10-07).** 2차 범위 중 S6 동료 현황·S7 규칙 안내를 배포 전 2-10으로 넣기로 했다(DECISIONS).
 >
 > 🏗️ **2-9 통합·E2E 구현 완료 → 승인 대기 (2026-10-07).** 쿠키 시계로 11월 한 달 흐름(신청·휴가 → 생성·확정 → 교환·관리자 조정 → 12월 확정 → 마감 → 이월)을 E2E 하나로 확인,
@@ -129,7 +132,7 @@
 ## Phase 2 — Construction (How)
 
 > 1-3 §10의 분해(승인됨)를 핸드오프 v2에 맞춰 조정(2026-09-27): 휴가 신청은 S4 팝오버로 들어와 2-5에 포함, 간호사 교환 요청은 2-8로 분리.
-> 2차 범위 중 S6·S7은 배포 전 2-10으로 당겼다(2026-10-07). S2 초기 설정은 2-10 Build Spec에서 범위를 정한다.
+> 2차 범위 중 S6·S7은 배포 전 2-10으로 당겼다(2026-10-07). S2 초기 설정은 만들지 않는다(2026-10-08, 관리자가 S10에서 입력).
 
 | 스테이지 | 문서 | 상태 |
 |---------|------|------|
@@ -142,7 +145,7 @@
 | 2-7 근무 조정·월 마감 (S9 관리자) | [07-adjust-close.md](02-construction/07-adjust-close.md) · [Build Spec](02-construction/adjust-close/build-spec-index.md) (IMPLEMENTED) | HUMAN_APPROVED |
 | 2-8 근무 교환 요청 (S9 간호사, 3a) | [08-swap-requests.md](02-construction/08-swap-requests.md) · [Build Spec](02-construction/swap-requests/build-spec-index.md) (IMPLEMENTED) | HUMAN_APPROVED |
 | 2-9 통합·E2E | [09-integration-e2e.md](02-construction/09-integration-e2e.md) · [Build Spec](02-construction/integration-e2e/build-spec-index.md) (IMPLEMENTED) | HUMAN_APPROVED |
-| 2-10 동료 현황·규칙 안내 (S6·S7) | 02-construction/10-peers-rules.md | PENDING |
+| 2-10 동료 현황·규칙 안내 (S6·S7) | [10-peers-rules.md](02-construction/10-peers-rules.md) · [Build Spec](02-construction/peers-rules/build-spec-index.md) (READY) | AI_PROPOSED |
 
 ## Phase R — Independent Code Review 🔍 (Construction → Operations 게이트)
 
