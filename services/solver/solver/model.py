@@ -583,7 +583,8 @@ def diagnose(req: dict) -> list[dict]:
     s.parameters.interleave_search = False
     status = s.solve(b.m)
     if status != cp_model.INFEASIBLE:
-        return [{"group": "STAFF"}]
+        # 진단 시간 안에 원인을 증명하지 못함 — 인원 부족으로 꾸며 내지 않고 비워 둔다(R-1)
+        return []
     index = {b.groups[k].index: k for k in keys}
     causes = []
     for i in s.sufficient_assumptions_for_infeasibility():
@@ -600,4 +601,4 @@ def diagnose(req: dict) -> list[dict]:
             c["userId"] = rest[0]
         causes.append(c)
     causes.sort(key=lambda c: (c.get("date", ""), c["group"], c.get("userId", "")))
-    return causes or [{"group": "STAFF"}]
+    return causes

@@ -38,7 +38,7 @@ import { callSolver, solverTimeLimit } from './solver-client'
 // Build Spec 2-6 business-logic-model §1·§5, business-rules §1·§6
 export type GenerateFailure = {
   ok: false
-  kind: 'blocked' | 'fixed' | 'infeasible' | 'unknown' | 'unreachable' | 'invalid'
+  kind: 'blocked' | 'busy' | 'fixed' | 'infeasible' | 'unknown' | 'unreachable' | 'invalid'
   message: string
   causes?: string[]
 }
@@ -112,6 +112,24 @@ export async function generate(
   opts: { priorities: Priorities; seed?: number; today: string },
 ): Promise<GenerateResult> {
   if (actor.role !== 'admin') return fail('blocked', '권한이 없습니다.')
+  // R-1: 솔버는 CPU·메모리를 크게 쓰므로 한 번에 하나만(두 번 클릭·두 관리자). 앱 서버는 한 프로세스다
+  if (generating) return fail('busy', '다른 생성이 진행 중입니다. 끝난 뒤 다시 시도해 주세요.')
+  generating = true
+  try {
+    return await generateOnce(db, actor, ym, opts)
+  } finally {
+    generating = false
+  }
+}
+
+let generating = false
+
+async function generateOnce(
+  db: Db,
+  actor: Actor,
+  ym: YearMonth,
+  opts: { priorities: Priorities; seed?: number; today: string },
+): Promise<GenerateResult> {
   const rules = await latestRuleSet(db)
   const plan = (await ensureRequestPlan(db, ym, opts.today, rules)) ?? (await findPlan(db, ym))
   if (!plan) return fail('blocked', '이 달은 아직 신청 기간이 아닙니다.')
@@ -136,8 +154,16 @@ export async function generate(
   const seed = opts.seed ?? Math.floor(Math.random() * 2 ** 31)
   const req = toSolverRequest(g, { seed, timeLimitSec: solverTimeLimit(), priorities: opts.priorities })
   const out = await callSolver(req)
-  if (out.kind === 'unreachable')
-    return fail('unreachable', '솔버에 연결할 수 없습니다. 잠시 뒤 다시 시도해 주세요.')
+  if (out.kind === 'unreachable') {
+    // R-1: 원인을 운영 로그에 남긴다(연결 실패·HTTP 오류·계약 불일치)
+    console.error('solver_unreachable', { error: out.error, seed })
+    return fail(
+      'unreachable',
+      out.error.startsWith('invalid response')
+        ? '솔버 응답 형식이 맞지 않습니다. 관리자(개발 담당)에게 알려 주세요.'
+        : '솔버에 연결할 수 없습니다. 잠시 뒤 다시 시도해 주세요.',
+    )
+  }
   if (out.kind === 'unknown')
     return fail('unknown', '시간 안에 안을 찾지 못했습니다. 다시 시도하거나 조건을 줄여 주세요.')
   if (out.kind === 'infeasible') {
@@ -151,7 +177,13 @@ export async function generate(
       )
       .filter((t) => !seen.has(t) && seen.add(t))
       .slice(0, MAX_CAUSES)
-    return fail('infeasible', '규칙을 모두 지키는 근무표를 만들 수 없습니다.', causes)
+    return fail(
+      'infeasible',
+      causes.length
+        ? '규칙을 모두 지키는 근무표를 만들 수 없습니다.'
+        : '규칙을 모두 지키는 근무표를 만들 수 없습니다. 원인을 특정하지 못했으니 신청·휴가·규칙을 확인해 주세요.',
+      causes,
+    )
   }
 
   // 1-3 §3: 솔버 안은 TS 검사기로 재검사한 뒤에만 저장한다

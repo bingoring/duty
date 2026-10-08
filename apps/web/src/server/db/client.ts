@@ -5,7 +5,13 @@ import * as schema from './schema'
 export type Db = PostgresJsDatabase<typeof schema>
 
 export function createDb(url: string): { db: Db; close: () => Promise<void> } {
-  const client = postgres(url, { max: 5 })
+  // R-1: 끝없이 기다리지 않게 연결·유휴·문장 시간 한도를 둔다(잠금 대기도 statement_timeout 안)
+  const client = postgres(url, {
+    max: Number(process.env.DB_POOL_MAX ?? 10),
+    connect_timeout: 10,
+    idle_timeout: 60,
+    connection: { statement_timeout: 30_000 },
+  })
   return { db: drizzle(client, { schema }), close: () => client.end() }
 }
 
