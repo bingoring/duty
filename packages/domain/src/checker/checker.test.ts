@@ -227,6 +227,18 @@ describe('신청', () => {
   })
 })
 
+describe('S-WORK-CONSEC (R-1, DECISIONS 2026-10-08)', () => {
+  it('연속 근무가 상한(기본 5일)을 넘으면 경고, 쉬는 칸이 끊는다', () => {
+    expect(only(solo('D D E E N N O'), 'S-WORK-CONSEC')).toMatchObject([
+      { severity: 'soft', data: { count: 6, max: 5 } },
+    ])
+    expect(only(solo('D D E E N O N'), 'S-WORK-CONSEC')).toEqual([])
+    expect(only(solo('D D E E N N O', { rules: rules({ maxConsecutiveWork: 6 }) }), 'S-WORK-CONSEC')).toEqual(
+      [],
+    )
+  })
+})
+
 describe('H-SLEEPING', () => {
   it('부여 가능 수를 넘는 슬리핑오프는 위반', () => {
     const five = 'N N O O N N O O N SO'

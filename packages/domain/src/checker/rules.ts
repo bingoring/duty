@@ -21,6 +21,7 @@ export const HARD_RULE_IDS = [
 
 export const SOFT_RULE_IDS = [
   'S-NIGHT-TARGET',
+  'S-WORK-CONSEC',
   'S-OFF-AFTER-N',
   'S-WEEKEND-PAIR',
   'S-WEEKEND-CARRY',

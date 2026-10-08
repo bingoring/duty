@@ -6,9 +6,9 @@ describe('DEFAULT_RULES', () => {
   // 최대 연속 오프만 15: 10일은 구두 합의, 규정상 한도는 15일 (DECISIONS 2026-09-27 Q2)
   it('핸드오프 S11 기본값과 일치한다', () => {
     const p = DEFAULT_RULES.params
-    expect([p.minRestHours, p.maxConsecutiveOff, p.workDaysPerWeek, p.maxNightPerMonth]).toEqual([
-      16, 15, 5, 7,
-    ])
+    expect([p.minRestHours, p.maxConsecutiveOff, p.maxNightPerMonth]).toEqual([16, 15, 7])
+    // 「주 근무일」 대신 연속 근무 상한(실제 근무표 최장 5일, DECISIONS 2026-10-08)
+    expect(p.maxConsecutiveWork).toBe(5)
     expect([p.maxConsecutiveNight, p.offAfterNight, p.minStaffPerShift, p.minKTass]).toEqual([3, 2, 2, 1])
     expect([p.newbieTripleWeeks, p.sleepingOffPerN, p.requestDeadlineDay]).toEqual([3, 6, 15])
     expect([p.negotiationStartDay, p.negotiationEndDay]).toEqual([16, 20])

@@ -54,7 +54,8 @@ export const RULE_PARAM_LIMITS: RuleParamLimit[] = [
     '근무·휴식',
     'OFF·연차 합산. 휴가(경조·병가·공가)는 세지 않되 연속은 이어짐',
   ),
-  p('workDaysPerWeek', '주 근무일', '필수', '일', 1, 7, '근무·휴식', '주휴일 2일 기준(월 기준 OFF로 맞춤)'),
+  // 「주 근무일」은 어디에도 쓰이지 않아 뺐다(한 달 OFF 수는 빨간 날 기준). 대신 연속 근무 상한(R-1, DECISIONS 2026-10-08)
+  p('maxConsecutiveWork', '최대 연속 근무', '권고', '일', 3, 14, '근무·휴식', 'D·E·N·S 연속. 넘으면 경고'),
   p('maxNightPerMonth', '월 나이트 상한', '필수', '개', 1, 31, '나이트', '최대값'),
   p('targetNightPerMonth', '월 나이트 목표', '권고', '개', 1, 31, '나이트', '이 수를 넘으면 경고'),
   p('maxConsecutiveNight', '연속 나이트 상한', '필수', '일', 1, 7, '나이트'),

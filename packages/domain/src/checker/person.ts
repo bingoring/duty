@@ -116,6 +116,13 @@ export function checkPerson(n: NurseProfile, ctx: PersonCtx): Violation[] {
   ))
     if (r.count > p.maxConsecutiveNight)
       out.push(violation('H-NIGHT-CONSEC', [n.id], r.dates, { count: r.count, max: p.maxConsecutiveNight }))
+  // S-WORK-CONSEC: 연속 근무(D·E·N·S) 상한 — 실제 근무표에 6일 이상이 없다(R-1)
+  for (const r of runs(
+    (c) => isWorkCode(c.code),
+    () => 1,
+  ))
+    if (r.count > p.maxConsecutiveWork)
+      out.push(violation('S-WORK-CONSEC', [n.id], r.dates, { count: r.count, max: p.maxConsecutiveWork }))
   // 휴가(LEAVE)는 세지 않되 연속을 끊지 않는다 (Q2)
   for (const r of runs(
     (c) => isRestCode(c.code),

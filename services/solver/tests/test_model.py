@@ -120,6 +120,32 @@ def test_다음_달_1일이_확정_근무면_월말_토요일만으로는_주말
     assert min_n1_penalty([{"userId": "n1", "date": "2026-11-01", "code": "D"}]) == 1
 
 
+def test_연속_근무와_순환_역방향이_실제_근무표_수준이다():
+    # R-1: 실제 1~9월 근무표 — 연속 근무 최장 5일, OFF를 건너뛴 역방향 39% (DECISIONS 2026-10-08)
+    req = request(seed=1, time_limit=8)
+    res = solve(req)
+    fwd = {("D", "E"), ("E", "N"), ("N", "D")}
+    by: dict[str, dict[str, str]] = {}
+    for c in res["cells"]:
+        by.setdefault(c["userId"], {})[c["date"]] = c["code"]
+    f = r = longest = 0
+    for m in by.values():
+        prev, run = None, 0
+        for d in req["days"]:
+            c = m[d]
+            if c in ("D", "E", "N", "S"):
+                run += 1
+                longest = max(longest, run)
+                if c != "S":
+                    if prev and prev != c:
+                        f, r = (f + 1, r) if (prev, c) in fwd else (f, r + 1)
+                    prev = c
+            else:
+                run = 0
+    assert longest <= 6
+    assert r / (f + r) <= 0.45
+
+
 def test_3인_근무_신규는_인원에_세지_않고_프리셉터와_같은_근무():
     req = request()
     req["trainings"] = [

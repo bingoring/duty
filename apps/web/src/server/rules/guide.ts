@@ -28,8 +28,15 @@ export function buildRulesGuide(rules: RuleSet, version: number | null): RulesGu
       id: 'shift',
       title: '근무 형태 · 순환',
       items: [
-        { text: '근무는 D, E, N 3교대이며 D → E → N 순환을 기본으로 편성합니다.', tag: 'info' },
-        { text: `주 ${p.workDaysPerWeek}일 근무를 기준으로, 달마다 기준 OFF 수를 정합니다.`, tag: 'auto' },
+        {
+          text: '근무는 D, E, N 3교대이며 D → E → N 순환을 기본으로 편성합니다. 역방향(D→N, E→D, N→E)은 가능한 한 줄입니다.',
+          tag: 'rec',
+        },
+        {
+          text: '한 달의 기준 OFF는 그 달의 빨간 날(토·일·공휴일) 수입니다. 그보다 덜 쉬거나 더 쉬면 다음 달로 이월됩니다.',
+          tag: 'auto',
+        },
+        { text: `연속 근무는 ${p.maxConsecutiveWork}일 이하로 편성합니다.`, tag: 'rec' },
         {
           text: `K-tass 교육은 S 근무(${SHIFT_TIMES.S.start}–${SHIFT_TIMES.S.end})로 배정합니다.`,
           tag: 'info',

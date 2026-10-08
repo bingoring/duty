@@ -302,6 +302,7 @@ export async function buildGenerationInput(db: Db, plan: PlanRow): Promise<Gener
       minRestHours: rules.params.minRestHours,
       maxConsecutiveNight: rules.params.maxConsecutiveNight,
       maxConsecutiveOff: rules.params.maxConsecutiveOff,
+      maxConsecutiveWork: rules.params.maxConsecutiveWork,
       offAfterNight: rules.params.offAfterNight,
       sleepingOffPerN: rules.params.sleepingOffPerN,
       forbiddenPatterns: rules.forbiddenPatterns,

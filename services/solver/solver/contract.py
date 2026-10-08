@@ -133,6 +133,7 @@ class Rules(BaseModel):
     minRestHours: Annotated[int, Field(gt=0, le=9007199254740991)]
     maxConsecutiveNight: Annotated[int, Field(gt=0, le=9007199254740991)]
     maxConsecutiveOff: Annotated[int, Field(gt=0, le=9007199254740991)]
+    maxConsecutiveWork: Annotated[int | None, Field(gt=0, le=9007199254740991)] = None
     offAfterNight: Annotated[int, Field(ge=0, le=9007199254740991)]
     sleepingOffPerN: Annotated[int, Field(gt=0, le=9007199254740991)]
     forbiddenPatterns: list[str]
@@ -202,10 +203,12 @@ class Objective(BaseModel):
             'headFill',
             'weekendPair',
             'weekendCarry',
+            'workConsec',
             'nightTarget',
             'offAfterNight',
             'sleepingShort',
             'shiftBalance',
+            'reverseRotation',
             'juniorOnly',
             'repeatPair',
             'tieBreak',

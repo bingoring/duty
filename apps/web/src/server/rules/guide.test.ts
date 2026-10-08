@@ -58,7 +58,12 @@ describe('buildRulesGuide', () => {
   })
 
   it('강제하지 않는 지침은 "안내", 켜고 끄는 규칙이 꺼지면 "사용 안 함" (R-GUIDE-3)', () => {
-    expect(item(DEFAULT_RULES, /순환/)!.tag).toBe('info')
+    expect(item(DEFAULT_RULES, /순환/)!.tag).toBe('rec') // 솔버 벌점(DECISIONS 2026-10-08)
+    expect(item(DEFAULT_RULES, /K-tass 교육/)!.tag).toBe('info')
+    expect(item(withParams({ maxConsecutiveWork: 6 }), /연속 근무는/)).toMatchObject({
+      text: '연속 근무는 6일 이하로 편성합니다.',
+      tag: 'rec',
+    })
     expect(item(DEFAULT_RULES, /주말 이틀/)!.tag).toBe('rec')
     expect(item(withToggles({ weekendPairOffMonthly: false }), /주말 이틀/)!.tag).toBe('off')
   })

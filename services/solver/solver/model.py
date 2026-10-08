@@ -23,6 +23,7 @@ DUTIES = ("D", "E", "N")
 WORK = ("D", "E", "N", "S")
 REST = ("OFF", "AL", "LEAVE")
 FREE = ("D", "E", "N", "OFF")  # 솔버가 고르는 코드
+REVERSE = (("D", "N"), ("E", "D"), ("N", "E"))  # D→E→N 순환의 역방향
 COUNTED_OFF = {None, "regular", "edu_cont", "edu_union"}  # 정산 actualOff에 드는 OFF
 
 Lit = Any  # cp_model 불리언 리터럴
@@ -437,6 +438,33 @@ class Builder:
                         v = self._and(lits)
                         if v is not self.false:
                             self.terms["offAfterNight"].append(v)
+
+            # S-WORK-CONSEC: 연속 근무 상한(권고). 실제 근무표에 6일 이상이 없다(R-1, DECISIONS 2026-10-08)
+            mw = r.get("maxConsecutiveWork")
+            if mw:
+                tl = self.timeline
+                lo, hi = tl.index(self.days[0]), tl.index(self.days[-1])
+                for i in range(len(tl) - mw):
+                    if i + mw < lo or i > hi:
+                        continue
+                    v = self._and([self.work(nid, tl[i + j]) for j in range(mw + 1)])
+                    if v is not self.false:
+                        self.terms["workConsec"].append(v)
+
+            # S-ROTATION: D→E→N 순환의 역방향(D→N·E→D·N→E)을 쉬는 칸 0~2개 사이로 이어질 때 벌한다.
+            # 실제 근무표에도 역방향이 있어 금지하지 않는다(DECISIONS 2026-10-08)
+            for i, d in enumerate(self.days):
+                for gap in range(3):
+                    j = i + gap + 1
+                    if j >= len(self.days):
+                        break
+                    mids = [self.rest(nid, self.days[i + 1 + k]) for k in range(gap)]
+                    if any(v is self.false for v in mids):
+                        continue
+                    for a, b in REVERSE:
+                        v = self._and([self.is_(nid, d, a), *mids, self.is_(nid, self.days[j], b)])
+                        if v is not self.false:
+                            self.terms["reverseRotation"].append(v)
 
             # S-SHIFT-BALANCE
             if n["balanceShiftTypes"]:

@@ -16,7 +16,8 @@ const positiveInt = z.number().int().positive()
 export const RuleParamsSchema = z.object({
   minRestHours: positiveInt,
   maxConsecutiveOff: positiveInt,
-  workDaysPerWeek: positiveInt.max(7),
+  // 최대 연속 근무(권고, 넘으면 경고·솔버 벌점). 예전 규칙 버전에는 없으므로 기본값으로 채운다(R-1, DECISIONS 2026-10-08)
+  maxConsecutiveWork: positiveInt.max(14).default(5),
   maxNightPerMonth: positiveInt,
   targetNightPerMonth: positiveInt,
   maxConsecutiveNight: positiveInt,
@@ -68,7 +69,7 @@ export const DEFAULT_RULES: RuleSet = {
   params: {
     minRestHours: 16,
     maxConsecutiveOff: 15,
-    workDaysPerWeek: 5,
+    maxConsecutiveWork: 5,
     maxNightPerMonth: 7,
     targetNightPerMonth: 6,
     maxConsecutiveNight: 3,

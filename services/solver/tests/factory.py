@@ -82,6 +82,7 @@ def request(seed: int = 1, y: int = 2026, m: int = 11, time_limit: float = 3.0) 
                 "minRestHours": 16,
                 "maxConsecutiveNight": 3,
                 "maxConsecutiveOff": 15,
+                "maxConsecutiveWork": 5,
                 "offAfterNight": 2,
                 "sleepingOffPerN": 6,
                 "forbiddenPatterns": ["E-D", "N-E", "N-OFF-D", "E-S"],
