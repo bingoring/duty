@@ -8,6 +8,7 @@ import { ensureRequestPlan } from '../requests/plan'
 import { decideLeave, saveLeave, saveShiftRequest, submitRequests } from '../requests/service'
 import { ensureWard } from '../seed/core'
 import { seedDev } from '../seed/dev'
+import { adjustBalances } from '../staff/service'
 import { buildGenerationInput, toSolverRequest } from './input'
 
 const db = setupTestDb()
@@ -100,6 +101,24 @@ describe('buildGenerationInput (business-logic-model §2)', () => {
     // 교대 근무자만 (수간호사는 솔버 대상이 아니다)
     expect(req.nextHead).toEqual([{ userId: bae, date: '2026-12-01', code: 'D' }])
     expect(g.inputHash).not.toBe(before.inputHash)
+  })
+
+  it('승인된 휴가만으로 최대 연속 오프를 넘으면 생성 전에 원인을 알린다 (R-1)', async () => {
+    const admin = await actor('00101')
+    const me = await actor('00103')
+    await adjustBalances(db, { userId: me.id, values: { annual_leave: 20 }, note: '장기 연차' }, admin.id)
+    const plan = await novPlan()
+    const saved = await saveLeave(
+      db,
+      me,
+      { userId: me.id, type: 'annual', startDate: '2026-11-02', endDate: '2026-11-17' },
+      TODAY,
+    )
+    if (!saved.ok) throw new Error(saved.message)
+    await submitRequests(db, me, { year: 2026, month: 11 }, TODAY)
+    expect(await decideLeave(db, admin, saved.id, { decision: 'approve' })).toEqual({ ok: true })
+    const g = await buildGenerationInput(db, plan)
+    expect(g.fixedViolations.map((v) => v.ruleId)).toContain('H-OFF-CONSEC')
   })
 
   it('10월 주말 통 OFF를 못 받은 사람은 미배정 연속 1', async () => {

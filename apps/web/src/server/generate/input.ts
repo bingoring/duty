@@ -37,7 +37,8 @@ const SHOWN = ['CONFIRMED', 'CLOSED']
 // Q3: 신청 불충족 가산을 보는 기간
 const REQUEST_MISS_MONTHS = 3
 // 고정 칸만으로 생기는 하드 위반 (R-GEN-11)
-const FIXED_RULES = new Set(['H-BALANCE', 'H-EDU-LIMIT', 'H-EDU-UNION'])
+// H-OFF-CONSEC: 승인된 장기 휴가만으로 최대 연속 오프를 넘으면 솔버가 풀 수 없다 → 생성 전에 원인으로 알린다(R-1)
+const FIXED_RULES = new Set(['H-BALANCE', 'H-EDU-LIMIT', 'H-EDU-UNION', 'H-OFF-CONSEC'])
 
 export type Priorities = SolverRequest['priorities']
 
