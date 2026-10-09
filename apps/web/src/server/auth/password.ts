@@ -23,7 +23,8 @@ export function validateNewPassword(
   confirm: string,
   ctx: { employeeNo: string; current?: string },
 ): PasswordError | null {
-  if (next.length < 8) return { field: 'next', message: '비밀번호는 8자 이상이어야 합니다.' }
+  // 2026-10-09: 8 → 4자. 초기 비밀번호(이름 영타, 4~7자)와 같은 길이도 쓰게 한다(사용자 결정, DECISIONS)
+  if (next.length < 4) return { field: 'next', message: '비밀번호는 4자 이상이어야 합니다.' }
   if (next.length > 72) return { field: 'next', message: '비밀번호는 72자 이하여야 합니다.' }
   if (next === ctx.employeeNo) return { field: 'next', message: '사번과 다른 비밀번호를 사용해 주세요.' }
   if (ctx.current !== undefined && next === ctx.current) {

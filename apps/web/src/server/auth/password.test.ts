@@ -18,11 +18,13 @@ describe('비밀번호 해시', () => {
 
 describe('새 비밀번호 정책', () => {
   const ctx = { employeeNo: '00103' }
-  it('8자 미만을 거부한다', () => {
-    expect(validateNewPassword('short77', 'short77', ctx)).toEqual({
+  it('4자 미만을 거부하고 4자부터 허용한다 (2026-10-09 변경)', () => {
+    expect(validateNewPassword('abc', 'abc', ctx)).toEqual({
       field: 'next',
-      message: '비밀번호는 8자 이상이어야 합니다.',
+      message: '비밀번호는 4자 이상이어야 합니다.',
     })
+    expect(validateNewPassword('abcd', 'abcd', ctx)).toBeNull()
+    expect(validateNewPassword('fbtnrud', 'fbtnrud', ctx)).toBeNull()
   })
   it('72자 초과를 거부한다', () => {
     const long = 'a'.repeat(73)

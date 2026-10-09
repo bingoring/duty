@@ -41,7 +41,7 @@ export function PasswordForm({ mode }: { mode: 'forced' | 'voluntary' }) {
         autoComplete="new-password"
         error={fe.confirm}
       />
-      <p className="text-xs text-ink-2">8자 이상, 사번과 다른 비밀번호</p>
+      <p className="text-xs text-ink-2">4자 이상, 사번과 다른 비밀번호</p>
       <button
         type="submit"
         disabled={pending}
