@@ -1,7 +1,7 @@
 ---
 phase: 03-operations
 stage: 03-continuous-deployment
-status: AI_PROPOSED
+status: IMPLEMENTED
 updated: 2026-10-10
 ---
 
@@ -19,13 +19,13 @@ updated: 2026-10-10
 ## 체크리스트
 
 - [x] Build Spec 작성 → READY (2026-10-10)
-- [ ] 구현·운영 적용 → IMPLEMENTED
+- [x] 구현·운영 적용 → IMPLEMENTED (2026-10-10)
 
 ## AI 제안 (AI Proposal)
 
 > ⚠️ 이 섹션은 AI가 작성합니다. 사람이 직접 수정하지 마세요.
 
-Build Spec(light): [`cd/build-spec-index.md`](cd/build-spec-index.md)
+Build Spec(light): [`cd/build-spec-index.md`](cd/build-spec-index.md) (IMPLEMENTED)
 
 요지:
 - **흐름:** main push → CI `check` 통과 → `deploy` 작업(한 번에 하나) → GitHub OIDC로 GCP 배포 계정 → IAP SSH(30분 뒤 만료되는 임시 키) → 서버에서 새 커밋의 `deploy/deploy.sh`를 sudo로 실행.
@@ -33,10 +33,16 @@ Build Spec(light): [`cd/build-spec-index.md`](cd/build-spec-index.md)
 - **서버 쪽:** 잠금 → 대상 커밋이 `origin/main`에 있고 지금보다 새 커밋인지 → 앱·설정 변경이 없으면 git만 따라감 → 있으면 백업(실패 시 중단) → `up -d --build` → 헬스 체크 2분 → 실패하면 이전 커밋으로 되돌려 다시 올림. DB 마이그레이션은 되돌리지 않는다(운영 문서 5·6).
 - **비용:** 없음.
 
+### 구현 결과 (2026-10-10)
+
+- GCP: 배포 계정 `duty-deployer`, Workload Identity 풀·공급자 `github`(이 저장소 main push만), 사용자 정의 역할 `dutyDeployer`, IAP 터널·VM 서비스 계정 사용 권한. GitHub 저장소 변수 4개.
+- 확인: 앱 변경 2번(`255b52d` 배포 스크립트 수정, `b69d760` 로그인 화면) → 백업·재빌드·헬스 체크·`deploy_ok`, 문서만 바뀐 커밋(`8f1e914`) → `deploy_docs_only`.
+- 첫 시도에서 발견·수정: 표준 입력으로 보낸 스크립트를 `docker compose exec`가 읽어 백업만 하고 성공으로 끝남 → `main()` 감싸기·표준 입력 닫기·끝 표시 검사(편차 로그).
+
 ## 검토 게이트 (Human Gate)
 
-- [ ] Build Spec과 권한 범위가 맞는가? (승인 = GCP 설정 적용)
-- [ ] 적용 후: 실제 main push로 배포 1회(문서만 바뀐 커밋 → git만, 앱 변경 커밋 → 재빌드) 확인
+- [x] Build Spec과 권한 범위가 맞는가? (승인 = GCP 설정 적용, 2026-10-10)
+- [x] 적용 후: 실제 main push로 배포 1회(문서만 바뀐 커밋 → git만, 앱 변경 커밋 → 재빌드) 확인
 
 ## 다음 단계
 

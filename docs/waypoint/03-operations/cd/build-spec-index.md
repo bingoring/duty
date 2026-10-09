@@ -1,7 +1,7 @@
 ---
 build-spec: cd
 stage: 03-operations/03-continuous-deployment
-status: READY
+status: IMPLEMENTED
 depth: light
 updated: 2026-10-10
 ---
@@ -29,7 +29,7 @@ updated: 2026-10-10
 - [x] `deploy/deploy.sh`, `deploy/gcp/cd.sh`, `ci.yml` `deploy` 작업, 운영 문서 5
 - [x] `cd.sh` 운영 적용(사람 승인, 2026-10-10) → 저장소 변수 4개
 - [x] 배포 확인: 앱 변경 커밋 2번(`255b52d`·`b69d760`) 백업 → 재빌드 → 헬스 체크 → `deploy_ok`
-- [ ] 문서만 바뀐 커밋 → `deploy_docs_only`(이 기록 커밋으로 확인)
+- [x] 문서만 바뀐 커밋 → `deploy_docs_only`(`8f1e914`, 백업·재빌드 없음)
 
 ## §3. 미해결 질문
 없음.
