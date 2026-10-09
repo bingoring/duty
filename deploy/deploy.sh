@@ -5,6 +5,10 @@
 # 순서: 잠금 → 대상 커밋이 origin/main에 있는지 → 백업(실패하면 중단) → fast-forward → up -d --build(마이그레이션 먼저)
 #       → 헬스 체크 → 실패하면 이전 커밋으로 되돌려 다시 올림(DB 마이그레이션은 되돌리지 않는다 — 운영 문서 5)
 set -euo pipefail
+# 표준 입력으로 받은 스크립트(bash -s)를 끝까지 읽은 뒤 실행한다. 안에서 docker compose exec 등이 표준 입력을 읽으면
+# 남은 스크립트를 삼켜 중간에 "성공"으로 끝난다(3-3 첫 배포에서 발견) → 전체를 함수로 감싸고 표준 입력을 비운다
+main() {
+exec </dev/null
 TARGET=${1:?배포할 커밋이 필요합니다}
 DIR=${DUTY_DIR:-/opt/duty}
 cd "$DIR"
@@ -64,3 +68,5 @@ echo "deploy_failed $TARGET — $PREV 로 되돌립니다"
 g reset -q --hard "$PREV"
 "${C[@]}" up -d --build --remove-orphans && healthy && echo "deploy_rolled_back $PREV" || echo "deploy_rollback_failed $PREV"
 exit 1
+}
+main "$@"

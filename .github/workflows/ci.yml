@@ -73,10 +73,12 @@ jobs:
           workload_identity_provider: ${{ vars.GCP_WIF_PROVIDER }}
           service_account: ${{ vars.GCP_DEPLOY_SA }}
       - uses: google-github-actions/setup-gcloud@v2
-      # 새 커밋의 deploy.sh를 표준 입력으로 보내 서버에서 root로 돌린다. SSH 키는 30분 뒤 만료
-      - run: >-
-          gcloud compute ssh duty-vm --tunnel-through-iap --quiet
-          --project "${{ vars.GCP_PROJECT }}" --zone "${{ vars.GCP_ZONE }}"
-          --ssh-key-expire-after=30m --strict-host-key-checking=no
-          --command "sudo bash -s -- ${{ github.sha }}" < deploy/deploy.sh
+      # 새 커밋의 deploy.sh를 표준 입력으로 보내 서버에서 root로 돌린다. SSH 키는 30분 뒤 만료.
+      # 끝 표시(deploy_ok·deploy_skip·deploy_docs_only)가 없으면 중간에 멈춘 것으로 보고 실패시킨다
+      - run: |
+          gcloud compute ssh duty-vm --tunnel-through-iap --quiet \
+            --project "${{ vars.GCP_PROJECT }}" --zone "${{ vars.GCP_ZONE }}" \
+            --ssh-key-expire-after=30m --strict-host-key-checking=no \
+            --command "sudo bash -s -- ${{ github.sha }}" < deploy/deploy.sh 2>&1 | tee deploy.log
+          grep -qE '^deploy_(ok|skip|docs_only) ' deploy.log
       - run: curl -fsS -o /dev/null -w '%{http_code}\n' https://offplz.com/api/health
