@@ -8,7 +8,7 @@ ZONE=${ZONE:-asia-northeast3-a}
 VM=${VM:-duty-vm}
 SA=duty-vm@${PROJECT_ID}.iam.gserviceaccount.com
 P=(--project="$PROJECT_ID")
-run() { echo "+ $*"; [ -n "${DRY_RUN:-}" ] || "$@"; }
+run() { echo "+ $*" >&2; [ -n "${DRY_RUN:-}" ] || "$@"; }
 
 # 1) 서비스 계정: 지표 쓰기만(로그는 보내지 않는다)
 run gcloud projects add-iam-policy-binding "$PROJECT_ID" --member="serviceAccount:$SA" \

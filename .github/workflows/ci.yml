@@ -56,3 +56,27 @@ jobs:
         with:
           name: playwright
           path: apps/web/test-results
+
+  # Build Spec 3-3 — main push에서 검사가 통과하면 운영에 배포한다. 저장소 변수가 없으면(설정 전·포크) 건너뛴다
+  deploy:
+    needs: check
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main' && vars.GCP_WIF_PROVIDER != ''
+    runs-on: ubuntu-latest
+    # 배포는 한 번에 하나, 진행 중인 배포는 끊지 않는다(뒤 커밋은 차례를 기다린다)
+    concurrency: { group: deploy-production, cancel-in-progress: false }
+    environment: production
+    permissions: { contents: read, id-token: write }
+    steps:
+      - uses: actions/checkout@v7
+      - uses: google-github-actions/auth@v2
+        with:
+          workload_identity_provider: ${{ vars.GCP_WIF_PROVIDER }}
+          service_account: ${{ vars.GCP_DEPLOY_SA }}
+      - uses: google-github-actions/setup-gcloud@v2
+      # 새 커밋의 deploy.sh를 표준 입력으로 보내 서버에서 root로 돌린다. SSH 키는 30분 뒤 만료
+      - run: >-
+          gcloud compute ssh duty-vm --tunnel-through-iap --quiet
+          --project "${{ vars.GCP_PROJECT }}" --zone "${{ vars.GCP_ZONE }}"
+          --ssh-key-expire-after=30m --strict-host-key-checking=no
+          --command "sudo bash -s -- ${{ github.sha }}" < deploy/deploy.sh
+      - run: curl -fsS -o /dev/null -w '%{http_code}\n' https://offplz.com/api/health

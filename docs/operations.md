@@ -105,6 +105,16 @@ PROJECT_ID=<PROJECT_ID> ./deploy/gcp/ops-agent.sh   # ⚠️ VM 접근 범위 �
 
 ## 5. 업데이트 · 되돌리기
 
+**자동 배포(3-3):** `main`에 push(머지)되고 CI 검사가 통과하면 GitHub Actions의 `deploy` 작업이 배포한다. 진행·결과는 GitHub Actions 탭에서 본다.
+
+- 서버에서 `deploy/deploy.sh <커밋>`이 돈다: 잠금 → 그 커밋이 `origin/main`에 있는지 확인 → 앱·설정 파일이 바뀌었을 때만 백업 → `up -d --build`(마이그레이션 먼저) → `https://<DOMAIN>/api/health` 확인 → 실패하면 이전 커밋으로 되돌려 다시 올린다.
+- 문서만 바뀐 커밋(waypoint·docs 등)은 git만 따라가고 다시 빌드하지 않는다.
+- **DB 마이그레이션은 자동으로 되돌리지 않는다.** 되돌린 뒤에도 문제가 있으면 아래 6으로 DB를 업데이트 전 백업으로 복구한다.
+- 처음 설정(한 번, PC에서): `PROJECT_ID=<PROJECT_ID> REPO=bingoring/duty ./deploy/gcp/cd.sh` — 키 파일 없이(OIDC) 이 저장소의 main push만 배포 계정을 쓸 수 있다.
+- 직접 배포(자동 배포가 막혔을 때): 서버에서 `sudo bash /opt/duty/deploy/deploy.sh <커밋>`
+
+**직접 업데이트(예전 방식):**
+
 ```bash
 cd /opt/duty
 docker compose -f compose.prod.yaml --env-file .env.prod exec backup backup.sh   # 업데이트 전 백업

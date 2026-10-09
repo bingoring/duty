@@ -7,7 +7,7 @@ set -euo pipefail
 : "${PROJECT_ID:?PROJECT_ID가 필요합니다}" "${ALERT_EMAIL:?ALERT_EMAIL이 필요합니다}" "${BUDGET_KRW:?BUDGET_KRW가 필요합니다}"
 DOMAIN=${DOMAIN:-offplz.com}
 P=(--project="$PROJECT_ID")
-run() { echo "+ $*"; [ -n "${DRY_RUN:-}" ] || "$@"; }
+run() { echo "+ $*" >&2; [ -n "${DRY_RUN:-}" ] || "$@"; }
 TMP=$(mktemp -d)
 trap 'rm -rf "$TMP"' EXIT
 # 알림 채널·정책은 gcloud alpha/beta에만 있어 정식 REST API(v3)를 직접 부른다(구성 요소 설치 없이)
