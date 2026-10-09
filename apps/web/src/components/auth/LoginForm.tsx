@@ -11,10 +11,7 @@ export function LoginForm({ next }: { next: string }) {
 
   return (
     <>
-      <div className="flex flex-col gap-1">
-        <h2 className="text-[22px] font-bold tracking-[-0.02em]">로그인</h2>
-        <p className="text-sm text-ink-2">사번과 비밀번호를 입력해 주세요.</p>
-      </div>
+      <h2 className="text-[22px] font-bold tracking-[-0.02em]">로그인</h2>
       <form action={formAction} className="flex flex-col gap-[22px]" noValidate>
         {state.error && <ErrorBox>{state.error}</ErrorBox>}
         <input type="hidden" name="next" value={next} />
@@ -50,7 +47,6 @@ export function LoginForm({ next }: { next: string }) {
         <button type="button" onClick={() => setShowForgot(true)} className="cursor-pointer text-ink">
           비밀번호를 잊으셨나요?
         </button>
-        <span className="text-ink-2">계정은 관리자가 발급합니다</span>
       </div>
       {showForgot && (
         <div role="status" className="rounded-lg border border-line-soft bg-panel px-3 py-2.5 text-[13px]">
