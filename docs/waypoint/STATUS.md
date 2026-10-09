@@ -4,10 +4,12 @@
 **Requirements:** [inputs/requirements_v3.md](inputs/requirements_v3.md) (근무 지침 원문 + 근무자 명단)
 **Design handoff:** [inputs/design-handoff_v5/](inputs/design-handoff_v5/README.md) (최신, 2026-09-30) · [v4](inputs/design-handoff_v4/README.md) · [v3](inputs/design-handoff_v3/README.md) · [v2](inputs/design-handoff_v2/README.md) · [v1](inputs/design-handoff_v1/README.md)
 **Decisions (audit):** [DECISIONS.md](DECISIONS.md)
-**Last updated:** 2026-10-09
+**Last updated:** 2026-10-10
 
 > 🔒 **개인정보:** 공개 저장소다. 간호사 이름·사번은 모두 가명이며, 실명 자료는 커밋하지 않는다([DECISIONS](DECISIONS.md) 2026-09-26).
 
+> 📝 **3-3 자동 배포 Build Spec READY (2026-10-10).** main 머지 + CI 통과 → GitHub Actions(OIDC, 키 파일 없음) → IAP SSH → 서버 `deploy/deploy.sh`(백업·헬스 체크·되돌리기, 문서만 바뀌면 재빌드 안 함). GCP 설정 적용 승인 대기.
+>
 > ✅ **3-2 모니터링 승인 (2026-10-09).** 운영 감시·알림·예산·복구 검증 완료.
 > 간호사 공지 전 운영 준비: 동의서 병원 검토, 개원기념일·신청 마감일 설정, 표 순서(연차) 확인.
 >
@@ -199,6 +201,7 @@
 |---------|------|------|
 | 3-1 Deployment ⚠️ | [01-deployment.md](03-operations/01-deployment.md) · [Build Spec](03-operations/deployment/build-spec-index.md) (IMPLEMENTED) | HUMAN_APPROVED |
 | 3-2 Monitoring | [02-monitoring.md](03-operations/02-monitoring.md) · [Build Spec](03-operations/monitoring/build-spec-index.md) (IMPLEMENTED) | HUMAN_APPROVED |
+| 3-3 자동 배포 | [03-continuous-deployment.md](03-operations/03-continuous-deployment.md) · [Build Spec](03-operations/cd/build-spec-index.md) (READY) | AI_PROPOSED |
 
 ---
 
