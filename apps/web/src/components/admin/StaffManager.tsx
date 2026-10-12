@@ -10,8 +10,8 @@ import {
 } from '@/server/admin/actions'
 import type { StaffRow } from '@/server/staff/service'
 import { Dialog, Field, btnPrimary, btnSecondary, inputCls, useHydrated } from './ui'
-import type { PendingSubmission } from '@/server/onboarding/service'
-import { SubmissionPanel } from './SubmissionPanel'
+import { ReorderList } from './ReorderList'
+import { SubmissionHistory, SubmissionPanel, type HistoryRow, type SubmissionRow } from './SubmissionPanel'
 
 // S10 간호사 관리 (Build Spec 2-4 frontend-components §2, 핸드오프 1k)
 type Params = { trainingMonths: number; newbieTripleWeeks: number; experiencedTripleWeeks: number }
@@ -516,19 +516,23 @@ export function StaffManager({
   params,
   notice,
   submissions = [],
+  history = [],
   consents = {},
 }: {
   rows: StaffRow[]
   params: Params
   notice: string | null
   // 2-11 R-ONB-7·R-CONSENT: 본인 입력 확인 필요, 동의 시각(M/D)
-  submissions?: (Omit<PendingSubmission, 'submittedAt'> & { at: string })[]
+  submissions?: SubmissionRow[]
+  history?: HistoryRow[]
   consents?: Record<string, string>
 }) {
   const [q, setQ] = useState('')
   const [dlg, setDlg] = useState<Dlg>(null)
   const [menu, setMenu] = useState<string | null>(null)
   const [error, setError] = useState('')
+  const [reordering, setReordering] = useState(false)
+  const [notice2, setNotice2] = useState('')
   const [pending, start] = useTransition()
   const hydrated = useHydrated()
   const preceptors = rows.filter((r) => r.rotation === 'rotating')
@@ -565,6 +569,13 @@ export function StaffManager({
           />
           <button
             type="button"
+            className="h-9 cursor-pointer rounded-lg border border-line bg-surface px-3.5 text-[13px]"
+            onClick={() => (setReordering(true), setNotice2(''))}
+          >
+            순서 바꾸기
+          </button>
+          <button
+            type="button"
             className="h-9 cursor-pointer rounded-lg bg-primary px-3.5 text-[13px] font-bold text-white"
             onClick={() => document.querySelector<HTMLInputElement>('#staff-add input')?.focus()}
           >
@@ -576,7 +587,24 @@ export function StaffManager({
             {error}
           </div>
         )}
+        {notice2 && (
+          <div role="status" className="rounded-lg bg-primary-soft px-3 py-2 text-[13px] text-primary-hover">
+            {notice2}
+          </div>
+        )}
+        {reordering && (
+          <ReorderList
+            items={rows.map((r) => ({
+              id: r.id,
+              name: r.name,
+              label: r.roleLabel,
+              head: r.rotation === 'fixed_weekday',
+            }))}
+            onDone={(msg) => (setReordering(false), setNotice2(msg))}
+          />
+        )}
         <SubmissionPanel items={submissions} names={Object.fromEntries(rows.map((r) => [r.id, r.name]))} />
+        <SubmissionHistory rows={history} names={Object.fromEntries(rows.map((r) => [r.id, r.name]))} />
         <div className="overflow-visible rounded-xl border border-line bg-surface text-[13px]">
           <div className="grid grid-cols-[1.2fr_1.2fr_.8fr_.8fr_1fr_1.4fr_.6fr] border-b border-line bg-panel px-4 py-2.5 text-xs text-ink-2">
             <span>성명</span>

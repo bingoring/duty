@@ -5,7 +5,7 @@ import { getDb } from '@/server/db/client'
 import { getCurrentRules } from '@/server/rules'
 import { listStaff } from '@/server/staff/service'
 import { requestToday } from '@/server/clock'
-import { pendingSubmissions } from '@/server/onboarding/service'
+import { KIND_LABEL, REVIEW_LABEL, pendingSubmissions, submissionHistory } from '@/server/onboarding/service'
 import { consentTimes } from '@/server/privacy/service'
 import { todaySeoul } from '@/server/schedule/month'
 
@@ -15,11 +15,12 @@ export default async function StaffPage() {
   await requireAdmin()
   const db = getDb()
   const today = await requestToday()
-  const [rows, rules, ys, subs, consent] = await Promise.all([
+  const [rows, rules, ys, subs, hist, consent] = await Promise.all([
     listStaff(db, today),
     getCurrentRules(),
     ensureYearStart(db, today),
     pendingSubmissions(db),
+    submissionHistory(db),
     consentTimes(db),
   ])
   const md = (d: Date) =>
@@ -35,7 +36,23 @@ export default async function StaffPage() {
       rows={rows}
       params={{ trainingMonths, newbieTripleWeeks, experiencedTripleWeeks }}
       notice={notice}
-      submissions={subs.map(({ submittedAt, ...x }) => ({ ...x, at: md(submittedAt) }))}
+      submissions={subs.map(({ submittedAt, ...x }) => ({
+        ...x,
+        at: md(submittedAt),
+        kindLabel: KIND_LABEL[x.kind] ?? x.kind,
+      }))}
+      history={hist.map(
+        ({ submittedAt, review, reviewedAt: _r, reviewNote, ...x }) => (
+          void _r,
+          {
+            ...x,
+            at: md(submittedAt),
+            kindLabel: KIND_LABEL[x.kind] ?? x.kind,
+            status: review ? (REVIEW_LABEL[review] ?? review) : '확인 대기',
+            note: reviewNote,
+          }
+        ),
+      )}
       consents={Object.fromEntries([...consent].map(([id, at]) => [id, md(at)]))}
     />
   )

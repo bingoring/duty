@@ -1,5 +1,6 @@
 'use server'
 
+import { refresh } from 'next/cache'
 import { redirect } from 'next/navigation'
 import { z } from 'zod'
 import { getSession } from '../auth/session'
@@ -24,6 +25,20 @@ export async function saveOnboardingAction(input: unknown): Promise<SaveResult> 
   })
   if (!r.ok) return r
   redirect('/')
+}
+
+// 3-4: 내 설정에서 언제든 남은 연차를 고친다(바로 반영, 관리자 확인 대상)
+export async function saveAnnualAction(input: unknown): Promise<SaveResult> {
+  const s = await getSession()
+  if (!s || s.pendingStep) return { ok: false, message: '다시 로그인해 주세요.' }
+  const r = await saveOnboarding(getDb(), {
+    userId: s.user.id,
+    today: await requestToday(),
+    mode: 'self_edit',
+    input,
+  })
+  if (r.ok) refresh()
+  return r
 }
 
 // R-ONB-7: 관리자 확인·되돌리기

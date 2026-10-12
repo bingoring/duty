@@ -6,7 +6,13 @@ import { balanceEntries, onboardingSubmissions, privacyConsents, trainings, user
 import { recordConsent } from '../privacy/service'
 import { PRIVACY_NOTICE_VERSION } from '../privacy/notice'
 import { seedDev } from '../seed/dev'
-import { currentValues, pendingSubmissions, reviewSubmission, saveOnboarding } from './service'
+import {
+  currentValues,
+  pendingSubmissions,
+  reviewSubmission,
+  saveOnboarding,
+  submissionHistory,
+} from './service'
 
 // Build Spec 2-11 R-CONSENT·R-ONB. 종이 10월(가명) 시드
 const db = setupTestDb()
@@ -208,5 +214,32 @@ describe('초기 설정 저장 (R-ONB-4~9)', () => {
       changed: 1,
     })
     expect((await user('00106')).onboardedYear).toBe(2027)
+  })
+})
+
+describe('내 설정 연차 수정 (3-4)', () => {
+  it('바로 반영·원장 self_input·제출 기록(self_edit), 초기 설정 해는 그대로, 이력에 확인 상태', async () => {
+    const u = await user('00107')
+    const head = await user('00101')
+    const before = (await currentValues(db, u.id, TODAY)).annual
+    expect(
+      await saveOnboarding(db, {
+        userId: u.id,
+        today: TODAY,
+        mode: 'self_edit',
+        input: { annual: before + 1 },
+      }),
+    ).toEqual({ ok: true, changed: 1 })
+    expect((await currentValues(db, u.id, TODAY)).annual).toBe(before + 1)
+    expect((await user('00107')).onboardedYear).toBe(u.onboardedYear)
+    const [p] = await pendingSubmissions(db)
+    expect(p).toMatchObject({ userId: u.id, kind: 'self_edit', items: [{ key: 'annual' }] })
+    await reviewSubmission(db, { id: p!.id, adminId: head.id, decision: 'confirmed', today: TODAY })
+    const [h] = await submissionHistory(db)
+    expect(h).toMatchObject({ id: p!.id, review: 'confirmed', kind: 'self_edit' })
+    // 다른 항목은 받지 않는다
+    expect(
+      await saveOnboarding(db, { userId: u.id, today: TODAY, mode: 'self_edit', input: { kTass: false } }),
+    ).toMatchObject({ ok: false, field: 'annual' })
   })
 })

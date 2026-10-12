@@ -87,7 +87,7 @@ test('첫 로그인: 동의(거부하면 로그아웃) → 비밀번호 → 초�
   await expect(page).toHaveURL('/password')
   await page.getByLabel('새 비밀번호', { exact: true }).fill('my-new-pass-1')
   await page.getByLabel('새 비밀번호 확인').fill('my-new-pass-1')
-  await page.getByRole('button', { name: '저장' }).click()
+  await page.getByRole('button', { name: '저장', exact: true }).click()
 
   // R-ONB-4: 미리 채운 값 확인·수정
   await expect(page).toHaveURL('/onboarding')
@@ -123,7 +123,7 @@ test('첫 로그인: 동의(거부하면 로그아웃) → 비밀번호 → 초�
   await page.getByLabel('현재 비밀번호').fill('my-new-pass-1')
   await page.getByLabel('새 비밀번호', { exact: true }).fill('my-new-pass-2')
   await page.getByLabel('새 비밀번호 확인').fill('my-new-pass-2')
-  await page.getByRole('button', { name: '저장' }).click()
+  await page.getByRole('button', { name: '저장', exact: true }).click()
   await expect(page.getByRole('status')).toContainText('비밀번호를 바꿨습니다')
   await page.getByRole('button', { name: '로그아웃' }).click()
   await login(page, E2E_TEMP_USER.employeeNo, 'my-new-pass-2')

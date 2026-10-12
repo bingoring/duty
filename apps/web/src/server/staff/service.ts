@@ -377,3 +377,21 @@ export async function adjustBalances(db: Db, input: BalanceAdjustInput, adminId:
       )
   })
 }
+
+// 3-4 — 간호사 관리 「순서 바꾸기」: 활성 사용자 전원의 새 순서(표 순서 seniorityRank = 1..n).
+// 근무표·근무 조정·근무 신청·생성안이 모두 이 값으로 행을 정렬한다(수간호사는 어디서나 맨 위)
+export async function reorderStaff(db: Db, ids: string[]): Promise<Result> {
+  if (new Set(ids).size !== ids.length) return { ok: false, message: '같은 사람이 두 번 들어 있습니다.' }
+  return db.transaction(async (tx) => {
+    const active = await tx.select({ id: users.id }).from(users).where(eq(users.active, true)).for('update')
+    const set = new Set(active.map((u) => u.id))
+    if (ids.length !== set.size || ids.some((id) => !set.has(id)))
+      return { ok: false as const, message: '그사이 명단이 바뀌었습니다. 새로고침 뒤 다시 정해 주세요.' }
+    for (const [i, id] of ids.entries())
+      await tx
+        .update(users)
+        .set({ seniorityRank: i + 1, updatedAt: new Date() })
+        .where(eq(users.id, id))
+    return { ok: true as const }
+  })
+}

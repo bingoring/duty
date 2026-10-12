@@ -14,6 +14,7 @@ import {
   reissuePassword,
   removeStaff,
   updateStaff,
+  reorderStaff,
   type CreateResult,
   type Result,
 } from '../staff/service'
@@ -63,6 +64,16 @@ export async function updateStaffAction(userId: string, input: unknown): Promise
   const parsed = StaffUpdateSchema.safeParse(input)
   if (!parsed.success) return { ok: false, errors: fieldErrors(parsed.error) }
   const r = await updateStaff(getDb(), z.string().uuid().parse(userId), parsed.data, await staffCtx(admin))
+  if (r.ok) refresh()
+  return r
+}
+
+export async function reorderStaffAction(ids: unknown): Promise<Result> {
+  const admin = await adminOnly()
+  if (!admin) return DENIED
+  const parsed = z.array(z.string().uuid()).max(200).safeParse(ids)
+  if (!parsed.success) return { ok: false, message: '순서를 확인해 주세요.' }
+  const r = await reorderStaff(getDb(), parsed.data)
   if (r.ok) refresh()
   return r
 }

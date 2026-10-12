@@ -52,7 +52,8 @@ export const BALANCE_REASONS = [
   'self_input',
 ] as const
 // 2-11 최초 로그인 초기 설정 제출
-export const ONBOARDING_KINDS = ['initial', 'annual'] as const
+// self_edit: 3-4 내 설정에서 언제든 고치는 연차(입사 1년 미만은 달마다 늘 수 있다)
+export const ONBOARDING_KINDS = ['initial', 'annual', 'self_edit'] as const
 export const ONBOARDING_REVIEWS = ['confirmed', 'reverted'] as const
 // 2-8 교환 요청
 export const SWAP_STATUSES = ['PENDING', 'APPLIED', 'REJECTED', 'CANCELLED', 'EXPIRED', 'INVALID'] as const

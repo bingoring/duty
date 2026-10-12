@@ -48,8 +48,10 @@ export const FIELD_LABEL: Record<Key, string> = {
 }
 
 // R-ONB-2·3·9: 사람·모드별 묻는 항목
-export function fieldsFor(head: boolean, mode: 'initial' | 'annual'): Key[] {
-  if (mode === 'annual') return ['annual']
+export type OnboardingMode = 'initial' | 'annual' | 'self_edit'
+
+export function fieldsFor(head: boolean, mode: OnboardingMode): Key[] {
+  if (mode === 'annual' || mode === 'self_edit') return ['annual']
   if (head) return ['hireDate', 'kTass', 'unionMember', 'annual']
   return [
     'hireDate',
@@ -256,7 +258,7 @@ export type SaveResult = { ok: true; changed: number } | { ok: false; message: s
 export async function saveOnboarding(
   db: Db,
   // year: onboardedYear에 쓸 해. 세션 단계 판정(validateSession)과 같은 실제 서울 날짜의 해(E2E 가짜 시계와 무관)
-  a: { userId: string; today: string; mode: 'initial' | 'annual'; input: unknown; year?: number },
+  a: { userId: string; today: string; mode: OnboardingMode; input: unknown; year?: number },
 ): Promise<SaveResult> {
   const parsed = OnboardingInputSchema.safeParse(a.input)
   if (!parsed.success) {
@@ -303,7 +305,11 @@ export async function saveOnboarding(
         a.userId,
         after,
         before,
-        { reason: 'self_input', note: '본인 초기 설정', by: a.userId },
+        {
+          reason: 'self_input',
+          note: a.mode === 'self_edit' ? '본인 연차 수정' : '본인 초기 설정',
+          by: a.userId,
+        },
         a.today,
       )
       await tx.insert(onboardingSubmissions).values({
@@ -314,17 +320,32 @@ export async function saveOnboarding(
         after: after as Record<string, unknown>,
       })
     }
-    await tx.update(users).set({ onboardedYear: year, updatedAt: new Date() }).where(eq(users.id, a.userId))
+    // 3-4: 내 설정의 연차 수정은 초기 설정 단계와 상관없다
+    if (a.mode !== 'self_edit')
+      await tx.update(users).set({ onboardedYear: year, updatedAt: new Date() }).where(eq(users.id, a.userId))
     return { ok: true as const, changed }
   })
 }
 
-// R-ONB-7: 간호사 관리의 미확인 제출
+// R-ONB-7: 간호사 관리의 미확인 제출 · 3-4 변경 이력
+export const KIND_LABEL: Record<string, string> = {
+  initial: '초기 설정',
+  annual: '해마다 연차',
+  self_edit: '연차 수정',
+}
+export const REVIEW_LABEL: Record<string, string> = { confirmed: '확인', reverted: '되돌림' }
+
 export type PendingSubmission = {
   id: string
   userId: string
+  kind: string
   submittedAt: Date
   items: { key: Key; label: string; before: string; after: string }[]
+}
+export type SubmissionHistory = PendingSubmission & {
+  review: string | null
+  reviewedAt: Date | null
+  reviewNote: string | null
 }
 
 export function showValue(k: Key, v: unknown, names: Map<string, string>): string {
@@ -344,19 +365,22 @@ export function showValue(k: Key, v: unknown, names: Map<string, string>): strin
   return String(v)
 }
 
-export async function pendingSubmissions(db: Db): Promise<PendingSubmission[]> {
-  const rows = await db
-    .select()
-    .from(onboardingSubmissions)
-    .where(isNull(onboardingSubmissions.reviewedAt))
-    .orderBy(asc(onboardingSubmissions.submittedAt))
+async function loadSubmissions(db: Db, opts: { pendingOnly: boolean; limit?: number }) {
+  const q = db.select().from(onboardingSubmissions)
+  const rows = opts.pendingOnly
+    ? await q.where(isNull(onboardingSubmissions.reviewedAt)).orderBy(asc(onboardingSubmissions.submittedAt))
+    : await q.orderBy(desc(onboardingSubmissions.submittedAt)).limit(opts.limit ?? 100)
   const names = new Map(
     (await db.select({ id: users.id, name: users.name }).from(users)).map((u) => [u.id, u.name]),
   )
   return rows.map((r) => ({
     id: r.id,
     userId: r.userId,
+    kind: r.kind,
     submittedAt: r.submittedAt,
+    review: r.review,
+    reviewedAt: r.reviewedAt,
+    reviewNote: r.reviewNote,
     items: (Object.keys(r.after) as Key[]).map((k) => ({
       key: k,
       label: FIELD_LABEL[k],
@@ -364,6 +388,17 @@ export async function pendingSubmissions(db: Db): Promise<PendingSubmission[]> {
       after: showValue(k, r.after[k], names),
     })),
   }))
+}
+
+export async function pendingSubmissions(db: Db): Promise<PendingSubmission[]> {
+  return (await loadSubmissions(db, { pendingOnly: true })).map(
+    ({ review: _r, reviewedAt: _a, reviewNote: _n, ...p }) => (void [_r, _a, _n], p),
+  )
+}
+
+// 3-4: 확인·되돌림까지 포함한 최근 변경 이력(관리자)
+export async function submissionHistory(db: Db, limit = 100): Promise<SubmissionHistory[]> {
+  return loadSubmissions(db, { pendingOnly: false, limit })
 }
 
 export async function reviewSubmission(

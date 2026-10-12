@@ -148,3 +148,51 @@ test.describe('S11 규칙 설정', () => {
     expect(res?.status()).toBe(403)
   })
 })
+
+test('간호사가 내 설정에서 연차를 고치면 관리자에게 확인 요청·이력으로 보인다 (3-4)', async ({ browser }) => {
+  const me = await browser.newPage()
+  await loginAndWait(me, '00104')
+  await me.goto('/settings')
+  await waitHydrated(me)
+  const input = me.getByLabel('남은 연차')
+  const before = Number(await input.inputValue())
+  await input.fill(String(before + 1))
+  await me.getByRole('button', { name: '연차 저장' }).click()
+  await expect(me.getByRole('status')).toContainText('관리자에게 확인 요청으로 갑니다')
+  await me.close()
+
+  const admin = await browser.newPage()
+  await loginAndWait(admin, ADMIN.employeeNo)
+  await admin.goto('/admin/staff')
+  await waitHydrated(admin)
+  const card = admin.getByRole('article', { name: '오민지 본인 입력' })
+  await expect(card).toContainText('연차 수정')
+  await expect(card).toContainText(`올해 연차${before} → ${before + 1}`)
+  await card.getByRole('button', { name: '확인' }).click()
+  await expect(admin.getByText('확인했습니다.')).toBeVisible()
+  await admin.getByText(/본인 입력 변경 이력/).click()
+  await expect(admin.getByRole('row').filter({ hasText: '오민지' }).first()).toContainText('확인')
+  await admin.close()
+})
+
+test('간호사 관리에서 순서를 바꾸면 근무표 행 순서가 바뀐다 (3-4)', async ({ page }) => {
+  await loginAndWait(page, ADMIN.employeeNo)
+  const reorder = async (name: string) => {
+    await page.goto('/admin/staff')
+    await waitHydrated(page)
+    await page.getByRole('button', { name: '순서 바꾸기' }).click()
+    const list = page.getByRole('region', { name: '순서 바꾸기' })
+    await list.getByRole('button', { name: `${name} 위로` }).click()
+    await list.getByRole('button', { name: '저장' }).click()
+    await expect(page.getByRole('status')).toContainText('순서를 저장했습니다')
+  }
+  // 정하늘(표 순서 3)을 박서연(2) 위로 → 근무표 둘째 행
+  await reorder(NURSE.name)
+  await page.goto('/?ym=2026-10')
+  const rows = page.getByRole('grid').getByRole('row')
+  await expect(rows.nth(1)).toHaveAttribute('aria-label', NURSE.name)
+  // 다른 스펙을 위해 되돌린다
+  await reorder('박서연')
+  await page.goto('/?ym=2026-10')
+  await expect(page.getByRole('grid').getByRole('row').nth(1)).toHaveAttribute('aria-label', '박서연')
+})

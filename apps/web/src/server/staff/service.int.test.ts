@@ -1,12 +1,20 @@
 import { DEFAULT_RULES } from '@duty/domain'
-import { and, eq } from 'drizzle-orm'
+import { and, asc, eq } from 'drizzle-orm'
 import { beforeEach, describe, expect, it } from 'vitest'
 import { resetDb, setupTestDb } from '../../test/db'
 import { authenticate, createSession } from '../auth/service'
 import { verifyPassword } from '../auth/password'
 import { balanceEntries, credentials, sessions, trainings, users } from '../db/schema'
 import { seedDev } from '../seed/dev'
-import { adjustBalances, createStaff, listStaff, reissuePassword, removeStaff, updateStaff } from './service'
+import {
+  adjustBalances,
+  createStaff,
+  listStaff,
+  reissuePassword,
+  removeStaff,
+  reorderStaff,
+  updateStaff,
+} from './service'
 
 const db = setupTestDb()
 const TODAY = '2026-10-13'
@@ -227,5 +235,26 @@ describe('adjustBalances (R-STAFF-BAL-1)', () => {
     expect(rows.map((r) => [r.account, Number(r.delta), r.note, r.createdBy])).toEqual([
       ['annual_leave', -3, '초기 입력 정정', c.adminId],
     ])
+  })
+})
+
+describe('순서 바꾸기 (3-4)', () => {
+  it('활성 전원의 새 순서를 1..n으로 저장, 빠지거나 중복이면 거부', async () => {
+    const act = await db
+      .select({ id: users.id })
+      .from(users)
+      .where(eq(users.active, true))
+      .orderBy(asc(users.seniorityRank))
+    const ids = act.map((u) => u.id)
+    const swapped = [ids[0]!, ids[2]!, ids[1]!, ...ids.slice(3)]
+    expect(await reorderStaff(db, swapped)).toEqual({ ok: true })
+    const after = await db
+      .select({ id: users.id })
+      .from(users)
+      .where(eq(users.active, true))
+      .orderBy(asc(users.seniorityRank))
+    expect(after.map((u) => u.id)).toEqual(swapped)
+    expect(await reorderStaff(db, swapped.slice(1))).toMatchObject({ ok: false })
+    expect(await reorderStaff(db, [swapped[0]!, ...swapped.slice(0, -1)])).toMatchObject({ ok: false })
   })
 })

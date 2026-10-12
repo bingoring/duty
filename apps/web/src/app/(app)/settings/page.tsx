@@ -1,12 +1,23 @@
 import Link from 'next/link'
+import { AnnualForm } from '@/components/auth/AnnualForm'
 import { PasswordForm } from '@/components/auth/PasswordForm'
 import { requireUser } from '@/server/auth/guards'
+import { requestToday } from '@/server/clock'
+import { getDb } from '@/server/db/client'
+import { currentValues } from '@/server/onboarding/service'
 
 export default async function SettingsPage() {
-  await requireUser()
+  const s = await requireUser()
+  const today = await requestToday()
+  const { annual } = await currentValues(getDb(), s.user.id, today)
   return (
     <div className="flex flex-col gap-4 px-7 py-6">
       <h1 className="text-[22px] font-bold tracking-[-0.02em]">내 설정</h1>
+      {/* 3-4: 남은 연차 수정 */}
+      <section className="flex max-w-[420px] flex-col gap-3 rounded-xl border border-line bg-surface p-6">
+        <h2 className="text-base font-bold">연차</h2>
+        <AnnualForm current={annual} year={Number(today.slice(0, 4))} />
+      </section>
       <section className="flex max-w-[420px] flex-col gap-4 rounded-xl border border-line bg-surface p-6">
         <h2 className="text-base font-bold">비밀번호 변경</h2>
         <PasswordForm mode="voluntary" />
