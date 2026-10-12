@@ -89,9 +89,9 @@ function data(over: Partial<MonthViewData> = {}): MonthViewData {
 }
 
 describe('buildPeersView', () => {
-  it('수간호사를 빼고, 누적 OFF 오름차순 → 같으면 잔여 N 많은 순으로 정렬한다 (R-PEER-4·8)', () => {
+  it('수간호사를 빼고, 근무표와 같은 표 순서로 정렬한다 (R-PEER-4·8, 3-4 변경)', () => {
     const v = buildPeersView(data())
-    expect(v.rows.map((r) => r.name)).toEqual(['c', 'me', 'b'])
+    expect(v.rows.map((r) => r.name)).toEqual(['b', 'me', 'c'])
   })
 
   it('근무표와 같은 값을 보여 주고 누적 OFF는 색 없이 부호로 (R-PEER-5·6)', () => {

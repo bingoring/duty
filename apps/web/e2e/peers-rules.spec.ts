@@ -2,9 +2,7 @@ import { expect, test } from '@playwright/test'
 import { NURSE, loginAndWait, waitHydrated } from './fixtures'
 
 // Build Spec 2-10 §4 E2E. 오늘 10/13 고정 → 10월은 종이 근무표(가명) 확정본
-test('S6 동료 현황: 교대 근무자 10명, 누적 OFF 오름차순, 내 행 "나", 확정 전 달은 빈 상태', async ({
-  page,
-}) => {
+test('S6 동료 현황: 교대 근무자 10명, 근무표 순서, 내 행 "나", 확정 전 달은 빈 상태', async ({ page }) => {
   await loginAndWait(page, NURSE.employeeNo)
   await page.getByRole('navigation').getByRole('link', { name: '동료 현황' }).click()
   await expect(page.getByRole('heading', { name: '동료 현황 · 2026년 10월' })).toBeVisible()
@@ -19,10 +17,9 @@ test('S6 동료 현황: 교대 근무자 10명, 누적 OFF 오름차순, 내 행
   await expect(me).toContainText('나')
   await expect(me.locator('[data-col="acc"]')).toHaveText('+4')
 
-  const acc = (await table.locator('[data-col="acc"]').allTextContents()).map((t) =>
-    Number(t.replace('−', '-')),
-  )
-  expect(acc).toEqual([...acc].sort((a, b) => a - b))
+  // 3-4: 근무표와 같은 표 순서(가명 시드 사번 순)
+  await expect(rows.first()).toContainText('박서연')
+  await expect(rows.nth(1)).toContainText(NURSE.name)
   for (const w of await table.locator('[data-col="weekend"]').allTextContents())
     expect(w).toMatch(/^(\d+\/\d+–[\d/]+( 예정)?( 외 \d+)?|미배정 → 11월 우선)$/)
 

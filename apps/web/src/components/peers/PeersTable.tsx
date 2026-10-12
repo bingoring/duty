@@ -21,7 +21,7 @@ export function PeersHeader({ view }: { view: PeersView }) {
       </div>
       <div className="flex items-center gap-3 text-[13px] text-ink-2">
         <span>누적 OFF가 낮을수록, 잔여 N이 높을수록 다음 달 오프 배정 우선순위가 높습니다.</span>
-        <span className="ml-auto">정렬: 누적 OFF ↑</span>
+        <span className="ml-auto">정렬: 근무표 순서</span>
       </div>
     </div>
   )

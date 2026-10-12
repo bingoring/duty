@@ -6,11 +6,11 @@ import {
   createStaffAction,
   reissuePasswordAction,
   removeStaffAction,
+  reorderStaffAction,
   updateStaffAction,
 } from '@/server/admin/actions'
 import type { StaffRow } from '@/server/staff/service'
 import { Dialog, Field, btnPrimary, btnSecondary, inputCls, useHydrated } from './ui'
-import { ReorderList } from './ReorderList'
 import { SubmissionHistory, SubmissionPanel, type HistoryRow, type SubmissionRow } from './SubmissionPanel'
 
 // S10 간호사 관리 (Build Spec 2-4 frontend-components §2, 핸드오프 1k)
@@ -531,12 +531,51 @@ export function StaffManager({
   const [dlg, setDlg] = useState<Dlg>(null)
   const [menu, setMenu] = useState<string | null>(null)
   const [error, setError] = useState('')
-  const [reordering, setReordering] = useState(false)
   const [notice2, setNotice2] = useState('')
+  // 3-4: 노션처럼 행 왼쪽 ⠿ 손잡이로 끌어서 순서 바꾸기 → 놓는 즉시 저장(표 순서 = 모든 격자·동료 현황 순서)
+  const [order, setOrder] = useState(() => rows.map((r) => r.id))
+  const rowKey = rows.map((r) => r.id).join()
+  const [seenKey, setSeenKey] = useState(rowKey)
+  if (seenKey !== rowKey) {
+    setSeenKey(rowKey)
+    setOrder(rows.map((r) => r.id))
+  }
+  const [armed, setArmed] = useState<string | null>(null)
+  const [dragId, setDragId] = useState<string | null>(null)
+  const [overId, setOverId] = useState<string | null>(null)
+  const byId = new Map(rows.map((r) => [r.id, r]))
+  const ordered = order.map((id) => byId.get(id)).filter((r): r is StaffRow => !!r)
+  const saveOrder = (next: string[]) => {
+    const prev = order
+    setOrder(next)
+    setNotice2('')
+    start(async () => {
+      const r = await reorderStaffAction(next)
+      if (r.ok) return setNotice2('순서를 저장했습니다. 근무표·근무 조정·근무 신청·동료 현황에 반영됩니다.')
+      setOrder(prev)
+      setError(r.message ?? '순서를 저장하지 못했습니다.')
+    })
+  }
+  const moveTo = (id: string, target: string) => {
+    if (id === target) return
+    const next = order.filter((x) => x !== id)
+    const to = order.indexOf(target)
+    const from = order.indexOf(id)
+    next.splice(next.indexOf(target) + (from < to ? 1 : 0), 0, id)
+    saveOrder(next)
+  }
+  const moveBy = (id: string, d: number) => {
+    const i = order.indexOf(id)
+    const j = i + d
+    if (j < 0 || j >= order.length) return
+    const next = [...order]
+    ;[next[i], next[j]] = [next[j]!, next[i]!]
+    saveOrder(next)
+  }
+  const canDrag = !q.trim()
   const [pending, start] = useTransition()
   const hydrated = useHydrated()
   const preceptors = rows.filter((r) => r.rotation === 'rotating')
-  const shown = rows.filter((r) => !q || r.name.includes(q.trim()) || r.employeeNo.includes(q.trim()))
 
   const reissue = (row: StaffRow) =>
     start(async () => {
@@ -569,13 +608,6 @@ export function StaffManager({
           />
           <button
             type="button"
-            className="h-9 cursor-pointer rounded-lg border border-line bg-surface px-3.5 text-[13px]"
-            onClick={() => (setReordering(true), setNotice2(''))}
-          >
-            순서 바꾸기
-          </button>
-          <button
-            type="button"
             className="h-9 cursor-pointer rounded-lg bg-primary px-3.5 text-[13px] font-bold text-white"
             onClick={() => document.querySelector<HTMLInputElement>('#staff-add input')?.focus()}
           >
@@ -592,21 +624,11 @@ export function StaffManager({
             {notice2}
           </div>
         )}
-        {reordering && (
-          <ReorderList
-            items={rows.map((r) => ({
-              id: r.id,
-              name: r.name,
-              label: r.roleLabel,
-              head: r.rotation === 'fixed_weekday',
-            }))}
-            onDone={(msg) => (setReordering(false), setNotice2(msg))}
-          />
-        )}
         <SubmissionPanel items={submissions} names={Object.fromEntries(rows.map((r) => [r.id, r.name]))} />
         <SubmissionHistory rows={history} names={Object.fromEntries(rows.map((r) => [r.id, r.name]))} />
         <div className="overflow-visible rounded-xl border border-line bg-surface text-[13px]">
-          <div className="grid grid-cols-[1.2fr_1.2fr_.8fr_.8fr_1fr_1.4fr_.6fr] border-b border-line bg-panel px-4 py-2.5 text-xs text-ink-2">
+          <div className="grid grid-cols-[24px_1.2fr_1.2fr_.8fr_.8fr_1fr_1.4fr_.6fr] border-b border-line bg-panel py-2.5 pr-4 pl-1 text-xs text-ink-2">
+            <span />
             <span>성명</span>
             <span>사번</span>
             <span>연차(년)</span>
@@ -615,74 +637,105 @@ export function StaffManager({
             <span>트레이닝</span>
             <span />
           </div>
-          {shown.map((r) => (
-            <div
-              key={r.id}
-              role="row"
-              aria-label={r.name}
-              className="relative grid grid-cols-[1.2fr_1.2fr_.8fr_.8fr_1fr_1.4fr_.6fr] items-center border-b border-line-soft px-4 py-[11px]"
-            >
-              <span className="flex flex-col">
-                <span className="flex items-center gap-1.5 font-semibold">
-                  {r.name}
-                  {submissions.some((x) => x.userId === r.id) && (
-                    <span className="rounded-full bg-warn-bg px-1.5 text-[10px] font-bold text-warn-ink">
-                      본인 입력 확인 필요
-                    </span>
-                  )}
-                </span>
-                <span className="text-[11px] text-ink-3">
-                  {consents[r.id] ? `동의 ${consents[r.id]}` : '미동의'}
-                </span>
-              </span>
-              <span className="text-ink-2">{r.employeeNo}</span>
-              <span>{r.years ?? '—'}</span>
-              <span className={r.kTass ? 'font-semibold text-primary' : 'text-ink-4'}>
-                {r.kTass ? 'K-tass' : '—'}
-              </span>
-              <span
-                className={
-                  r.roleLabel === '수간호사 · 관리자'
-                    ? 'font-semibold text-admin'
-                    : r.roleLabel === '신규'
-                      ? 'font-semibold text-danger'
-                      : ''
-                }
+          {ordered
+            .filter((r) => !q.trim() || r.name.includes(q.trim()) || r.employeeNo.includes(q.trim()))
+            .map((r) => (
+              <div
+                key={r.id}
+                role="row"
+                aria-label={r.name}
+                draggable={canDrag && armed === r.id}
+                onDragStart={(e) => (setDragId(r.id), e.dataTransfer.setData('text/plain', r.id))}
+                onDragOver={(e) => dragId && (e.preventDefault(), setOverId(r.id))}
+                onDrop={(e) => (
+                  e.preventDefault(),
+                  dragId && moveTo(dragId, r.id),
+                  setDragId(null),
+                  setOverId(null)
+                )}
+                onDragEnd={() => (setDragId(null), setOverId(null), setArmed(null))}
+                className={`group relative grid grid-cols-[24px_1.2fr_1.2fr_.8fr_.8fr_1fr_1.4fr_.6fr] items-center border-b border-line-soft py-[11px] pr-4 pl-1 ${
+                  dragId === r.id ? 'opacity-40' : ''
+                } ${overId === r.id && dragId !== r.id ? 'shadow-[inset_0_2px_0_var(--color-primary)]' : ''}`}
               >
-                {r.roleLabel}
-              </span>
-              <span className="text-ink-2">{r.trainingText}</span>
-              <button
-                type="button"
-                aria-label={`${r.name} 메뉴`}
-                className="cursor-pointer text-right text-ink-2"
-                onClick={() => setMenu(menu === r.id ? null : r.id)}
-              >
-                ···
-              </button>
-              {menu === r.id && (
-                <div className="absolute top-9 right-4 z-10 flex w-36 flex-col rounded-lg border border-line bg-surface py-1 shadow-popover">
-                  {(
-                    [
-                      ['수정', () => (setMenu(null), setDlg({ kind: 'edit', row: r }))],
-                      ['비밀번호 재발급', () => reissue(r)],
-                      ['제거', () => (setMenu(null), setDlg({ kind: 'remove', row: r }))],
-                    ] as const
-                  ).map(([l, fn]) => (
-                    <button
-                      key={l}
-                      type="button"
-                      disabled={pending}
-                      className={`cursor-pointer px-3 py-2 text-left hover:bg-panel ${l === '제거' ? 'text-danger' : ''}`}
-                      onClick={fn}
-                    >
-                      {l}
-                    </button>
-                  ))}
-                </div>
-              )}
-            </div>
-          ))}
+                <button
+                  type="button"
+                  aria-label={`${r.name} 순서 옮기기 (↑↓)`}
+                  title={canDrag ? '끌어서 순서 바꾸기 · 키보드 ↑↓' : '검색 중에는 순서를 바꿀 수 없습니다'}
+                  disabled={!canDrag || pending}
+                  onMouseDown={() => setArmed(r.id)}
+                  onMouseUp={() => !dragId && setArmed(null)}
+                  onKeyDown={(e) => {
+                    if (e.key === 'ArrowUp' || e.key === 'ArrowDown') {
+                      e.preventDefault()
+                      moveBy(r.id, e.key === 'ArrowUp' ? -1 : 1)
+                    }
+                  }}
+                  className="flex h-6 w-5 cursor-grab items-center justify-center rounded text-ink-3 opacity-0 group-hover:opacity-100 hover:bg-panel focus:opacity-100 disabled:cursor-default"
+                >
+                  ⠿
+                </button>
+                <span className="flex flex-col">
+                  <span className="flex items-center gap-1.5 font-semibold">
+                    {r.name}
+                    {submissions.some((x) => x.userId === r.id) && (
+                      <span className="rounded-full bg-warn-bg px-1.5 text-[10px] font-bold text-warn-ink">
+                        본인 입력 확인 필요
+                      </span>
+                    )}
+                  </span>
+                  <span className="text-[11px] text-ink-3">
+                    {consents[r.id] ? `동의 ${consents[r.id]}` : '미동의'}
+                  </span>
+                </span>
+                <span className="text-ink-2">{r.employeeNo}</span>
+                <span>{r.years ?? '—'}</span>
+                <span className={r.kTass ? 'font-semibold text-primary' : 'text-ink-4'}>
+                  {r.kTass ? 'K-tass' : '—'}
+                </span>
+                <span
+                  className={
+                    r.roleLabel === '수간호사 · 관리자'
+                      ? 'font-semibold text-admin'
+                      : r.roleLabel === '신규'
+                        ? 'font-semibold text-danger'
+                        : ''
+                  }
+                >
+                  {r.roleLabel}
+                </span>
+                <span className="text-ink-2">{r.trainingText}</span>
+                <button
+                  type="button"
+                  aria-label={`${r.name} 메뉴`}
+                  className="cursor-pointer text-right text-ink-2"
+                  onClick={() => setMenu(menu === r.id ? null : r.id)}
+                >
+                  ···
+                </button>
+                {menu === r.id && (
+                  <div className="absolute top-9 right-4 z-10 flex w-36 flex-col rounded-lg border border-line bg-surface py-1 shadow-popover">
+                    {(
+                      [
+                        ['수정', () => (setMenu(null), setDlg({ kind: 'edit', row: r }))],
+                        ['비밀번호 재발급', () => reissue(r)],
+                        ['제거', () => (setMenu(null), setDlg({ kind: 'remove', row: r }))],
+                      ] as const
+                    ).map(([l, fn]) => (
+                      <button
+                        key={l}
+                        type="button"
+                        disabled={pending}
+                        className={`cursor-pointer px-3 py-2 text-left hover:bg-panel ${l === '제거' ? 'text-danger' : ''}`}
+                        onClick={fn}
+                      >
+                        {l}
+                      </button>
+                    ))}
+                  </div>
+                )}
+              </div>
+            ))}
         </div>
       </div>
       <AddPanel preceptors={preceptors} params={params} onCreated={setDlg} />

@@ -175,24 +175,32 @@ test('간호사가 내 설정에서 연차를 고치면 관리자에게 확인 �
   await admin.close()
 })
 
-test('간호사 관리에서 순서를 바꾸면 근무표 행 순서가 바뀐다 (3-4)', async ({ page }) => {
+test('간호사 관리에서 ⠿ 손잡이로 순서를 바꾸면 근무표·동료 현황 순서가 바뀐다 (3-4)', async ({ page }) => {
   await loginAndWait(page, ADMIN.employeeNo)
-  const reorder = async (name: string) => {
+  const staff = async () => {
     await page.goto('/admin/staff')
     await waitHydrated(page)
-    await page.getByRole('button', { name: '순서 바꾸기' }).click()
-    const list = page.getByRole('region', { name: '순서 바꾸기' })
-    await list.getByRole('button', { name: `${name} 위로` }).click()
-    await list.getByRole('button', { name: '저장' }).click()
-    await expect(page.getByRole('status')).toContainText('순서를 저장했습니다')
   }
-  // 정하늘(표 순서 3)을 박서연(2) 위로 → 근무표 둘째 행
-  await reorder(NURSE.name)
+  // 키보드: 정하늘(표 순서 3) 손잡이에서 ↑ → 박서연 위로, 놓는 즉시 저장
+  await staff()
+  await page.getByRole('button', { name: `${NURSE.name} 순서 옮기기 (↑↓)` }).press('ArrowUp')
+  await expect(page.getByRole('status')).toContainText('순서를 저장했습니다')
   await page.goto('/?ym=2026-10')
-  const rows = page.getByRole('grid').getByRole('row')
-  await expect(rows.nth(1)).toHaveAttribute('aria-label', NURSE.name)
-  // 다른 스펙을 위해 되돌린다
-  await reorder('박서연')
+  await expect(page.getByRole('grid').getByRole('row').nth(1)).toHaveAttribute('aria-label', NURSE.name)
+  await page.goto('/peers?ym=2026-10')
+  const peers = page
+    .getByRole('table', { name: '동료 현황' })
+    .getByRole('row')
+    .filter({ has: page.getByRole('cell') })
+  await expect(peers.first()).toContainText(NURSE.name)
+
+  // 마우스: 박서연 손잡이를 잡아 정하늘 행에 놓아 되돌린다(다른 스펙을 위해)
+  await staff()
+  await page.getByRole('row', { name: '박서연' }).hover()
+  await page
+    .getByRole('button', { name: '박서연 순서 옮기기 (↑↓)' })
+    .dragTo(page.getByRole('row', { name: NURSE.name }))
+  await expect(page.getByRole('status')).toContainText('순서를 저장했습니다')
   await page.goto('/?ym=2026-10')
   await expect(page.getByRole('grid').getByRole('row').nth(1)).toHaveAttribute('aria-label', '박서연')
 })

@@ -54,16 +54,11 @@ export function buildPeersView(d: MonthViewData): PeersView {
     return `${text}${pairs[0]!.pending ? ' 예정' : ''}${pairs.length > 1 ? ` 외 ${pairs.length - 1}` : ''}`
   }
 
-  // R-PEER-4·8: 교대 근무자만, 누적 OFF ↑ → 잔여 N ↓ → 연차 순
+  // R-PEER-4·8: 교대 근무자만. 3-4(2026-10-12 사용자): 근무표와 같은 표 순서(간호사 관리에서 끌어서 바꾼 순서)
   const rows = d.users
     .filter((u) => u.rotation !== 'fixed_weekday' && d.balances.has(u.id))
     .map((u) => ({ u, b: d.balances.get(u.id) as RowBalance }))
-    .sort(
-      (x, y) =>
-        x.b.offCarryAfter - y.b.offCarryAfter ||
-        y.b.nightBankAfter - x.b.nightBankAfter ||
-        x.u.seniorityRank - y.u.seniorityRank,
-    )
+    .sort((x, y) => x.u.seniorityRank - y.u.seniorityRank)
     .map(({ u, b }) => ({
       userId: u.id,
       name: u.name,
