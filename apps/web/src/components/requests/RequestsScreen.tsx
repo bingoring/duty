@@ -299,7 +299,8 @@ export function RequestsScreen({
   // 관리자는 승인 패널 자리만큼 좁아지므로 날짜 열이 남는 폭을 나눠 쓴다(4a 이름 70px)
   const template = admin
     ? `70px repeat(${view.days.length},minmax(0,1fr)) 36px`
-    : `96px repeat(${view.days.length},30px) 56px`
+    : // 3-4: 화면 폭에 맞춰 날짜 열이 늘어난다(최소 30px — 좁으면 가로 스크롤)
+      `96px repeat(${view.days.length},minmax(30px,1fr)) 56px`
   const canEdit = (userId: string) => view.editable !== 'none' && (admin || userId === viewerId)
   const daysLeft = view.deadline
     ? Math.round((Date.parse(view.deadline) - Date.parse(today)) / 86_400_000)
@@ -407,7 +408,7 @@ export function RequestsScreen({
           </div>
         )}
 
-        <div className="overflow-hidden rounded-[10px] border border-line bg-surface">
+        <div className="overflow-x-auto rounded-[10px] border border-line bg-surface">
           <div
             role="grid"
             aria-label={`${view.month}월 근무 신청`}
