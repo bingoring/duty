@@ -18,7 +18,7 @@ updated: 2026-10-08
 | R-PEER-5 | 열과 값(근무표 R-VIEW-9~13과 **같은 계산**, `loadMonthView`의 balances): 이번달 OFF = `actualOff` · 누적 OFF = `offCarryAfter`(월말) · 이번달 N = `nightCount` · 잔여 N = `nightBankAfter`(월말) · 슬리핑오프 = `sleepingOff` · 주말 연휴 OFF = R-PEER-7 | 핸드오프 S6, 2-3 |
 | R-PEER-6 | 누적 OFF는 색 없이 부호(`signed`: "+4", "−2", "0"), 굵게. 핸드오프의 양수 초록·음수 빨강은 쓰지 않는다 | 2-3 Q1 (D1 부호와 색이 맞지 않음) |
 | R-PEER-7 | 주말 연휴 OFF: 그 달의 토요일 중 토·일이 모두 쉬는 칸(REST)인 첫 쌍을 "10/24–25"로. 쌍이 여럿이면 첫 쌍 + " 외 {n}". 월말 토요일 쉬고 다음 달 1일(일)이 아직 없으면 "10/31–11/1 예정". 쌍이 없으면 규칙 `weekendPairOffMonthly`가 켜져 있을 때 "미배정 → {M+1}월 우선", 꺼져 있으면 "미배정". 판정은 2-2 `hasWeekendPair`와 같은 쉬는 칸 정의 | 핸드오프 S6, 원문 응급실 §4 |
-| R-PEER-8 | 정렬: 누적 OFF 오름차순(가장 많이 받아야 할 사람 위), 같으면 잔여 N 내림차순, 같으면 근무표 행 순서. 우측 "정렬: 누적 OFF ↑" | 핸드오프 S6 설명 문구 |
+| R-PEER-8 | 정렬: **근무표와 같은 표 순서**(`seniorityRank`) — 2026-10-12 변경(DECISIONS). 이전: 누적 OFF 오름차순 → 잔여 N 내림차순 → 표 순서 | 사용자 2026-10-12 |
 | R-PEER-9 | 내 행(로그인 사용자) bg `primary-soft` + 이름 뒤 "나" pill. 관리자(교대 근무자 아님)는 내 행이 없다 | 핸드오프 S6 |
 
 ## 2. S7 규칙 안내
