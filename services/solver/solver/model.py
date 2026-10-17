@@ -40,6 +40,12 @@ def _iso(d: date) -> str:
     return d.isoformat()
 
 
+def _ktas(n: dict, d: str) -> bool:
+    """3-5: 그날 KTAS 인원으로 세는가 (TS ktasValidOn과 같음)."""
+    until = n.get("kTassUntil")
+    return bool(n["kTass"]) and (until is None or d <= until)
+
+
 @dataclass
 class Built:
     model: cp_model.CpModel
@@ -243,11 +249,11 @@ class Builder:
                     if s == "N" and (nid, d) in triple_n:
                         lit = self._and([lit, ~triple_n[(nid, d)]])
                     members.append((nid, lit))
-                    if n["kTass"] and not trs:
+                    if _ktas(n, d) and not trs:
                         kt.append(lit)
                 self.counted[(d, s)] = members
                 h = sum(1 for hd in heads if head_at.get((hd["id"], d)) == s)
-                hk = sum(1 for hd in heads if hd["kTass"] and head_at.get((hd["id"], d)) == s)
+                hk = sum(1 for hd in heads if _ktas(hd, d) and head_at.get((hd["id"], d)) == s)
                 flex = [
                     (hd, self.head_d[(hd["id"], d)])
                     for hd in heads
@@ -256,7 +262,7 @@ class Builder:
                 cnt = self.true * 0 + sum(v for _, v in members)
                 kts = self.true * 0 + sum(kt)
                 fx = self.true * 0 + sum(v for _, v in flex)
-                fxk = self.true * 0 + sum(v for hd, v in flex if hd["kTass"])
+                fxk = self.true * 0 + sum(v for hd, v in flex if _ktas(hd, d))
                 self.at_most("STAFF", "staffShort", r["minStaff"] - (cnt + fx + h), 0, f"STAFF:{d}:{s}")
                 self.at_most("KTAS", "ktasShort", r["minKTass"] - (kts + fxk + hk), 0, f"KTASS:{d}:{s}")
                 # S-JUNIOR-ONLY: 그날 고연차 수간호사가 그 근무면 면제

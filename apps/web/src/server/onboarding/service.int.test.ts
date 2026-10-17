@@ -178,13 +178,13 @@ describe('초기 설정 저장 (R-ONB-4~9)', () => {
   it('수간호사는 교대 항목 없이, 해마다 모드는 연차만 받는다', async () => {
     const h = await fresh('00101')
     const cur = await currentValues(db, h.id, TODAY)
-    const { hireDate, kTass, unionMember, annual } = cur
+    const { hireDate, kTass, ktasCertifiedOn, unionMember, annual } = cur
     expect(
       await saveOnboarding(db, {
         userId: h.id,
         today: TODAY,
         mode: 'initial',
-        input: { hireDate, kTass, unionMember },
+        input: { hireDate, kTass, ktasCertifiedOn, unionMember },
         year: 2026,
       }),
     ).toMatchObject({
@@ -196,7 +196,7 @@ describe('초기 설정 저장 (R-ONB-4~9)', () => {
         userId: h.id,
         today: TODAY,
         mode: 'initial',
-        input: { hireDate, kTass, unionMember, annual },
+        input: { hireDate, kTass, ktasCertifiedOn, unionMember, annual },
         year: 2026,
       }),
     ).toMatchObject({ ok: true })

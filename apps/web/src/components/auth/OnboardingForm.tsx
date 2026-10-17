@@ -117,9 +117,9 @@ export function OnboardingForm({ view, params }: { view: OnboardingView; params:
       {err && !err.field && <ErrorBox>{err.message}</ErrorBox>}
       {view.mode === 'initial' && (
         <section aria-label="인적 사항" className="grid grid-cols-2 gap-x-4 gap-y-3.5">
-          <Field {...fieldProps('hireDate')} label="입사일" first={view.values.hireDate ?? '—'}>
+          <Field {...fieldProps('hireDate')} label="응급실 근무 시작일" first={view.values.hireDate ?? '—'}>
             <input
-              aria-label="입사일"
+              aria-label="응급실 근무 시작일"
               type="date"
               value={v.hireDate ?? ''}
               onChange={(e) => set('hireDate', e.target.value || null)}
@@ -149,6 +149,21 @@ export function OnboardingForm({ view, params }: { view: OnboardingView; params:
             </Field>
           )}
           {yesNo('kTass', 'KTAS 자격')}
+          {v.kTass && (
+            <Field
+              {...fieldProps('ktasCertifiedOn')}
+              label="KTAS 수료일 (3년 유효)"
+              first={view.values.ktasCertifiedOn ?? '—'}
+            >
+              <input
+                aria-label="KTAS 수료일"
+                type="date"
+                value={v.ktasCertifiedOn ?? ''}
+                onChange={(e) => set('ktasCertifiedOn', e.target.value || null)}
+                className={input}
+              />
+            </Field>
+          )}
           {yesNo('unionMember', '노조 가입')}
           {has('nightDedicated') && (
             <div className="col-span-2">

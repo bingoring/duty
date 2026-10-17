@@ -1,6 +1,7 @@
 import type { TraineeKind } from './allowed-sets'
 import { addDays, daysInMonth, isEmployed, isoOf, type IsoDate } from './dates'
 import type { Grid } from './grid'
+import { ktasValidOn } from './ktas'
 import type { RuleParams } from './rules-defaults'
 import type { DutyCode, NurseProfile, ScheduleInput, TrainingSpan } from './types'
 
@@ -74,9 +75,9 @@ export function createStaffing(input: ScheduleInput, grid: Grid): Staffing {
       const all = [...members, ...heads]
       return {
         count: members.length,
-        kTass: members.filter((n) => n.kTass && !inTraining(n.id, date)).length,
+        kTass: members.filter((n) => ktasValidOn(n, date) && !inTraining(n.id, date)).length,
         fallback: heads.length,
-        fallbackKTass: heads.filter((n) => n.kTass).length,
+        fallbackKTass: heads.filter((n) => ktasValidOn(n, date)).length,
         allJunior: all.length > 0 && all.every((n) => n.seniorityTier === 'junior'),
         members: members.map((n) => n.id),
       }

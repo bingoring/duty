@@ -12,6 +12,7 @@ const user = (id: string, rank: number, over: Partial<ViewUser> = {}): ViewUser 
   seniorityRank: rank,
   seniorityTier: 'senior',
   kTass: true,
+  kTassUntil: null,
   unionMember: false,
   employedFrom: null,
   employedUntil: null,

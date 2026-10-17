@@ -42,9 +42,13 @@ const FixedCell = z.object({ date: IsoDate, code: Code, offKind: OffKind.optiona
 // 2-11 R-HEAD-3: flex = 수간호사 기본 S 칸. 필수 인원을 달리 채울 수 없을 때만 솔버가 D로 바꾼다
 const HeadCell = FixedCell.extend({ flex: z.boolean().optional() })
 
+// 3-5: KTAS 자격 마지막 유효일. 이 날 뒤에는 KTAS 인원으로 세지 않는다(없으면 계속 유효)
+const KtasUntil = IsoDate.nullable().optional()
+
 export const SolverNurse = z.object({
   id: z.string(),
   kTass: z.boolean(),
+  kTassUntil: KtasUntil,
   junior: z.boolean(),
   // 대상 월 중 재직일 (칸을 만들 날)
   workDays: z.array(IsoDate),
@@ -81,7 +85,13 @@ export const SolverRequest = z.object({
   nurses: z.array(SolverNurse),
   // 수간호사 칸 (인원 계산용). flex 칸만 솔버가 S/D를 정한다
   heads: z.array(
-    z.object({ id: z.string(), kTass: z.boolean(), junior: z.boolean(), cells: z.array(HeadCell) }),
+    z.object({
+      id: z.string(),
+      kTass: z.boolean(),
+      kTassUntil: KtasUntil,
+      junior: z.boolean(),
+      cells: z.array(HeadCell),
+    }),
   ),
   trainings: z.array(
     z.object({

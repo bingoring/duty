@@ -21,6 +21,8 @@ export type TrainingValue = {
 export type OnboardingValues = {
   hireDate: string | null
   kTass: boolean
+  // 3-5: KTAS 수료일(3년 유효)
+  ktasCertifiedOn: string | null
   seniorityTier: SeniorityTier
   unionMember: boolean
   nightDedicated: { from: string; to: string } | null
@@ -36,8 +38,9 @@ const ACCOUNT = { annual: 'annual_leave', nightBank: 'night_bank', offCarry: 'of
 const NUMERIC = Object.keys(ACCOUNT) as (keyof typeof ACCOUNT)[]
 
 export const FIELD_LABEL: Record<Key, string> = {
-  hireDate: '입사일',
+  hireDate: '응급실 근무 시작일',
   kTass: 'KTAS',
+  ktasCertifiedOn: 'KTAS 수료일',
   seniorityTier: '연차 구분',
   unionMember: '노조',
   nightDedicated: '근무 방식',
@@ -52,10 +55,11 @@ export type OnboardingMode = 'initial' | 'annual' | 'self_edit'
 
 export function fieldsFor(head: boolean, mode: OnboardingMode): Key[] {
   if (mode === 'annual' || mode === 'self_edit') return ['annual']
-  if (head) return ['hireDate', 'kTass', 'unionMember', 'annual']
+  if (head) return ['hireDate', 'kTass', 'ktasCertifiedOn', 'unionMember', 'annual']
   return [
     'hireDate',
     'kTass',
+    'ktasCertifiedOn',
     'seniorityTier',
     'unionMember',
     'nightDedicated',
@@ -79,6 +83,7 @@ export const OnboardingInputSchema = z
   .object({
     hireDate: date.nullable(),
     kTass: z.boolean(),
+    ktasCertifiedOn: date.nullable(),
     seniorityTier: z.enum(SENIORITY_TIERS),
     unionMember: z.boolean(),
     nightDedicated: z.object({ from: date, to: date }).nullable(),
@@ -132,6 +137,7 @@ export async function currentValues(db: Db, userId: string, today: string): Prom
   return {
     hireDate: u.hireDate,
     kTass: u.kTass,
+    ktasCertifiedOn: u.ktasCertifiedOn,
     seniorityTier: u.seniorityTier as SeniorityTier,
     unionMember: u.unionMember,
     nightDedicated:
@@ -224,6 +230,7 @@ async function applyValues(
   const patch: Partial<typeof users.$inferInsert> = {}
   if ('hireDate' in changed) patch.hireDate = changed.hireDate ?? null
   if ('kTass' in changed) patch.kTass = changed.kTass!
+  if ('ktasCertifiedOn' in changed) patch.ktasCertifiedOn = changed.ktasCertifiedOn ?? null
   if ('seniorityTier' in changed) patch.seniorityTier = changed.seniorityTier!
   if ('unionMember' in changed) patch.unionMember = changed.unionMember!
   if ('nightDedicated' in changed) {

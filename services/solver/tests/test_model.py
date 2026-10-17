@@ -258,3 +258,14 @@ def test_3_5_권고_규칙을_필수로_올리면_지킨다():
             and cell.get((n["id"], (date.fromisoformat(s) + timedelta(days=1)).isoformat()), "OFF") in rest
             for s in sats
         )
+
+
+def test_3_5_KTAS_유효기간이_지난_사람은_KTAS_인원으로_세지_않는다():
+    req = request(time_limit=5)
+    for n in req["nurses"]:
+        n["kTassUntil"] = "2026-10-31" if n["kTass"] else None
+    for h in req["heads"]:
+        h["kTassUntil"] = "2026-10-31" if h["kTass"] else None
+    res = solve(req)
+    assert res["status"] == "INFEASIBLE"
+    assert any(c["group"] == "KTASS" for c in res["causes"])

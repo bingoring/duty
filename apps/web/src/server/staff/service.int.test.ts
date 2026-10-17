@@ -24,6 +24,8 @@ async function idOf(no: string) {
   const [u] = await db.select({ id: users.id }).from(users).where(eq(users.employeeNo, no))
   return u!.id
 }
+const of2 = (rows: { employeeNo: string }[], no: string) =>
+  rows.find((r) => r.employeeNo === no) as Awaited<ReturnType<typeof listStaff>>[number]
 async function ctx() {
   return { adminId: await idOf('00101'), today: TODAY, rules: DEFAULT_RULES }
 }
@@ -92,6 +94,33 @@ describe('createStaff (R-STAFF-ADD-1~5)', () => {
     )
   })
 
+  it('3-5: KTAS 수료일을 저장하고 유효기간·갱신 필요·만료를 돌려준다, KTAS가 아니면 수료일을 지운다', async () => {
+    await createStaff(db, { ...base, kTass: true, ktasCertifiedOn: '2025-03-01' }, await ctx())
+    await createStaff(
+      db,
+      { ...base, employeeNo: '00121', name: '만료가', kTass: true, ktasCertifiedOn: '2023-10-01' },
+      await ctx(),
+    )
+    await createStaff(
+      db,
+      { ...base, employeeNo: '00122', name: '미입력', kTass: false, ktasCertifiedOn: '2025-01-01' },
+      await ctx(),
+    )
+    const rows = await listStaff(db, TODAY)
+    const of = (no: string) => rows.find((r) => r.employeeNo === no)!
+    expect(of('00120').ktas).toEqual({ kind: 'valid', until: '2028-02-29' })
+    expect(of('00121').ktas).toEqual({ kind: 'expired', until: '2026-09-30' })
+    expect(of('00122')).toMatchObject({ ktasCertifiedOn: null, ktas: { kind: 'none' } })
+    const id = await idOf('00120')
+    await updateStaff(
+      db,
+      id,
+      { ...updateBase, kTass: true, ktasCertifiedOn: '2023-11-01', seniorityRank: 20 },
+      await ctx(),
+    )
+    expect(of2(await listStaff(db, TODAY), '00120').ktas).toEqual({ kind: 'renew', until: '2026-10-31' })
+  })
+
   it('사번 중복은 제거된 사용자까지 거부', async () => {
     await db.update(users).set({ active: false }).where(eq(users.employeeNo, '00111'))
     const r = await createStaff(db, { ...base, employeeNo: ' 00111 ' }, await ctx())
@@ -127,7 +156,7 @@ describe('createStaff (R-STAFF-ADD-1~5)', () => {
     const t = { kind: 'new_grad' as const, preceptorId, tripleWeeks: 3 }
     expect(await createStaff(db, { ...base, hireDate: null, training: t }, await ctx())).toEqual({
       ok: false,
-      errors: { hireDate: '신규 간호사는 입사일(트레이닝 시작일)이 필요합니다.' },
+      errors: { hireDate: '신규 간호사는 응급실 근무 시작일(트레이닝 시작일)이 필요합니다.' },
     })
     const head = { ...t, preceptorId: await idOf('00101') }
     expect(await createStaff(db, { ...base, training: head }, await ctx())).toEqual({

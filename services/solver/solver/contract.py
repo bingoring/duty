@@ -55,6 +55,10 @@ class NextHeadItem(BaseModel):
     offKind: OffKind | None = None
 
 
+class KTassUntil(RootModel[str]):
+    root: Annotated[str, Field(pattern='^\\d{4}-\\d{2}-\\d{2}$')]
+
+
 class WorkDay(RootModel[str]):
     root: Annotated[str, Field(pattern='^\\d{4}-\\d{2}-\\d{2}$')]
 
@@ -90,6 +94,7 @@ class ShiftCountsBefore(BaseModel):
 class Nurse(BaseModel):
     id: str
     kTass: bool
+    kTassUntil: KTassUntil | None = None
     junior: bool
     workDays: list[WorkDay]
     fixed: list[FixedItem]
@@ -115,6 +120,7 @@ class Cell(BaseModel):
 class Head(BaseModel):
     id: str
     kTass: bool
+    kTassUntil: KTassUntil | None = None
     junior: bool
     cells: list[Cell]
 

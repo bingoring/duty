@@ -146,6 +146,17 @@ describe('인원·KTAS·수간호사 보충', () => {
     expect(dOnly(only(day(onD(['b'])), 'H-KTASS'))).toMatchObject([{ data: { count: 0, min: 1 } }])
   })
 
+  it('3-5: KTAS 유효기간이 지난 날에는 KTAS로 세지 않는다', () => {
+    const nurses = [
+      nurse('a', { kTassUntil: '2026-09-30' }),
+      nurse('b', { kTass: false }),
+      nurse('h', { rotation: 'fixed_weekday' as const, kTass: false }),
+    ]
+    expect(dOnly(only(day(onD(['a', 'b']), nurses), 'H-KTASS'))).toMatchObject([{ data: { count: 0 } }])
+    const valid = [nurse('a', { kTassUntil: OCT1 }), ...nurses.slice(1)]
+    expect(dOnly(only(day(onD(['a', 'b']), valid), 'H-KTASS'))).toEqual([])
+  })
+
   it('교대 근무자만으로 모자라면 수간호사 D로 채우고 소프트 경고 (Q1)', () => {
     const inp = day(onD(['b', 'h']))
     expect(dOnly(only(inp, 'H-STAFF'))).toEqual([])

@@ -262,6 +262,7 @@ export async function buildGenerationInput(db: Db, plan: PlanRow): Promise<Gener
     return {
       id: n.id,
       kTass: n.kTass,
+      kTassUntil: n.kTassUntil ?? null,
       junior: n.seniorityTier === 'junior',
       workDays: days.filter((d) => isEmployed(n, d)),
       fixed: [...f.entries()]
@@ -308,6 +309,7 @@ export async function buildGenerationInput(db: Db, plan: PlanRow): Promise<Gener
     heads: heads.map((h) => ({
       id: h.id,
       kTass: h.kTass,
+      kTassUntil: h.kTassUntil ?? null,
       junior: h.seniorityTier === 'junior',
       cells: head
         .filter((c) => c.userId === h.id)

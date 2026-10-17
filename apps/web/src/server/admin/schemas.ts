@@ -33,6 +33,8 @@ const staffCommon = {
   name: z.string().trim().min(1, '성명을 입력해 주세요.').max(20),
   hireDate: isoOrNull,
   kTass: z.boolean(),
+  // 3-5: KTAS 수료일(유효기간 3년). KTAS가 아니면 저장하지 않는다
+  ktasCertifiedOn: isoOrNull.optional(),
   seniorityTier: z.enum(SENIORITY_TIERS),
   unionMember: z.boolean(),
   rotation: z.enum(ROTATIONS),

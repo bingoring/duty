@@ -57,6 +57,13 @@
       "when": 1792248143566,
       "tag": "0007_rule_severity",
       "breakpoints": true
+    },
+    {
+      "idx": 8,
+      "version": "7",
+      "when": 1792248303308,
+      "tag": "0008_ktas_certified_on",
+      "breakpoints": true
     }
   ]
 }

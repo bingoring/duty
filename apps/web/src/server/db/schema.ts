@@ -41,6 +41,8 @@ export const users = pgTable('users', {
   seniorityTier: text('seniority_tier').notNull(),
   hireDate: day('hire_date'),
   kTass: boolean('k_tass').notNull().default(false),
+  // 3-5: KTAS 수료일. 유효기간 = 수료일 + 3년 − 1일
+  ktasCertifiedOn: day('ktas_certified_on'),
   unionMember: boolean('union_member').notNull().default(false),
   nightDedicatedFrom: day('night_dedicated_from'),
   nightDedicatedTo: day('night_dedicated_to'),
