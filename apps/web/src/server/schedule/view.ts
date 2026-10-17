@@ -120,7 +120,8 @@ export function cellView(
     }
   // 3-6: 휴가 칸은 종류 이름(연차·병가·경조·공가·특휴·개원)
   const leaveName = leaveCellLabel(c)
-  const label = leaveName ?? (c.code === 'OFF' ? 'off' : c.code)
+  // 3-6: 검진 반차 날은 근무 코드에 「검」을 붙인다(반나절은 근무 — 사용자 결정 1안)
+  const label = leaveName ?? (c.code === 'OFF' ? 'off' : c.checkupHalf ? `${c.code}검` : c.code)
   const chip = leaveName ? 'leave' : c.code === 'OFF' ? 'off' : (c.code.toLowerCase() as GridCellView['chip'])
   // 2-11 R-MARK-1·2: 관리자 수정 > 교환 > 신청 반영(휴가 칸 포함)
   const outline = c.source === 'admin' || c.source === 'swap' || c.source === 'requested' ? c.source : null

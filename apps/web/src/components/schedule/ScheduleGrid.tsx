@@ -68,7 +68,7 @@ function Cell({
       {v.chip && (
         <span
           className={`relative flex size-(--chip) items-center justify-center rounded-[5px] font-bold text-ink ${
-            v.label === 'off' ? 'text-[calc(var(--chip)*0.425)]' : 'text-[calc(var(--chip)*0.525)]'
+            v.label.length >= 2 ? 'text-[calc(var(--chip)*0.425)]' : 'text-[calc(var(--chip)*0.525)]'
           } ${CHIP[v.chip]} ${pending ? 'shadow-[inset_0_0_0_2px_var(--color-admin)] outline-1 outline-offset-1 outline-admin outline-dashed' : v.outline ? OUTLINE[v.outline] : ''}`}
         >
           {v.label}

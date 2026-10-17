@@ -150,9 +150,11 @@ export async function loadCellNotes(db: Db, a: NotesArgs): Promise<Map<string, s
       const k = key(c.userId, c.date)
       const l = leaves.find((x) => x.userId === c.userId && x.startDate <= c.date && c.date <= x.endDate)
       if (l) {
-        const kind = sees(c.userId)
-          ? leaveKindLabel(l.type as LeaveType, l.reasonCode)
-          : leaveKindLabel(l.type as LeaveType, null)
+        // 사유는 본인·관리자만. 검진 오전·오후는 사유가 아니라 모두에게 보인다(3-6)
+        const kind =
+          sees(c.userId) || l.type === 'checkup'
+            ? leaveKindLabel(l.type as LeaveType, l.reasonCode)
+            : leaveKindLabel(l.type as LeaveType, null)
         const span =
           l.startDate === l.endDate
             ? formatMD(l.startDate)
