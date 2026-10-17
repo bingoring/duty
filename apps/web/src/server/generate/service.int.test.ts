@@ -131,7 +131,14 @@ describe('confirmCandidate (R-GEN-4~6)', { timeout: 90_000 }, () => {
       message: '신청·휴가·규칙이 바뀌었습니다. 다시 생성해 주세요.',
     })
 
-    const second = ok(await generate(db, admin, NOV, { priorities: PRIORITIES, seed: 4, today: AFTER }))
+    // 신청(11/11 OFF)이 근무표에 반영됐는지 보므로 솔버 10초(4초면 느린 CI에서 못 지킨 안이 나옴 — 3-6 PR CI)
+    const prevLimit = process.env.SOLVER_TIME_LIMIT_SEC
+    process.env.SOLVER_TIME_LIMIT_SEC = '10'
+    const second = ok(
+      await generate(db, admin, NOV, { priorities: PRIORITIES, seed: 4, today: AFTER }).finally(() => {
+        process.env.SOLVER_TIME_LIMIT_SEC = prevLimit
+      }),
+    )
     expect(await confirmCandidate(db, me, second.candidateId, AFTER)).toMatchObject({ ok: false })
     expect(await confirmCandidate(db, admin, second.candidateId, AFTER)).toEqual({ ok: true })
 
