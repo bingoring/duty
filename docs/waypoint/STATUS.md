@@ -8,6 +8,8 @@
 
 > 🔒 **개인정보:** 공개 저장소다. 간호사 이름·사번은 모두 가명이며, 실명 자료는 커밋하지 않는다([DECISIONS](DECISIONS.md) 2026-09-26).
 
+> 🏗️ **3-6 운영 피드백 3 구현 (2026-10-18, 브랜치 `feature/3-6-feedback-3`, 운영 미반영).** 관리자 대신 신청 파란 표시(신청 화면·근무표), 휴가 칸 종류 이름, 검진 오전/오후, 휴가 승인 취소, 개인별 주말 통 OFF(본인 끔·관리자 목록), 내 설정 KTAS 취득일·갱신일. 마이그레이션 0010·0011.
+>
 > 🏗️ **3-5 추가 · 월 나이트 최소 (2026-10-18, 브랜치 `feature/3-5-night-min`).** 규칙 설정에서 월 나이트 최소(기본 0, 권고), 근무 가능일 비례·전담·신규 제외. 3-5 본체는 main 머지됨, main CI가 통합 테스트 1건(4초 솔버 예산)으로 실패해 배포 대기 — 수정 PR #2.
 >
 > 🏗️ **3-5 운영 피드백 2 구현 완료 → 승인 대기 (2026-10-18, 브랜치 `feature/3-5-feedback-2`, 운영 미반영).** KTAS 표기·생성 화면 문구, **모든 규칙의 필수/권고를 규칙 설정에서 전환**(최대 연속 근무 기본 필수), KTAS 수료일·유효기간(만료 6개월 전 빨간색, 만료 뒤 KTAS 인원 제외), 관리자의 OFF → 휴가 변경 요청(간호사 수락). 단위 421 · pytest 24 · 통합 172 그린, **E2E는 로컬 브라우저 없어 미실행**. 마이그레이션 3개, 동의서 버전 v2.
@@ -215,7 +217,7 @@
 | 3-3 자동 배포 | [03-continuous-deployment.md](03-operations/03-continuous-deployment.md) · [Build Spec](03-operations/cd/build-spec-index.md) (IMPLEMENTED) | IMPLEMENTED |
 | 3-4 운영 피드백 1 (연차 직접 수정·행 순서·동료 현황 정렬·README) | [04-feedback-1.md](03-operations/04-feedback-1.md) | IMPLEMENTED |
 | 3-5 운영 피드백 2 (KTAS·규칙 필수/권고·오프→휴가) | [05-feedback-2.md](03-operations/05-feedback-2.md) | IMPLEMENTED |
-| 3-6 운영 피드백 3 (대신 신청 표시·휴가 종류·검진 오전/오후·승인 취소·개인 주말 통 OFF·내 설정 KTAS) | [06-feedback-3.md](03-operations/06-feedback-3.md) | IN_PROGRESS |
+| 3-6 운영 피드백 3 (대신 신청 표시·휴가 종류·검진 오전/오후·승인 취소·개인 주말 통 OFF·내 설정 KTAS) | [06-feedback-3.md](03-operations/06-feedback-3.md) | IMPLEMENTED |
 
 ---
 
