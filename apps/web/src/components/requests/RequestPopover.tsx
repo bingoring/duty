@@ -1,6 +1,7 @@
 'use client'
 
 import {
+  CHECKUP_HALVES,
   FAMILY_LEAVE_DAYS,
   OFFICIAL_LEAVE_REASONS,
   formatMD,
@@ -233,6 +234,27 @@ export function RequestPopover({
               </button>
             ))}
           </div>
+          {type === 'checkup' && (
+            <div className="flex flex-col gap-1 text-xs text-ink-2">
+              검진 시간 (나머지 반나절은 근무)
+              <div className="flex gap-1.5" role="radiogroup" aria-label="검진 시간">
+                {Object.entries(CHECKUP_HALVES).map(([k, l]) => (
+                  <button
+                    key={k}
+                    type="button"
+                    role="radio"
+                    aria-checked={reason === k}
+                    className={`cursor-pointer rounded-md px-2.5 py-1 text-xs ${
+                      reason === k ? 'border border-ink bg-app font-bold' : 'border border-line bg-surface'
+                    }`}
+                    onClick={() => setReason(k)}
+                  >
+                    {l} · {k === 'am' ? '오후 근무' : '오전 근무'}
+                  </button>
+                ))}
+              </div>
+            </div>
+          )}
           {(type === 'family' || type === 'official') && (
             <label className="flex flex-col gap-1 text-xs text-ink-2">
               {type === 'family' ? '경조사 사유' : '공가 사유'}

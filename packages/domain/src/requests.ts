@@ -12,6 +12,9 @@ export const OFFICIAL_LEAVE_REASONS = {
   disaster: '천재지변',
 } as const
 export type OfficialLeaveReason = keyof typeof OFFICIAL_LEAVE_REASONS
+// 3-6: 검진 반차는 오전·오후 중 언제 검진하는가(나머지 반은 근무)
+export const CHECKUP_HALVES = { am: '오전 검진', pm: '오후 검진' } as const
+export type CheckupHalf = keyof typeof CHECKUP_HALVES
 
 const OPTION_ORDER: RequestOption[] = ['OFF', 'D', 'E', 'N']
 const SHORT: Record<RequestOption, string> = { OFF: 'O', D: 'D', E: 'E', N: 'N' }

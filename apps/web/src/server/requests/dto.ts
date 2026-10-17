@@ -1,4 +1,5 @@
 import {
+  CHECKUP_HALVES,
   FAMILY_LEAVE_DAYS,
   OFFICIAL_LEAVE_REASONS,
   canNurseEditRequests,
@@ -175,6 +176,9 @@ export function leaveKindLabel(type: LeaveType, reasonCode: string | null): stri
     return `${base} · ${FAMILY_REASON_LABEL[reasonCode] ?? reasonCode}`
   if (type === 'official' && reasonCode && reasonCode in OFFICIAL_LEAVE_REASONS)
     return `${base} · ${OFFICIAL_LEAVE_REASONS[reasonCode as keyof typeof OFFICIAL_LEAVE_REASONS]}`
+  // 3-6: 검진 오전·오후
+  if (type === 'checkup' && reasonCode && reasonCode in CHECKUP_HALVES)
+    return CHECKUP_HALVES[reasonCode as keyof typeof CHECKUP_HALVES]
   return base
 }
 

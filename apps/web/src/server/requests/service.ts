@@ -1,4 +1,5 @@
 import {
+  CHECKUP_HALVES,
   FAMILY_LEAVE_DAYS,
   OFFICIAL_LEAVE_REASONS,
   ShiftRequestInputSchema,
@@ -285,6 +286,8 @@ export async function checkLeaveInput(
     return deny('사유를 선택해 주세요.')
   if (input.type === 'official' && !(input.reasonCode && input.reasonCode in OFFICIAL_LEAVE_REASONS))
     return deny('사유를 선택해 주세요.')
+  if (input.type === 'checkup' && !(input.reasonCode && input.reasonCode in CHECKUP_HALVES))
+    return deny('오전 검진인지 오후 검진인지 골라 주세요.')
   const endDate = leaveEnd(input.type, input.startDate, input.reasonCode, input.endDate)
   if (!endDate) return deny('종료일을 확인해 주세요.')
   const days = leaveDays(input.type, input.startDate, endDate, input.reasonCode)

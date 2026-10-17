@@ -103,6 +103,10 @@ describe('generatedCellSource', () => {
       ...(offKind ? { offKind } : {}),
     })
     expect(generatedCellSource(c('OFF', 'special'), undefined, true)).toBe('requested')
+    // 3-6: 관리자가 대신 넣은 신청은 admin(파란 외곽선)
+    expect(
+      generatedCellSource(c('D'), { userId: 'a', date: '2026-11-02', options: ['D'], byAdmin: true }, false),
+    ).toBe('admin')
     expect(
       generatedCellSource(c('D'), { userId: 'a', date: '2026-11-02', options: ['D', 'OFF'] }, false),
     ).toBe('requested')
