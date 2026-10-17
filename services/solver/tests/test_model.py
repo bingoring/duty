@@ -125,7 +125,8 @@ def test_다음_달_1일이_확정_근무면_월말_토요일만으로는_주말
 
 def test_연속_근무와_순환_역방향이_실제_근무표_수준이다():
     # R-1: 실제 1~9월 근무표 — 연속 근무 최장 5일, OFF를 건너뛴 역방향 39% (DECISIONS 2026-10-08)
-    req = request(seed=1, time_limit=8)
+    # 3-5: 8초에서는 역방향 비율이 0.45 언저리라 머신 속도에 따라 넘나든다(main도 0.49). 16초면 0.3~0.4
+    req = request(seed=1, time_limit=16)
     res = solve(req)
     fwd = {("D", "E"), ("E", "N"), ("N", "D")}
     by: dict[str, dict[str, str]] = {}
