@@ -56,8 +56,16 @@ describe('generate (R-GEN-1~3·7·10)', { timeout: 60_000 }, () => {
     await saveShiftRequest(db, me, { userId: me.id, date: '2026-11-10', options: ['OFF'] }, BEFORE)
     await submitRequests(db, me, NOV, BEFORE)
 
+    // 4초(통합 테스트 기본)면 느린 CI에서 덜 다듬어진 안이 나와 하나뿐인 신청도 못 지킬 때가 있다(3-5 머지 뒤 main CI).
+    // 이 테스트는 신청 반영을 보므로 10초를 준다(운영은 20초)
+    const prevLimit = process.env.SOLVER_TIME_LIMIT_SEC
+    process.env.SOLVER_TIME_LIMIT_SEC = '10'
     const t0 = Date.now()
-    const r = ok(await generate(db, admin, NOV, { priorities: PRIORITIES, seed: 11, today: AFTER }))
+    const r = ok(
+      await generate(db, admin, NOV, { priorities: PRIORITIES, seed: 11, today: AFTER }).finally(() => {
+        process.env.SOLVER_TIME_LIMIT_SEC = prevLimit
+      }),
+    )
     expect(Date.now() - t0).toBeLessThan(30_000)
     expect(r.no).toBe(1)
     expect((await findPlan(db, NOV))!.status).toBe('DRAFTING')
