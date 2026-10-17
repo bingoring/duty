@@ -158,6 +158,30 @@ function TrainingFields({
 const trainingPayload = (t: TrainingForm) =>
   t.on ? { training: { kind: t.kind, preceptorId: t.preceptorId, tripleWeeks: t.tripleWeeks } } : {}
 
+// 3-5: KTAS 유효기간 — 만료 6개월 전부터 빨간색(갱신 필요), 지나면 만료
+function KtasCell({ status }: { status: StaffRow['ktas'] }) {
+  switch (status.kind) {
+    case 'none':
+      return <span className="text-ink-4">—</span>
+    case 'missing':
+      return <span className="text-[12px] font-semibold text-warn-ink">KTAS · 수료일 입력 필요</span>
+    case 'valid':
+      return <span className="font-semibold text-primary">KTAS ~{status.until}</span>
+    case 'renew':
+      return (
+        <span className="font-semibold text-danger" title="만료 6개월 이내 — 갱신해야 합니다">
+          KTAS ~{status.until} · 갱신 필요
+        </span>
+      )
+    case 'expired':
+      return (
+        <span className="font-semibold text-danger" title="유효기간이 지나 KTAS 인원으로 세지 않습니다">
+          KTAS 만료 ({status.until})
+        </span>
+      )
+  }
+}
+
 function AddPanel({
   preceptors,
   params,
@@ -172,6 +196,7 @@ function AddPanel({
     name: '',
     hireDate: '',
     kTass: false,
+    ktasCertifiedOn: '',
     seniorityTier: 'junior' as (typeof TIERS)[number][0],
     unionMember: false,
     rotation: 'rotating' as 'rotating' | 'fixed_weekday',
@@ -225,7 +250,7 @@ function AddPanel({
         <input className={inputCls} value={f.name} onChange={(e) => set('name', e.target.value)} />
       </Field>
       <div className="grid grid-cols-2 gap-2.5">
-        <Field label="입사일" error={errors.hireDate}>
+        <Field label="응급실 근무 시작일" error={errors.hireDate}>
           <input
             type="date"
             className={inputCls}
@@ -233,9 +258,9 @@ function AddPanel({
             onChange={(e) => set('hireDate', e.target.value)}
           />
         </Field>
-        <Field label="K-tass 권한">
+        <Field label="KTAS 권한">
           <Select
-            label="K-tass 권한"
+            label="KTAS 권한"
             value={f.kTass ? 'y' : 'n'}
             onChange={(v) => set('kTass', v === 'y')}
             options={[
@@ -244,6 +269,17 @@ function AddPanel({
             ]}
           />
         </Field>
+        {f.kTass && (
+          <Field label="KTAS 수료일 (3년 유효)" error={errors.ktasCertifiedOn}>
+            <input
+              type="date"
+              aria-label="KTAS 수료일"
+              className={inputCls}
+              value={f.ktasCertifiedOn}
+              onChange={(e) => set('ktasCertifiedOn', e.target.value)}
+            />
+          </Field>
+        )}
         <Field label="연차 구분">
           <Select
             label="연차 구분"
@@ -332,6 +368,7 @@ function EditDialog({
     name: row.name,
     hireDate: row.hireDate ?? '',
     kTass: row.kTass,
+    ktasCertifiedOn: row.ktasCertifiedOn ?? '',
     seniorityTier: row.seniorityTier,
     unionMember: row.unionMember,
     rotation: row.rotation,
@@ -395,7 +432,7 @@ function EditDialog({
         <Field label="사번">
           <input className={`${inputCls} bg-panel`} value={row.employeeNo} readOnly />
         </Field>
-        <Field label="입사일" error={errors.hireDate}>
+        <Field label="응급실 근무 시작일" error={errors.hireDate}>
           <input
             type="date"
             className={inputCls}
@@ -435,7 +472,7 @@ function EditDialog({
       <div className="flex gap-4">
         {(
           [
-            ['kTass', 'K-tass'],
+            ['kTass', 'KTAS'],
             ['unionMember', '노조'],
             ['admin', '관리자 권한'],
           ] as const
@@ -451,6 +488,17 @@ function EditDialog({
           </label>
         ))}
       </div>
+      {f.kTass && (
+        <Field label="KTAS 수료일 (3년 유효)" error={errors.ktasCertifiedOn}>
+          <input
+            type="date"
+            aria-label="KTAS 수료일"
+            className={inputCls}
+            value={f.ktasCertifiedOn}
+            onChange={(e) => set('ktasCertifiedOn', e.target.value)}
+          />
+        </Field>
+      )}
       <TrainingFields
         t={t}
         set={setT}
@@ -627,12 +675,12 @@ export function StaffManager({
         <SubmissionPanel items={submissions} names={Object.fromEntries(rows.map((r) => [r.id, r.name]))} />
         <SubmissionHistory rows={history} names={Object.fromEntries(rows.map((r) => [r.id, r.name]))} />
         <div className="overflow-visible rounded-xl border border-line bg-surface text-[13px]">
-          <div className="grid grid-cols-[24px_1.2fr_1.2fr_.8fr_.8fr_1fr_1.4fr_.6fr] border-b border-line bg-panel py-2.5 pr-4 pl-1 text-xs text-ink-2">
+          <div className="grid grid-cols-[24px_1.2fr_1fr_.8fr_1.3fr_1fr_1.4fr_.6fr] border-b border-line bg-panel py-2.5 pr-4 pl-1 text-xs text-ink-2">
             <span />
             <span>성명</span>
             <span>사번</span>
-            <span>연차(년)</span>
-            <span>K-tass</span>
+            <span>응급실 연차</span>
+            <span>KTAS 유효기간</span>
             <span>역할</span>
             <span>트레이닝</span>
             <span />
@@ -654,7 +702,7 @@ export function StaffManager({
                   setOverId(null)
                 )}
                 onDragEnd={() => (setDragId(null), setOverId(null), setArmed(null))}
-                className={`group relative grid grid-cols-[24px_1.2fr_1.2fr_.8fr_.8fr_1fr_1.4fr_.6fr] items-center border-b border-line-soft py-[11px] pr-4 pl-1 ${
+                className={`group relative grid grid-cols-[24px_1.2fr_1fr_.8fr_1.3fr_1fr_1.4fr_.6fr] items-center border-b border-line-soft py-[11px] pr-4 pl-1 ${
                   dragId === r.id ? 'opacity-40' : ''
                 } ${overId === r.id && dragId !== r.id ? 'shadow-[inset_0_2px_0_var(--color-primary)]' : ''}`}
               >
@@ -690,9 +738,7 @@ export function StaffManager({
                 </span>
                 <span className="text-ink-2">{r.employeeNo}</span>
                 <span>{r.years ?? '—'}</span>
-                <span className={r.kTass ? 'font-semibold text-primary' : 'text-ink-4'}>
-                  {r.kTass ? 'K-tass' : '—'}
-                </span>
+                <KtasCell status={r.ktas} />
                 <span
                   className={
                     r.roleLabel === '수간호사 · 관리자'

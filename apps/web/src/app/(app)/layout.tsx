@@ -3,6 +3,7 @@ import { requireUser } from '@/server/auth/guards'
 import { getDb } from '@/server/db/client'
 import { ensureYearStart } from '@/server/balances/year-start'
 import { projectedLeaveBalance } from '@/server/requests/balance'
+import { pendingProposalCount } from '@/server/requests/proposals'
 import { pendingReceivedCount } from '@/server/swaps/service'
 import { requestToday } from '@/server/clock'
 
@@ -14,8 +15,15 @@ export default async function AppLayout({ children }: { children: React.ReactNod
   const leaveBalance = await projectedLeaveBalance(getDb(), session.user.id, today)
   // 2-8 R-SWAP-12: 받은 교환 요청 수 → 근무 조정 메뉴 배지
   const swapCount = await pendingReceivedCount(getDb(), session.user.id, today)
+  // 3-5: 받은 휴가 변경 요청 수 → 근무 신청 메뉴 배지
+  const proposalCount = await pendingProposalCount(getDb(), session.user.id)
   return (
-    <AppShell session={session} leaveBalance={leaveBalance} swapCount={swapCount}>
+    <AppShell
+      session={session}
+      leaveBalance={leaveBalance}
+      swapCount={swapCount}
+      proposalCount={proposalCount}
+    >
       {children}
     </AppShell>
   )

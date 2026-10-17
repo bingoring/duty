@@ -29,6 +29,7 @@ import type { YearMonth } from '../schedule/month'
 import {
   assembleCells,
   buildGenerationInput,
+  effectivePriorities,
   toSolverRequest,
   type GenerationInput,
   type Priorities,
@@ -83,7 +84,7 @@ async function ruleVersionNo(db: Db) {
 export function causeText(
   c: SolverCause,
   nameOf: (id: string) => string,
-  rules: { maxOff: number; nightMax: number },
+  rules: { maxOff: number; nightMax: number; maxWork: number },
 ) {
   const day = c.date ? `${formatMD(c.date)} (${weekdayKo(c.date)})` : ''
   const who = c.userId ? nameOf(c.userId) : ''
@@ -91,7 +92,7 @@ export function causeText(
     case 'STAFF':
       return day ? `${day} ${c.shift} 인원을 채울 수 없습니다` : '듀티 최소 인원을 채울 수 없습니다'
     case 'KTASS':
-      return `${day} ${c.shift} K-tass 보유자를 배정할 수 없습니다`
+      return `${day} ${c.shift} KTAS 보유자를 배정할 수 없습니다`
     case 'NIGHT_MAX':
       return `${who} · 월 나이트 상한(${rules.nightMax}개)과 충돌합니다`
     case 'NIGHT_CONSEC':
@@ -104,6 +105,25 @@ export function causeText(
       return `${who} · 승인된 휴가·교육 칸 때문에 인원을 채울 수 없습니다`
     case 'SLEEPING':
       return `${who} · 슬리핑오프 한도와 충돌합니다`
+    // 3-5: 필수로 올린 권고 규칙·예전에 이름 없던 하드 제약
+    case 'REST':
+      return `${who} · 근무 간 휴식 시간과 충돌합니다`
+    case 'PATTERN':
+      return `${who} · 금지 근무 패턴과 충돌합니다`
+    case 'WORK_CONSEC':
+      return `${who} · 최대 연속 근무(${rules.maxWork}일)와 충돌합니다`
+    case 'NIGHT_TARGET':
+      return `${who} · 월 나이트 목표(필수)와 충돌합니다`
+    case 'OFF_AFTER_N':
+      return `${who} · N 후 OFF(필수)와 충돌합니다`
+    case 'SHIFT_BALANCE':
+      return `${who} · D·E·N 고르게(필수)와 충돌합니다`
+    case 'WEEKEND_PAIR':
+      return `${who} · 월 1회 주말 이틀 통 OFF(필수)와 충돌합니다`
+    case 'JUNIOR_ONLY':
+      return `${day} ${c.shift} 저연차끼리만 서게 됩니다 (동일듀티 저연차끼리 배정 방지 · 필수)`
+    case 'REPEAT_PAIR':
+      return `${who} · 특정 근무자 반복 겹침(필수)과 충돌합니다`
   }
 }
 
@@ -133,6 +153,8 @@ async function generateOnce(
   opts: { priorities: Priorities; seed?: number; today: string },
 ): Promise<GenerateResult> {
   const rules = await latestRuleSet(db)
+  // 3-5: 필수로 둔 규칙은 생성 화면에서 끌 수 없다(화면을 거치지 않은 요청도 같게)
+  opts = { ...opts, priorities: effectivePriorities(opts.priorities, rules) }
   const plan = (await ensureRequestPlan(db, ym, opts.today, rules)) ?? (await findPlan(db, ym))
   if (!plan) return fail('blocked', '이 달은 아직 신청 기간이 아닙니다.')
   if (plan.status === 'REQUESTING')
@@ -175,6 +197,7 @@ async function generateOnce(
         causeText(c, nameOf, {
           maxOff: rules.params.maxConsecutiveOff,
           nightMax: rules.params.maxNightPerMonth,
+          maxWork: rules.params.maxConsecutiveWork,
         }),
       )
       .filter((t) => !seen.has(t) && seen.add(t))

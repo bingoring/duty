@@ -3,10 +3,13 @@
 import {
   RULE_PARAM_LIMITS,
   RULE_TOGGLE_DEFS,
+  SEVERITY_KEYS,
+  SEVERITY_LABEL,
   parsePatternInput,
   type RuleParams,
   type RuleSet,
   type RuleToggles,
+  type SeverityKey,
 } from '@duty/domain'
 import { useState, useTransition } from 'react'
 import { saveRulesAction } from '@/server/admin/actions'
@@ -20,6 +23,35 @@ const KIND_CLS = {
   운영: 'bg-line-soft text-ink-2',
 }
 const stepBtn = 'h-[34px] w-[30px] cursor-pointer rounded-lg border border-line bg-surface text-sm'
+
+// 3-5: 규칙마다 필수/권고를 바꾼다(관리자 책임). 누르면 바뀌고, 같은 규칙의 다른 행도 함께 바뀐다
+function SeverityButton({
+  label,
+  value,
+  changed,
+  onToggle,
+}: {
+  label: string
+  value: 'hard' | 'soft'
+  changed: boolean
+  onToggle: () => void
+}) {
+  const now = SEVERITY_LABEL[value]
+  const next = SEVERITY_LABEL[value === 'hard' ? 'soft' : 'hard']
+  return (
+    <button
+      type="button"
+      aria-label={`${label} ${now} — 눌러서 ${next}로`}
+      title={`눌러서 ${next}로 바꾸기`}
+      className={`flex-none cursor-pointer rounded-full px-[7px] py-0.5 text-[10.5px] font-bold ${KIND_CLS[now]} ${
+        changed ? 'ring-2 ring-admin' : ''
+      }`}
+      onClick={onToggle}
+    >
+      {now} ⇄
+    </button>
+  )
+}
 
 function NumberInput({
   value,
@@ -76,6 +108,20 @@ export function RulesForm({ editor }: { editor: RuleEditor }) {
     setRules({ ...rules, params: { ...rules.params, [k]: v } })
   const setToggle = (k: keyof RuleToggles, v: boolean) =>
     setRules({ ...rules, toggles: { ...rules.toggles, [k]: v } })
+  const flipSeverity = (k: SeverityKey) =>
+    setRules({
+      ...rules,
+      severity: { ...rules.severity, [k]: rules.severity[k] === 'hard' ? 'soft' : 'hard' },
+    })
+  const severityChanged = (k: SeverityKey) => rules.severity[k] !== base.severity[k]
+  const severityButton = (k: SeverityKey, label: string) => (
+    <SeverityButton
+      label={label}
+      value={rules.severity[k]}
+      changed={severityChanged(k)}
+      onToggle={() => flipSeverity(k)}
+    />
+  )
   const paramChanged = (k: keyof RuleParams) => rules.params[k] !== base.params[k]
   const patternsChanged =
     [...rules.forbiddenPatterns].sort().join() !== [...base.forbiddenPatterns].sort().join()
@@ -83,7 +129,8 @@ export function RulesForm({ editor }: { editor: RuleEditor }) {
     (Object.keys(rules.params) as (keyof RuleParams)[]).filter(paramChanged).length +
     (Object.keys(rules.toggles) as (keyof RuleToggles)[]).filter((k) => rules.toggles[k] !== base.toggles[k])
       .length +
-    (patternsChanged ? 1 : 0)
+    (patternsChanged ? 1 : 0) +
+    SEVERITY_KEYS.filter(severityChanged).length
 
   const save = () =>
     start(async () => {
@@ -128,11 +175,15 @@ export function RulesForm({ editor }: { editor: RuleEditor }) {
                     <div className="flex min-w-0 flex-col gap-0.5">
                       <div className="flex items-center gap-2">
                         <span className="font-semibold">{l.label}</span>
-                        <span
-                          className={`flex-none rounded-full px-[7px] py-0.5 text-[10.5px] font-bold ${KIND_CLS[l.kind]}`}
-                        >
-                          {l.kind}
-                        </span>
+                        {l.severityKey ? (
+                          severityButton(l.severityKey, l.label)
+                        ) : (
+                          <span
+                            className={`flex-none rounded-full px-[7px] py-0.5 text-[10.5px] font-bold ${KIND_CLS['운영']}`}
+                          >
+                            {l.kind === '운영' ? '운영' : '설정'}
+                          </span>
+                        )}
                         {changed && (
                           <span className="text-[11px] font-semibold text-admin">
                             {range
@@ -180,23 +231,28 @@ export function RulesForm({ editor }: { editor: RuleEditor }) {
         <div className="flex flex-col gap-2.5 rounded-xl border border-line bg-surface p-4 text-[13px]">
           <div className="font-bold">켜고 끄는 규칙</div>
           {RULE_TOGGLE_DEFS.map((t) => (
-            <label key={t.key} className="flex items-start gap-2.5">
-              <input
-                type="checkbox"
-                className="mt-[3px] accent-primary"
-                checked={rules.toggles[t.key]}
-                onChange={(e) => setToggle(t.key, e.target.checked)}
-              />
-              <span>
-                <b>{t.label}</b>
-                <br />
-                <span className="text-xs text-ink-2">{t.desc}</span>
-              </span>
-            </label>
+            <div key={t.key} className="flex items-start gap-2.5">
+              <label className="flex flex-1 items-start gap-2.5">
+                <input
+                  type="checkbox"
+                  className="mt-[3px] accent-primary"
+                  checked={rules.toggles[t.key]}
+                  onChange={(e) => setToggle(t.key, e.target.checked)}
+                />
+                <span>
+                  <b>{t.label}</b>
+                  <br />
+                  <span className="text-xs text-ink-2">{t.desc}</span>
+                </span>
+              </label>
+              {t.severityKey && severityButton(t.severityKey, t.label)}
+            </div>
           ))}
         </div>
         <div className="flex flex-col gap-2.5 rounded-xl border border-line bg-surface p-4 text-[13px]">
-          <div className="font-bold">금지 근무 패턴</div>
+          <div className="flex items-center justify-between font-bold">
+            금지 근무 패턴 {severityButton('PATTERN', '금지 근무 패턴')}
+          </div>
           <div className="flex flex-wrap gap-1.5">
             {rules.forbiddenPatterns.map((p) => (
               <button

@@ -1,3 +1,5 @@
+from datetime import date, timedelta
+
 from solver.model import solve
 
 from .checks import hard_violations
@@ -25,7 +27,8 @@ def test_시드가_다르면_다른_안():
 
 
 def test_고정_칸은_그대로_두고_신청은_들어준다():
-    req = request()
+    # 3-5: 연속 근무가 필수가 되어 3초로는 신청까지 맞춘 안을 못 찾을 때가 있다(운영은 20초)
+    req = request(time_limit=8)
     n1 = req["nurses"][0]
     n1["fixed"] = [{"date": "2026-11-10", "code": "AL"}, {"date": "2026-11-11", "code": "LEAVE"}]
     n1["requests"] = [
@@ -122,7 +125,8 @@ def test_다음_달_1일이_확정_근무면_월말_토요일만으로는_주말
 
 def test_연속_근무와_순환_역방향이_실제_근무표_수준이다():
     # R-1: 실제 1~9월 근무표 — 연속 근무 최장 5일, OFF를 건너뛴 역방향 39% (DECISIONS 2026-10-08)
-    req = request(seed=1, time_limit=8)
+    # 3-5: 8초에서는 역방향 비율이 0.45 언저리라 머신 속도에 따라 넘나든다(main도 0.49). 16초면 0.3~0.4
+    req = request(seed=1, time_limit=16)
     res = solve(req)
     fwd = {("D", "E"), ("E", "N"), ("N", "D")}
     by: dict[str, dict[str, str]] = {}
@@ -200,3 +204,69 @@ def test_인원이_모자라면_불가능과_원인을_돌려준다():
     assert res["status"] == "INFEASIBLE"
     assert res["causes"]
     assert any(c["group"] in ("STAFF", "KTASS", "FIXED") for c in res["causes"])
+
+
+def _runs(res: dict, nid: str, codes: set[str]) -> int:
+    days = sorted((c["date"], c["code"]) for c in res["cells"] if c["userId"] == nid)
+    best = cur = 0
+    for _, code in days:
+        cur = cur + 1 if code in codes else 0
+        best = max(best, cur)
+    return best
+
+
+def test_3_5_최대_연속_근무가_필수면_5일을_넘지_않는다():
+    req = request(seed=3, time_limit=6)
+    res = solve(req)
+    assert res["status"] in ("OPTIMAL", "FEASIBLE")
+    assert all(_runs(res, n["id"], {"D", "E", "N", "S"}) <= 5 for n in req["nurses"])
+    assert res["objective"]["terms"]["workConsec"] == 0
+
+
+def test_3_5_필수로_고정한_연속_근무는_불가능_원인으로_나온다():
+    req = request(time_limit=5)
+    days = [f"2026-11-{d:02d}" for d in range(9, 15)]
+    req["nurses"][0]["fixed"] = [{"date": d, "code": "D"} for d in days]
+    res = solve(req)
+    assert res["status"] == "INFEASIBLE"
+    assert any(c["group"] in ("WORK_CONSEC", "FIXED") for c in res["causes"])
+
+
+def test_3_5_인원을_권고로_낮추면_모자란_달도_풀리고_벌점으로_남는다():
+    req = request(time_limit=5)
+    req["rules"]["hard"] = [k for k in req["rules"]["hard"] if k not in ("STAFF", "KTAS")]
+    for n in req["nurses"][:7]:
+        n["fixed"] = [{"date": d, "code": "LEAVE"} for d in ("2026-11-17", "2026-11-18")]
+    res = solve(req)
+    assert res["status"] in ("OPTIMAL", "FEASIBLE")
+    assert res["objective"]["terms"]["staffShort"] + res["objective"]["terms"]["ktasShort"] > 0
+
+
+def test_3_5_권고_규칙을_필수로_올리면_지킨다():
+    req = request(seed=5, time_limit=10)
+    req["rules"]["hard"] += ["WEEKEND_PAIR", "OFF_AFTER_N", "JUNIOR_ONLY"]
+    res = solve(req)
+    assert res["status"] in ("OPTIMAL", "FEASIBLE")
+    terms = res["objective"]["terms"]
+    assert terms["weekendPair"] == terms["offAfterNight"] == terms["juniorOnly"] == 0
+    # 필수 항은 벌점 항에 들어가지 않는다 — 실제 칸으로도 확인: 모든 사람이 주말 이틀 통 OFF 한 번 이상
+    rest = {"OFF", "AL", "LEAVE"}
+    cell = {(c["userId"], c["date"]): c["code"] for c in res["cells"]}
+    sats = [d for d in req["days"] if date.fromisoformat(d).weekday() == 5]
+    for n in req["nurses"]:
+        assert any(
+            cell.get((n["id"], s)) in rest
+            and cell.get((n["id"], (date.fromisoformat(s) + timedelta(days=1)).isoformat()), "OFF") in rest
+            for s in sats
+        )
+
+
+def test_3_5_KTAS_유효기간이_지난_사람은_KTAS_인원으로_세지_않는다():
+    req = request(time_limit=5)
+    for n in req["nurses"]:
+        n["kTassUntil"] = "2026-10-31" if n["kTass"] else None
+    for h in req["heads"]:
+        h["kTassUntil"] = "2026-10-31" if h["kTass"] else None
+    res = solve(req)
+    assert res["status"] == "INFEASIBLE"
+    assert any(c["group"] == "KTASS" for c in res["causes"])

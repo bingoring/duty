@@ -126,6 +126,8 @@ test('첫 로그인: 동의(거부하면 로그아웃) → 비밀번호 → 초�
   await page.getByRole('button', { name: '저장', exact: true }).click()
   await expect(page.getByRole('status')).toContainText('비밀번호를 바꿨습니다')
   await page.getByRole('button', { name: '로그아웃' }).click()
+  // 로그아웃이 끝나기 전에 /login으로 가면 아직 살아 있는 세션 때문에 근무표로 돌아간다(느린 CI에서 경쟁)
+  await expect(page).toHaveURL(/\/login/)
   await login(page, E2E_TEMP_USER.employeeNo, 'my-new-pass-2')
   await expect(page).toHaveURL('/')
 })

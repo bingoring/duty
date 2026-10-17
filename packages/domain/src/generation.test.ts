@@ -137,7 +137,7 @@ describe('generationChecks (1i 검사 결과 리스트)', () => {
     expect(items.slice(0, 2)).toEqual([
       {
         ok: true,
-        title: '모든 듀티 인원 2명 이상 · K-tass 1명 포함',
+        title: '모든 듀티 인원 2명 이상 · KTAS 1명 포함',
         detail: '11/1~30 D·E·N 90개 듀티 전부 충족 · 수간호사 보충 1개',
       },
       { ok: false, title: '신청 3건 중 2건 반영', detail: '불충족 1건은 아래 목록' },

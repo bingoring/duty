@@ -1,5 +1,7 @@
 'use client'
 
+import type { ProposalDTO } from '@/server/requests/proposals'
+import { ProposalPanel } from './ProposalPanel'
 import { formatMD } from '@duty/domain'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
@@ -267,12 +269,14 @@ export function RequestsScreen({
   today,
   prev,
   next,
+  proposals,
 }: {
   view: RequestsView
   viewerId: string
   today: string
   prev: string
   next: string
+  proposals: { pending: ProposalDTO[]; recent: ProposalDTO[] }
 }) {
   const router = useRouter()
   const hydrated = useHydrated()
@@ -385,6 +389,8 @@ export function RequestsScreen({
         </div>
 
         {admin && <Legend admin />}
+
+        <ProposalPanel admin={admin} pending={proposals.pending} recent={proposals.recent} />
 
         {view.cards && (
           <div className="grid grid-cols-4 gap-2" aria-label="내 신청 요약">
@@ -562,6 +568,11 @@ export function RequestsScreen({
               sameDay={sameDay}
               mode={view.editable === 'all' ? 'all' : 'leave'}
               isAdmin={admin}
+              proposal={
+                admin &&
+                sel.userId !== viewerId &&
+                ((!selCell.draft && !!selCell.options?.includes('OFF')) || selCell.scheduled === 'off')
+              }
               onClose={() => setSel(null)}
             />
           </div>

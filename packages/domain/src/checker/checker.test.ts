@@ -132,7 +132,7 @@ describe('H-OFF-CONSEC (기본 15일, Q2)', () => {
   })
 })
 
-describe('인원·K-tass·수간호사 보충', () => {
+describe('인원·KTAS·수간호사 보충', () => {
   const day = (
     cells: GridCell[],
     nurses = [nurse('a'), nurse('b', { kTass: false }), nurse('h', { rotation: 'fixed_weekday' as const })],
@@ -140,10 +140,21 @@ describe('인원·K-tass·수간호사 보충', () => {
   const onD = (ids: string[]) => ids.flatMap((id) => row(id, OCT1, 'D'))
   const dOnly = (vs: Violation[]) => vs.filter((v) => v.dates[0] === OCT1 && v.shift === 'D')
 
-  it('최소 인원 2명, K-tass 1명', () => {
+  it('최소 인원 2명, KTAS 1명', () => {
     expect(dOnly(only(day(onD(['a', 'b'])), 'H-STAFF'))).toEqual([])
     expect(dOnly(only(day(onD(['b'])), 'H-STAFF'))).toMatchObject([{ data: { count: 1, min: 2 } }])
     expect(dOnly(only(day(onD(['b'])), 'H-KTASS'))).toMatchObject([{ data: { count: 0, min: 1 } }])
+  })
+
+  it('3-5: KTAS 유효기간이 지난 날에는 KTAS로 세지 않는다', () => {
+    const nurses = [
+      nurse('a', { kTassUntil: '2026-09-30' }),
+      nurse('b', { kTass: false }),
+      nurse('h', { rotation: 'fixed_weekday' as const, kTass: false }),
+    ]
+    expect(dOnly(only(day(onD(['a', 'b']), nurses), 'H-KTASS'))).toMatchObject([{ data: { count: 0 } }])
+    const valid = [nurse('a', { kTassUntil: OCT1 }), ...nurses.slice(1)]
+    expect(dOnly(only(day(onD(['a', 'b']), valid), 'H-KTASS'))).toEqual([])
   })
 
   it('교대 근무자만으로 모자라면 수간호사 D로 채우고 소프트 경고 (Q1)', () => {
@@ -227,15 +238,34 @@ describe('신청', () => {
   })
 })
 
-describe('S-WORK-CONSEC (R-1, DECISIONS 2026-10-08)', () => {
-  it('연속 근무가 상한(기본 5일)을 넘으면 경고, 쉬는 칸이 끊는다', () => {
+describe('S-WORK-CONSEC (R-1, DECISIONS 2026-10-08 · 3-5 필수)', () => {
+  it('연속 근무가 상한(기본 5일)을 넘으면 필수 위반, 쉬는 칸이 끊는다', () => {
     expect(only(solo('D D E E N N O'), 'S-WORK-CONSEC')).toMatchObject([
-      { severity: 'soft', data: { count: 6, max: 5 } },
+      { severity: 'hard', data: { count: 6, max: 5 } },
     ])
     expect(only(solo('D D E E N O N'), 'S-WORK-CONSEC')).toEqual([])
     expect(only(solo('D D E E N N O', { rules: rules({ maxConsecutiveWork: 6 }) }), 'S-WORK-CONSEC')).toEqual(
       [],
     )
+  })
+})
+
+describe('규칙별 필수/권고 (3-5)', () => {
+  it('규칙 버전의 심각도를 따른다 — 권고로 낮춘 인원 부족은 경고, 필수로 올린 주말 통 OFF 누락은 위반', () => {
+    const r = rules({}, {}, { WORK_CONSEC: 'soft', STAFF: 'soft', WEEKEND_PAIR: 'hard' })
+    expect(only(solo('D D E E N N O', { rules: r }), 'S-WORK-CONSEC')).toMatchObject([{ severity: 'soft' }])
+    const res = checkSchedule(solo('D D E E N N O', { rules: r }))
+    expect(res.hardViolations.some((v) => v.ruleId === 'H-STAFF')).toBe(false)
+    expect(res.softWarnings.some((v) => v.ruleId === 'H-STAFF')).toBe(true)
+  })
+  it('심각도 키가 없는 규칙(칸·특수 신청·잔여)은 접두사대로', () => {
+    const r = rules({}, {}, Object.fromEntries(Object.keys(rules().severity).map((k) => [k, 'soft'])))
+    const res = checkSchedule(solo('D D E E N N O', { rules: r }))
+    expect(
+      res.hardViolations.every((v) =>
+        ['H-CELL', 'H-SPECIAL-REQ', 'H-EDU-UNION', 'H-BALANCE'].includes(v.ruleId),
+      ),
+    ).toBe(true)
   })
 })
 

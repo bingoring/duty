@@ -1,4 +1,10 @@
-import { FAMILY_LEAVE_DAYS, OFFICIAL_LEAVE_REASONS, SHIFT_TIMES, type RuleSet } from '@duty/domain'
+import {
+  FAMILY_LEAVE_DAYS,
+  OFFICIAL_LEAVE_REASONS,
+  SHIFT_TIMES,
+  type RuleSet,
+  type SeverityKey,
+} from '@duty/domain'
 import { FAMILY_REASON_LABEL } from '../requests/dto'
 
 // Build Spec 2-10 business-rules §2·§3 — S7 규칙 안내. 수치는 규칙 버전에서 렌더링한다(하드코딩 금지)
@@ -11,14 +17,17 @@ export type RulesGuide = {
   sections: GuideSection[]
 }
 
-const SHIFT_DESC = { D: 'Day', E: 'Evening', N: '휴게 1시간 포함', S: 'K-tass 교육' } as const
+const SHIFT_DESC = { D: 'Day', E: 'Evening', N: '휴게 1시간 포함', S: 'KTAS 교육' } as const
 // 2-4 패턴 표기: OFF → off
 const pattern = (p: string) => p.replace(/OFF/g, 'off')
 
 export function buildRulesGuide(rules: RuleSet, version: number | null): RulesGuide {
   const p = rules.params
   const t = rules.toggles
-  const toggled = (on: boolean): GuideTag => (on ? 'rec' : 'off')
+  // 3-5: 필수 = 자동 적용, 권고 = 권고 (규칙 설정의 필수/권고를 따른다)
+  const sev = (...keys: SeverityKey[]): GuideTag =>
+    keys.every((k) => rules.severity[k] === 'hard') ? 'auto' : 'rec'
+  const toggled = (on: boolean, key: SeverityKey): GuideTag => (on ? sev(key) : 'off')
   const shifts = (['D', 'E', 'N', 'S'] as const).map((code) => {
     const s = SHIFT_TIMES[code]
     return { code, time: `${s.start} – ${s.endsNextDay ? '익일 ' : ''}${s.end}`, desc: SHIFT_DESC[code] }
@@ -36,9 +45,9 @@ export function buildRulesGuide(rules: RuleSet, version: number | null): RulesGu
           text: '한 달의 기준 OFF는 그 달의 빨간 날(토·일·공휴일) 수입니다. 그보다 덜 쉬거나 더 쉬면 다음 달로 이월됩니다.',
           tag: 'auto',
         },
-        { text: `연속 근무는 ${p.maxConsecutiveWork}일 이하로 편성합니다.`, tag: 'rec' },
+        { text: `연속 근무는 ${p.maxConsecutiveWork}일 이하로 편성합니다.`, tag: sev('WORK_CONSEC') },
         {
-          text: `K-tass 교육은 S 근무(${SHIFT_TIMES.S.start}–${SHIFT_TIMES.S.end})로 배정합니다.`,
+          text: `KTAS 교육은 S 근무(${SHIFT_TIMES.S.start}–${SHIFT_TIMES.S.end})로 배정합니다.`,
           tag: 'info',
         },
       ],
@@ -47,15 +56,18 @@ export function buildRulesGuide(rules: RuleSet, version: number | null): RulesGu
       id: 'rest',
       title: '휴식 · 금지 패턴',
       items: [
-        { text: `서로 다른 근무 사이에는 최소 ${p.minRestHours}시간의 휴식을 보장합니다.`, tag: 'auto' },
-        { text: `${rules.forbiddenPatterns.map(pattern).join(', ')} 패턴은 편성하지 않습니다.`, tag: 'auto' },
+        { text: `서로 다른 근무 사이에는 최소 ${p.minRestHours}시간의 휴식을 보장합니다.`, tag: sev('REST') },
+        {
+          text: `${rules.forbiddenPatterns.map(pattern).join(', ')} 패턴은 편성하지 않습니다.`,
+          tag: sev('PATTERN'),
+        },
         {
           text: `연속 OFF(연차 포함)는 최대 ${p.maxConsecutiveOff}일까지 배정합니다. 경조·병가·공가는 세지 않되 연속은 이어집니다.`,
-          tag: 'auto',
+          tag: sev('OFF_CONSEC'),
         },
         {
           text: `N 근무 후에는 가능한 한 OFF ${p.offAfterNight}개를 줍니다. 불가피하면 N-off-E를 허용합니다.`,
-          tag: 'rec',
+          tag: sev('OFF_AFTER_N'),
         },
       ],
     },
@@ -100,8 +112,8 @@ export function buildRulesGuide(rules: RuleSet, version: number | null): RulesGu
           tag: 'auto',
         },
         {
-          text: `누적 N ${p.sleepingOffPerN}개마다 슬리핑오프 1일을 줍니다. 남은 N은 연말 정산 없이 이월됩니다.`,
-          tag: 'auto',
+          text: `누적 N ${p.sleepingOffPerN}개마다 슬리핑오프 1일을 줍니다. 남은 N은 연말 정산 없이 이월됩니다(예: 이번 달 N ${p.sleepingOffPerN + 1}개 → 슬리핑오프 1일, 남은 1개는 다음 달 N과 합산).`,
+          tag: sev('SLEEPING'),
         },
         {
           text: `근무 신청은 매월 ${p.requestDeadlineDay}일까지, 협의 수정은 ${p.negotiationStartDay}–${p.negotiationEndDay}일에 합니다.`,
@@ -109,7 +121,7 @@ export function buildRulesGuide(rules: RuleSet, version: number | null): RulesGu
         },
         {
           text: `보수교육 연 ${p.eduContPerYear}회, 노조교육 연 ${p.eduUnionPerYear}회(평일, 노조원)는 OFF로 배정합니다.`,
-          tag: 'auto',
+          tag: sev('EDU_LIMIT'),
         },
       ],
     },
@@ -119,9 +131,9 @@ export function buildRulesGuide(rules: RuleSet, version: number | null): RulesGu
       items: [
         {
           text: `나이트는 월 ${p.targetNightPerMonth}개 이하를 목표로, 최대 ${p.maxNightPerMonth}개로 제한합니다.`,
-          tag: 'auto',
+          tag: sev('NIGHT_MAX'),
         },
-        { text: `연속 나이트는 ${p.maxConsecutiveNight}일 이내로 제한합니다.`, tag: 'auto' },
+        { text: `연속 나이트는 ${p.maxConsecutiveNight}일 이내로 제한합니다.`, tag: sev('NIGHT_CONSEC') },
         t.nightDedicated
           ? {
               text: `야간 전담은 월 ${p.nightDedicatedMaxPerMonth}일(31일 달 ${p.nightDedicatedMaxPerMonth31}일) 이내, ${p.nightDedicatedMinMonths}~${p.nightDedicatedMaxMonths}개월 연속으로 운영합니다.`,
@@ -135,25 +147,28 @@ export function buildRulesGuide(rules: RuleSet, version: number | null): RulesGu
       title: '응급실 지침',
       items: [
         {
-          text: `듀티(D·E·N)마다 최소 ${p.minStaffPerShift}명, K-tass 권한자 ${p.minKTass}명 이상을 배정합니다.`,
-          tag: 'auto',
+          text: `듀티(D·E·N)마다 최소 ${p.minStaffPerShift}명, KTAS 권한자 ${p.minKTass}명 이상을 배정합니다.`,
+          tag: sev('STAFF', 'KTAS'),
         },
-        { text: '저연차만으로 근무를 짜지 않도록 합니다.', tag: toggled(t.avoidJuniorOnly) },
+        {
+          text: '같은 듀티에 저연차끼리만 서지 않도록 합니다.',
+          tag: toggled(t.avoidJuniorOnly, 'JUNIOR_ONLY'),
+        },
         {
           text: '한 달에 한 번 주말 이틀(토·일)을 통으로 OFF 배정합니다. 불가능하면 다음 달 최우선으로 배정합니다.',
-          tag: toggled(t.weekendPairOffMonthly),
+          tag: toggled(t.weekendPairOffMonthly, 'WEEKEND_PAIR'),
         },
         {
           text: `신규 간호사는 ${p.trainingMonths}개월 트레이닝 동안 프리셉터와 같은 근무를 하고, 처음 ${p.newbieTripleWeeks}주(경력자 ${p.experiencedTripleWeeks}주)는 3인으로 배정합니다.`,
-          tag: 'auto',
+          tag: sev('TRAINING'),
         },
         {
           text: '특정 근무자와 계속 겹치지 않도록 합니다(트레이닝 기간 제외).',
-          tag: toggled(t.minimizeRepeatPairs),
+          tag: toggled(t.minimizeRepeatPairs, 'REPEAT_PAIR'),
         },
         {
           text: `한 사람의 D·E·N 개수 차이가 ${p.shiftBalanceTolerance}개를 넘지 않게 합니다(최근 ${p.shiftBalanceWindowMonths}개월).`,
-          tag: toggled(t.balanceShiftTypes),
+          tag: toggled(t.balanceShiftTypes, 'SHIFT_BALANCE'),
         },
         {
           text: '근무표에서 신청(휴가 포함)이 반영된 칸은 빨간 실선, 교환한 칸은 빨간 점선, 관리자가 수정한 칸은 파란 실선으로 표시합니다. 칸에 마우스를 올리면 출처를 볼 수 있습니다.',

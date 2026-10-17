@@ -55,6 +55,10 @@ class NextHeadItem(BaseModel):
     offKind: OffKind | None = None
 
 
+class KTassUntil(RootModel[str]):
+    root: Annotated[str, Field(pattern='^\\d{4}-\\d{2}-\\d{2}$')]
+
+
 class WorkDay(RootModel[str]):
     root: Annotated[str, Field(pattern='^\\d{4}-\\d{2}-\\d{2}$')]
 
@@ -90,6 +94,7 @@ class ShiftCountsBefore(BaseModel):
 class Nurse(BaseModel):
     id: str
     kTass: bool
+    kTassUntil: KTassUntil | None = None
     junior: bool
     workDays: list[WorkDay]
     fixed: list[FixedItem]
@@ -115,6 +120,7 @@ class Cell(BaseModel):
 class Head(BaseModel):
     id: str
     kTass: bool
+    kTassUntil: KTassUntil | None = None
     junior: bool
     cells: list[Cell]
 
@@ -126,6 +132,26 @@ class Training(BaseModel):
     endDate: Annotated[str, Field(pattern='^\\d{4}-\\d{2}-\\d{2}$')]
     tripleUntil: Annotated[str, Field(pattern='^\\d{4}-\\d{2}-\\d{2}$')]
     tripleNightsLeft: Annotated[int, Field(ge=0, le=9007199254740991)]
+
+
+class HardEnum(StrEnum):
+    REST = 'REST'
+    PATTERN = 'PATTERN'
+    OFF_CONSEC = 'OFF_CONSEC'
+    WORK_CONSEC = 'WORK_CONSEC'
+    NIGHT_MAX = 'NIGHT_MAX'
+    NIGHT_TARGET = 'NIGHT_TARGET'
+    NIGHT_CONSEC = 'NIGHT_CONSEC'
+    SLEEPING = 'SLEEPING'
+    OFF_AFTER_N = 'OFF_AFTER_N'
+    STAFF = 'STAFF'
+    KTAS = 'KTAS'
+    TRAINING = 'TRAINING'
+    SHIFT_BALANCE = 'SHIFT_BALANCE'
+    WEEKEND_PAIR = 'WEEKEND_PAIR'
+    JUNIOR_ONLY = 'JUNIOR_ONLY'
+    REPEAT_PAIR = 'REPEAT_PAIR'
+    EDU_LIMIT = 'EDU_LIMIT'
 
 
 class Rules(BaseModel):
@@ -140,6 +166,7 @@ class Rules(BaseModel):
     forbiddenPatterns: list[str]
     shiftBalanceTolerance: Annotated[int, Field(ge=0, le=9007199254740991)]
     shiftBalanceWindowMonths: Annotated[int, Field(gt=0, le=9007199254740991)]
+    hard: list[HardEnum]
 
 
 class Priorities(BaseModel):
@@ -221,6 +248,15 @@ class Objective(BaseModel):
             'juniorOnly',
             'repeatPair',
             'tieBreak',
+            'staffShort',
+            'ktasShort',
+            'training',
+            'rest',
+            'pattern',
+            'nightMax',
+            'nightConsec',
+            'offConsec',
+            'sleepingOver',
         ],
         TermsAdditionalProperty,
     ]
@@ -248,6 +284,15 @@ class Group(StrEnum):
     TRAINING = 'TRAINING'
     FIXED = 'FIXED'
     SLEEPING = 'SLEEPING'
+    REST = 'REST'
+    PATTERN = 'PATTERN'
+    WORK_CONSEC = 'WORK_CONSEC'
+    NIGHT_TARGET = 'NIGHT_TARGET'
+    OFF_AFTER_N = 'OFF_AFTER_N'
+    SHIFT_BALANCE = 'SHIFT_BALANCE'
+    WEEKEND_PAIR = 'WEEKEND_PAIR'
+    JUNIOR_ONLY = 'JUNIOR_ONLY'
+    REPEAT_PAIR = 'REPEAT_PAIR'
 
 
 class Shift(StrEnum):

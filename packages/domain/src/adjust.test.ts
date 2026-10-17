@@ -12,7 +12,7 @@ import {
 import { checkSchedule } from './checker'
 import { input, nurse, row, rules } from './test-utils'
 
-// 11월 1~3일만 보는 작은 병동: 인원 최소 1명, K-tass 1명
+// 11월 1~3일만 보는 작은 병동: 인원 최소 1명, KTAS 1명
 const R = rules({ minStaffPerShift: 1, minKTass: 1 })
 const nurses = [nurse('a'), nurse('b'), nurse('c', { kTass: false }), nurse('d')]
 function base() {
@@ -112,22 +112,22 @@ describe('swapEdits (R-ADJ-9)', () => {
 })
 
 describe('replacementCandidates (R-ADJ-10)', () => {
-  it('그날 쉬는 교대 근무자, K-tass가 모자라면 K-tass 먼저, 새 필수 위반을 함께 돌려준다', () => {
+  it('그날 쉬는 교대 근무자, KTAS가 모자라면 KTAS 먼저, 새 필수 위반을 함께 돌려준다', () => {
     const inp = base()
     // a가 11/2 E에서 빠진 상태
     const trial = { ...inp, cells: applyEdits(inp.cells, [edit('a', '2026-11-02', 'OFF', 'E')]) }
     const out = replacementCandidates(trial, '2026-11-02', 'E')
-    // 11/2에 쉬는 사람: a(방금 뺌), c. K-tass가 모자라므로 K-tass 보유자 a 먼저
+    // 11/2에 쉬는 사람: a(방금 뺌), c. KTAS가 모자라므로 KTAS 보유자 a 먼저
     expect(out.map((c) => c.userId)).toEqual(['a', 'c'])
     expect(out[0]!.kTass).toBe(true)
     // a를 되돌리면 새 위반이 없다
     expect(out[0]!.newHard).toEqual([])
-    // c를 E로 넣으면: K-tass 부족은 이미 있던 위반(새 위반 아님), 대신 11/1 N → 11/2 E(N-E)·11/2 E → 11/3 D(E-D)가 새로 생긴다
+    // c를 E로 넣으면: KTAS 부족은 이미 있던 위반(새 위반 아님), 대신 11/1 N → 11/2 E(N-E)·11/2 E → 11/3 D(E-D)가 새로 생긴다
     expect(out[1]!.edit.after.code).toBe('E')
     expect([...new Set(out[1]!.newHard.map((v) => v.ruleId))].sort()).toEqual(['H-PATTERN', 'H-REST'])
   })
 
-  it('K-tass 부족이 아니면 덜 일한 사람(이달 누적 OFF가 큰 사람) 먼저, 같으면 근무일이 적은 사람 (사용자 결정)', () => {
+  it('KTAS 부족이 아니면 덜 일한 사람(이달 누적 OFF가 큰 사람) 먼저, 같으면 근무일이 적은 사람 (사용자 결정)', () => {
     // 11/1~4. x·y·z 모두 11/4에 쉼. y는 누적 이월 +2(더 쉼) → 먼저, x·z는 같고 z가 근무일이 적다
     const inp = input({
       year: 2026,

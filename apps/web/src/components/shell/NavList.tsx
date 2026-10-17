@@ -4,7 +4,9 @@ import Link from 'next/link'
 import { usePathname } from 'next/navigation'
 import { ADMIN_NAV, MAIN_NAV, SETTINGS_NAV, isActive, type NavItemDef } from './nav-items'
 
-function NavItem({ item, pathname, badge = 0 }: { item: NavItemDef; pathname: string; badge?: number }) {
+type Badge = { count: number; label: string }
+
+function NavItem({ item, pathname, badge }: { item: NavItemDef; pathname: string; badge?: Badge }) {
   const active = isActive(pathname, item.href)
   return (
     <Link
@@ -16,25 +18,25 @@ function NavItem({ item, pathname, badge = 0 }: { item: NavItemDef; pathname: st
     >
       {item.label}
       {item.pending && <span className="text-[10px] font-normal text-ink-3">준비 중</span>}
-      {badge > 0 && (
+      {badge && badge.count > 0 && (
         <span
-          aria-label={`받은 교환 요청 ${badge}건`}
+          aria-label={`${badge.label} ${badge.count}건`}
           className="rounded-full bg-danger px-1.5 text-[10px] font-bold text-white"
         >
-          {badge}
+          {badge.count}
         </span>
       )}
     </Link>
   )
 }
 
-// badges: 2-8 받은 교환 요청 수 등 메뉴별 배지 (href → 수)
-export function NavList({ isAdmin, badges = {} }: { isAdmin: boolean; badges?: Record<string, number> }) {
+// badges: 2-8 받은 교환 요청 수, 3-5 받은 휴가 변경 요청 수 등 메뉴별 배지 (href → 수·이름)
+export function NavList({ isAdmin, badges = {} }: { isAdmin: boolean; badges?: Record<string, Badge> }) {
   const pathname = usePathname()
   return (
     <>
       {MAIN_NAV.map((item) => (
-        <NavItem key={item.href} item={item} pathname={pathname} badge={badges[item.href] ?? 0} />
+        <NavItem key={item.href} item={item} pathname={pathname} badge={badges[item.href]} />
       ))}
       <div className="px-2.5 pt-3.5 pb-1 text-[11px] font-semibold tracking-[.06em] text-ink-3">관리자</div>
       {isAdmin ? (

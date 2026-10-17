@@ -476,7 +476,7 @@ function SwapPopup(props: {
         </div>
       ) : (
         <div className="rounded-lg bg-primary-soft px-2.5 py-2 text-xs leading-[1.5] text-primary-hover">
-          <b>규칙 검사 통과</b> · 그날 D/E/N 인원 유지 · K-tass·금지 패턴·휴식 문제 없음
+          <b>규칙 검사 통과</b> · 그날 D/E/N 인원 유지 · KTAS·금지 패턴·휴식 문제 없음
           {check && check.softWarnings.length > 0 && ` · 권고 ${check.softWarnings.length}건`}
         </div>
       )}

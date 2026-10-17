@@ -434,7 +434,7 @@ export function CellBody(props: {
       </div>
     )
 
-  const staffLine = `${md(date)} 인원 D ${counts.D} · E ${counts.E} · N ${counts.N} · K-tass ${kShort ? '부족' : '각 듀티 유지'} · ${nameOf(userId)} 누적 OFF ${signed(carryBefore)}${carryNow !== carryBefore ? ` → ${signed(carryNow)}` : ''}`
+  const staffLine = `${md(date)} 인원 D ${counts.D} · E ${counts.E} · N ${counts.N} · KTAS ${kShort ? '부족' : '각 듀티 유지'} · ${nameOf(userId)} 누적 OFF ${signed(carryBefore)}${carryNow !== carryBefore ? ` → ${signed(carryNow)}` : ''}`
   const passText = ['규칙 검사 통과', rest !== null ? `휴식 ${rest}시간` : null, '금지 패턴 없음']
     .filter(Boolean)
     .join(' · ')
@@ -498,7 +498,7 @@ export function CellBody(props: {
                 staffing.length
                   ? `${staffing.map((v) => vText(v, nameOf, view.month, userId)).join(' · ')}${
                       resolve
-                        ? ` · 대체 후보 ${nameOf(resolve.who)} (OFF${resolve.kTass ? ', K-tass' : ''})`
+                        ? ` · 대체 후보 ${nameOf(resolve.who)} (OFF${resolve.kTass ? ', KTAS' : ''})`
                         : ' · 대체할 수 있는 사람이 없습니다'
                     }`
                   : `${staffLine}${resolve ? ` · 맞바꿀 수 있는 사람 ${nameOf(resolve.who)}` : ''}`
@@ -620,7 +620,7 @@ export function ReplacementBody(props: {
               onClick={() => props.onPick(c.edit)}
               className="h-8 cursor-pointer rounded-lg border border-line bg-surface px-2.5 text-xs disabled:cursor-not-allowed disabled:opacity-45"
             >
-              <b>{nameOf(c.userId)}</b> <span className="text-ink-2">OFF{c.kTass ? ', K-tass' : ''}</span> ·
+              <b>{nameOf(c.userId)}</b> <span className="text-ink-2">OFF{c.kTass ? ', KTAS' : ''}</span> ·
               지정
             </button>
           ))}

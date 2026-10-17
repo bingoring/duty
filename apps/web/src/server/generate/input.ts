@@ -1,6 +1,7 @@
 import { createHash } from 'node:crypto'
 import { SOLVER_CONTRACT_VERSION, type SolverRequest } from '@duty/contract'
 import {
+  SEVERITY_KEYS,
   WORK_CODES,
   baselineOff,
   checkSchedule,
@@ -21,7 +22,9 @@ import {
   type IsoDate,
   type LeaveType,
   type NurseProfile,
+  type RuleSet,
   type ScheduleInput,
+  type SeverityKey,
   type Violation,
 } from '@duty/domain'
 import { and, asc, eq, gte, lte } from 'drizzle-orm'
@@ -41,6 +44,18 @@ const REQUEST_MISS_MONTHS = 3
 const FIXED_RULES = new Set(['H-BALANCE', 'H-EDU-LIMIT', 'H-EDU-UNION', 'H-OFF-CONSEC'])
 
 export type Priorities = SolverRequest['priorities']
+
+// 3-5: 필수 규칙은 우선 반영 선택과 상관없이 켠다. 토글이 꺼진 규칙은 쓰지 않으므로 그대로
+export function effectivePriorities(p: Priorities, rules: RuleSet): Priorities {
+  const hard = (k: SeverityKey) => rules.severity[k] === 'hard'
+  return {
+    ...p,
+    offAfterNight: p.offAfterNight || hard('OFF_AFTER_N'),
+    weekendPair: p.weekendPair || (hard('WEEKEND_PAIR') && rules.toggles.weekendPairOffMonthly),
+    avoidJuniorOnly: p.avoidJuniorOnly || (hard('JUNIOR_ONLY') && rules.toggles.avoidJuniorOnly),
+    minimizeRepeatPairs: p.minimizeRepeatPairs || (hard('REPEAT_PAIR') && rules.toggles.minimizeRepeatPairs),
+  }
+}
 
 export type GenerationInput = {
   input: ScheduleInput
@@ -247,6 +262,7 @@ export async function buildGenerationInput(db: Db, plan: PlanRow): Promise<Gener
     return {
       id: n.id,
       kTass: n.kTass,
+      kTassUntil: n.kTassUntil ?? null,
       junior: n.seniorityTier === 'junior',
       workDays: days.filter((d) => isEmployed(n, d)),
       fixed: [...f.entries()]
@@ -293,6 +309,7 @@ export async function buildGenerationInput(db: Db, plan: PlanRow): Promise<Gener
     heads: heads.map((h) => ({
       id: h.id,
       kTass: h.kTass,
+      kTassUntil: h.kTassUntil ?? null,
       junior: h.seniorityTier === 'junior',
       cells: head
         .filter((c) => c.userId === h.id)
@@ -325,6 +342,7 @@ export async function buildGenerationInput(db: Db, plan: PlanRow): Promise<Gener
       forbiddenPatterns: rules.forbiddenPatterns,
       shiftBalanceTolerance: rules.params.shiftBalanceTolerance,
       shiftBalanceWindowMonths: rules.params.shiftBalanceWindowMonths,
+      hard: SEVERITY_KEYS.filter((k) => rules.severity[k] === 'hard'),
     },
     restHours,
   }

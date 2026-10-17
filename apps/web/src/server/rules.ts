@@ -32,6 +32,7 @@ export async function getCurrentRules(): Promise<RuleSet & { version: number | n
     params: row.v.params,
     toggles: row.v.toggles,
     forbiddenPatterns: row.v.forbiddenPatterns,
+    severity: row.v.severity,
   })
   if (!parsed.success) {
     console.error('rule_version_invalid', { version: row.v.version, issues: parsed.error.issues })

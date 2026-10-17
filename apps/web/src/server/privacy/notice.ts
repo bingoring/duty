@@ -1,6 +1,7 @@
 // Build Spec 2-11 business-rules §5·§7 — 개인정보 수집·이용 동의서 문안의 원천(동의 화면·/privacy 공용).
 // 초안이다. 운영 전에 병원 개인정보 담당이 검토한다. 문구를 바꾸면 버전을 올린다 → 모든 사용자가 다음 로그인 때 다시 동의한다(R-CONSENT-4)
-export const PRIVACY_NOTICE_VERSION = '2026-10-v1'
+// v2(3-5): 항목에 KTAS 수료일 추가, 입사일 → 응급실 근무 시작일
+export const PRIVACY_NOTICE_VERSION = '2026-10-v2'
 
 export type NoticeSection = { title: string; rows: { label: string; text: string }[] }
 
@@ -13,7 +14,7 @@ export const PRIVACY_REQUIRED: NoticeSection = {
     },
     {
       label: '항목',
-      text: '사번, 이름, 입사일, 연차 구분, K-tass 자격, 근무 방식(교대·야간 전담 기간), 근무 기록, 근무·휴가 신청과 사유, 오프·나이트·연차 잔여, 트레이닝(프리셉터·기간), 접속 기록(로그인 시각·IP)',
+      text: '사번, 이름, 응급실 근무 시작일, 연차 구분, KTAS 자격·수료일, 근무 방식(교대·야간 전담 기간), 근무 기록, 근무·휴가 신청과 사유, 오프·나이트·연차 잔여, 트레이닝(프리셉터·기간), 접속 기록(로그인 시각·IP)',
     },
     {
       label: '보유·이용 기간',

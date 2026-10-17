@@ -14,6 +14,7 @@ import {
   submitRequests,
   type Actor,
 } from './service'
+import { cancelLeaveProposal, respondLeaveProposal } from './proposals'
 import { requestToday } from '../clock'
 
 // Build Spec 2-5 — 신청 서버 액션. 세션 확인은 첫 줄, 본인·관리자 권한은 service가 판단한다
@@ -106,6 +107,28 @@ export async function decideLeaveAction(input: unknown) {
     .safeParse(input)
   if (!p.success) return BAD
   const r = await decideLeave(getDb(), actor, p.data.id, p.data)
+  if (r.ok) refresh()
+  return r
+}
+
+// 3-5: 휴가 변경 요청 — 간호사 수락·거절, 관리자 취소
+export async function respondLeaveProposalAction(input: unknown) {
+  const actor = await sessionActor()
+  if (!actor) return DENIED
+  const p = z.object({ id: uuid, decision: z.enum(['accept', 'reject']) }).safeParse(input)
+  if (!p.success) return BAD
+  const r = await respondLeaveProposal(getDb(), actor, p.data.id, p.data.decision, await requestToday())
+  // 무효 처리도 화면에 반영되어야 하므로 실패해도 새로 그린다
+  refresh()
+  return r
+}
+
+export async function cancelLeaveProposalAction(id: string) {
+  const actor = await sessionActor()
+  if (!actor) return DENIED
+  const p = uuid.safeParse(id)
+  if (!p.success) return BAD
+  const r = await cancelLeaveProposal(getDb(), actor, p.data)
   if (r.ok) refresh()
   return r
 }
