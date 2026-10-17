@@ -33,8 +33,8 @@ test('관리자가 OFF 신청을 휴가로 바꾸자고 하면 간호사가 수�
   // 답하기 전에는 OFF 신청 그대로
   await expect(cellOf(admin)).toHaveText('O')
 
+  // 근무표에는 대화형 폼이 없어 하이드레이션 표시가 없다
   await me.goto('/')
-  await waitHydrated(me)
   await expect(me.getByLabel('받은 휴가 변경 요청 1건')).toBeVisible()
   await me.getByRole('link', { name: '받은 휴가 변경 요청 1건 → 근무 신청' }).click()
   await waitHydrated(me)
@@ -57,7 +57,7 @@ test('규칙 설정에서 필수/권고를 바꾸면 이력에 남고 생성 화
   await waitHydrated(admin)
   await expect(admin.getByText('최대 연속 근무 필수/권고 필수 → 권고')).toBeVisible()
 
-  await admin.goto('/generate?ym=2026-11')
+  await admin.goto('/admin/generate?ym=2026-11')
   await waitHydrated(admin)
   await expect(admin.getByText('연속 근무', { exact: true })).toHaveCount(0)
 
@@ -70,7 +70,7 @@ test('규칙 설정에서 필수/권고를 바꾸면 이력에 남고 생성 화
     .click()
   await admin.getByRole('button', { name: '저장 · 규칙 안내 반영' }).click()
   await expect(admin.getByRole('status')).toContainText('저장했습니다')
-  await admin.goto('/generate?ym=2026-11')
+  await admin.goto('/admin/generate?ym=2026-11')
   await waitHydrated(admin)
   await expect(admin.getByText('연속 근무', { exact: true })).toBeVisible()
   await admin.close()
@@ -81,10 +81,10 @@ test('KTAS 수료일을 넣으면 유효기간이 보이고 만료 6개월 이�
   const row = admin.getByRole('row', { name: NURSE.name })
   await expect(row).toContainText('KTAS · 수료일 입력 필요')
   await row.getByRole('button', { name: `${NURSE.name} 메뉴` }).click()
-  await admin.getByRole('button', { name: '수정' }).click()
+  await admin.getByRole('button', { name: '수정', exact: true }).click()
   const dlg = admin.getByRole('dialog')
   await dlg.getByLabel('KTAS 수료일').fill('2024-01-01')
-  await dlg.getByRole('button', { name: '저장' }).click()
+  await dlg.getByRole('button', { name: '저장', exact: true }).click()
   await expect(row).toContainText('KTAS ~2026-12-31 · 갱신 필요')
   await expect(admin.getByText('응급실 연차')).toBeVisible()
   await admin.close()
