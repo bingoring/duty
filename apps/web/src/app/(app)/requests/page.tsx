@@ -3,6 +3,7 @@ import { requireUser } from '@/server/auth/guards'
 import { getDb } from '@/server/db/client'
 import { buildRequestsView } from '@/server/requests/dto'
 import { loadRequestsRaw } from '@/server/requests/load'
+import { listLeaveProposals } from '@/server/requests/proposals'
 import { parseYm, shiftYm, ymOf } from '@/server/schedule/month'
 import { requestToday } from '@/server/clock'
 
@@ -21,6 +22,8 @@ export default async function RequestsPage({
     role: session.user.role === 'admin' ? ('admin' as const) : ('nurse' as const),
   }
   const view = buildRequestsView(await loadRequestsRaw(getDb(), { ym, viewer, today }), viewer)
+  // 3-5: 휴가 변경 요청(간호사: 받은 요청, 관리자: 보낸 요청)
+  const proposals = await listLeaveProposals(getDb(), viewer)
   return (
     <RequestsScreen
       view={view}
@@ -28,6 +31,7 @@ export default async function RequestsPage({
       today={today}
       prev={ymOf(shiftYm(ym, -1))}
       next={ymOf(shiftYm(ym, 1))}
+      proposals={proposals}
     />
   )
 }

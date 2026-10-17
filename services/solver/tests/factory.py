@@ -8,6 +8,22 @@ from datetime import date, timedelta
 TIMES = {"D": (420, 930, False), "E": (870, 1380, False), "N": (1350, 450, True), "S": (540, 1080, False)}
 
 
+# @duty/domain DEFAULT_SEVERITY의 필수 규칙
+DEFAULT_HARD = (
+    "REST",
+    "PATTERN",
+    "OFF_CONSEC",
+    "WORK_CONSEC",
+    "NIGHT_MAX",
+    "NIGHT_CONSEC",
+    "SLEEPING",
+    "STAFF",
+    "KTAS",
+    "TRAINING",
+    "EDU_LIMIT",
+)
+
+
 def rest_hours() -> dict:
     out: dict = {}
     for a, (_, end, nxt) in TIMES.items():
@@ -92,6 +108,7 @@ def request(seed: int = 1, y: int = 2026, m: int = 11, time_limit: float = 3.0) 
                 "forbiddenPatterns": ["E-D", "N-E", "N-OFF-D", "E-S"],
                 "shiftBalanceTolerance": 2,
                 "shiftBalanceWindowMonths": 3,
+                "hard": list(DEFAULT_HARD),
             },
             "restHours": rest_hours(),
             "priorities": {

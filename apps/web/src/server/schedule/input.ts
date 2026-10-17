@@ -15,6 +15,7 @@ import {
   type SeniorityTier,
   type ShiftCode,
   type TraineeKind,
+  ktasValidUntil,
 } from '@duty/domain'
 import { and, asc, eq, gte, inArray, isNotNull, lte } from 'drizzle-orm'
 import type { Db } from '../db/client'
@@ -96,6 +97,7 @@ export async function buildScheduleInput(
     rotation: u.rotation as Rotation,
     seniorityTier: u.seniorityTier as SeniorityTier,
     kTass: u.kTass,
+    kTassUntil: u.ktasCertifiedOn ? ktasValidUntil(u.ktasCertifiedOn) : null,
     unionMember: u.unionMember,
     employedFrom: u.hireDate,
     employedUntil: u.deactivatedAt ? addDays(todaySeoul(u.deactivatedAt), -1) : null,

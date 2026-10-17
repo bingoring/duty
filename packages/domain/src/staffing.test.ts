@@ -78,7 +78,7 @@ describe('신규 3인 근무 (R-STAFF-1·2·5, Q5)', () => {
     expect(s.count('2026-10-01', 'D').count).toBe(0)
   })
 
-  it('기간 뒤에는 인원에 세지만 트레이닝 중에는 K-tass로 세지 않는다', () => {
+  it('기간 뒤에는 인원에 세지만 트레이닝 중에는 KTAS로 세지 않는다', () => {
     const s = staffing(base('D', t({ tripleStaffUntil: '2026-09-30', startDate: '2026-09-10' })))
     expect(s.count('2026-10-01', 'D')).toMatchObject({ count: 1, kTass: 0 })
   })

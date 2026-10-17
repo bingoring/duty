@@ -89,11 +89,13 @@ export function input(over: Partial<ScheduleInput> & { rules?: RuleSet } = {}): 
 export function rules(
   params: Partial<RuleSet['params']> = {},
   toggles: Partial<RuleSet['toggles']> = {},
+  severity: Partial<RuleSet['severity']> = {},
 ): RuleSet {
   return {
     ...DEFAULT_RULES,
     params: { ...DEFAULT_RULES.params, ...params },
     toggles: { ...DEFAULT_RULES.toggles, ...toggles },
+    severity: { ...DEFAULT_RULES.severity, ...severity },
   }
 }
 

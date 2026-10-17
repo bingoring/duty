@@ -50,7 +50,7 @@ describe('validateRuleSet (R-RULE-EDIT-1·2)', () => {
     expect(validateRuleSet(withParams({ minStaffPerShift: 0 }))[0]?.key).toBe('minStaffPerShift')
   })
 
-  it('상호 제약: 목표 ≤ 상한, K-tass ≤ 최소 인원, 마감 < 협의 시작 ≤ 끝, 전담 값 순서', () => {
+  it('상호 제약: 목표 ≤ 상한, KTAS ≤ 최소 인원, 마감 < 협의 시작 ≤ 끝, 전담 값 순서', () => {
     const keys = (p: Partial<RuleSet['params']>) => validateRuleSet(withParams(p)).map((e) => e.key)
     expect(keys({ targetNightPerMonth: 8 })).toEqual(['targetNightPerMonth'])
     expect(keys({ minKTass: 3 })).toEqual(['minKTass'])
@@ -78,10 +78,13 @@ describe('diffRuleSets (R-RULE-SAVE-1)', () => {
       params: { ...DEFAULT_RULES.params, maxConsecutiveOff: 16 },
       toggles: { ...DEFAULT_RULES.toggles, nightDedicated: true },
       forbiddenPatterns: [...DEFAULT_RULES.forbiddenPatterns, 'N-S'],
+      severity: { ...DEFAULT_RULES.severity, WORK_CONSEC: 'soft', WEEKEND_PAIR: 'hard' },
     }
     expect(diffRuleSets(DEFAULT_RULES, after)).toEqual([
       { key: 'maxConsecutiveOff', before: 15, after: 16 },
       { key: 'nightDedicated', before: false, after: true },
+      { key: 'severity.WORK_CONSEC', before: '필수', after: '권고' },
+      { key: 'severity.WEEKEND_PAIR', before: '권고', after: '필수' },
       { key: 'forbiddenPatterns', before: 'E-D, N-E, N-OFF-D, E-S', after: 'E-D, N-E, N-OFF-D, E-S, N-S' },
     ])
   })

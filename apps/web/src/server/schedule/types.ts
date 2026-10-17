@@ -21,6 +21,7 @@ export type ViewUser = {
   seniorityRank: number
   seniorityTier: SeniorityTier
   kTass: boolean
+  kTassUntil: string | null
   unionMember: boolean
   employedFrom: IsoDate | null
   employedUntil: IsoDate | null

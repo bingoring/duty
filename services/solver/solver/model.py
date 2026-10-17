@@ -2,6 +2,9 @@
 
 하드 제약은 TS 검사기(@duty/domain checkSchedule)의 하드 규칙과 같은 판정이어야 한다.
 불일치는 web 쪽 교차 검증 테스트가 잡는다.
+
+3-5: 규칙마다 필수/권고를 관리자가 정한다(rules.hard). 필수면 하드 제약(진단 가정 리터럴로 묶음),
+권고면 위반 수에 벌점을 준다. 필수로 올린 권고 규칙은 검사기와 같거나 더 엄격하게 막는다.
 """
 
 from __future__ import annotations
@@ -16,7 +19,7 @@ from typing import Any
 
 from ortools.sat.python import cp_model
 
-from .weights import REPEAT_PAIR_MIN, REQUEST_MISS_BEFORE_DIV, WEIGHTS
+from .weights import REPEAT_PAIR_MIN, REQUEST_MISS_BEFORE_DIV, SHIFT_BALANCE_MIN_WORK, WEIGHTS
 
 VERSION = "0.1.0"
 DUTIES = ("D", "E", "N")
@@ -35,6 +38,12 @@ def _d(iso: str) -> date:
 
 def _iso(d: date) -> str:
     return d.isoformat()
+
+
+def _ktas(n: dict, d: str) -> bool:
+    """3-5: 그날 KTAS 인원으로 세는가 (TS ktasValidOn과 같음)."""
+    until = n.get("kTassUntil")
+    return bool(n["kTass"]) and (until is None or d <= until)
 
 
 @dataclass
@@ -80,6 +89,7 @@ class Builder:
         self.work_days: dict[str, set[str]] = {}
         self.groups: dict[str, Lit] = {}
         self.terms: dict[str, list] = {k: [] for k in WEIGHTS}
+        self.hard: set[str] = set(req["rules"]["hard"])
 
     # ---- 리터럴 도우미 -------------------------------------------------
     def guard(self, key: str) -> list[Lit]:
@@ -89,6 +99,26 @@ class Builder:
         if key not in self.groups:
             self.groups[key] = self.m.new_bool_var(f"g:{key}")
         return [self.groups[key]]
+
+    def no_all(self, key: str, term: str, lits: list[Lit], group: str) -> None:
+        """lits가 모두 참이면 위반. 필수면 금지, 권고면 벌점(진단 모드에서는 빼낸다)."""
+        if any(v is self.false for v in lits):
+            return
+        if key in self.hard:
+            self.m.add_bool_or([~v for v in lits]).only_enforce_if(self.guard(group))
+        elif not self.diagnose:
+            v = self._and(lits)
+            if v is not self.false:
+                self.terms[term].append(v)
+
+    def at_most(self, key: str, term: str, expr: Any, limit: int, group: str, ub: int = 200) -> None:
+        """expr ≤ limit. 필수면 제약, 권고면 넘친 양에 벌점."""
+        if key in self.hard:
+            self.m.add(expr <= limit).only_enforce_if(self.guard(group))
+        elif not self.diagnose:
+            ex = self.m.new_int_var(0, ub, "")
+            self.m.add(ex >= expr - limit)
+            self.terms[term].append(ex)
 
     def has_cell(self, n: str, d: str) -> bool:
         if d in self.month:
@@ -219,11 +249,11 @@ class Builder:
                     if s == "N" and (nid, d) in triple_n:
                         lit = self._and([lit, ~triple_n[(nid, d)]])
                     members.append((nid, lit))
-                    if n["kTass"] and not trs:
+                    if _ktas(n, d) and not trs:
                         kt.append(lit)
                 self.counted[(d, s)] = members
                 h = sum(1 for hd in heads if head_at.get((hd["id"], d)) == s)
-                hk = sum(1 for hd in heads if hd["kTass"] and head_at.get((hd["id"], d)) == s)
+                hk = sum(1 for hd in heads if _ktas(hd, d) and head_at.get((hd["id"], d)) == s)
                 flex = [
                     (hd, self.head_d[(hd["id"], d)])
                     for hd in heads
@@ -232,18 +262,26 @@ class Builder:
                 cnt = self.true * 0 + sum(v for _, v in members)
                 kts = self.true * 0 + sum(kt)
                 fx = self.true * 0 + sum(v for _, v in flex)
-                fxk = self.true * 0 + sum(v for hd, v in flex if hd["kTass"])
-                self.m.add(cnt + fx + h >= r["minStaff"]).only_enforce_if(self.guard(f"STAFF:{d}:{s}"))
-                self.m.add(kts + fxk + hk >= r["minKTass"]).only_enforce_if(self.guard(f"KTASS:{d}:{s}"))
-                if self.diagnose:
-                    continue
+                fxk = self.true * 0 + sum(v for hd, v in flex if _ktas(hd, d))
+                self.at_most("STAFF", "staffShort", r["minStaff"] - (cnt + fx + h), 0, f"STAFF:{d}:{s}")
+                self.at_most("KTAS", "ktasShort", r["minKTass"] - (kts + fxk + hk), 0, f"KTASS:{d}:{s}")
                 # S-JUNIOR-ONLY: 그날 고연차 수간호사가 그 근무면 면제
                 if self.req["priorities"]["avoidJuniorOnly"]:
                     head_senior = any(not hd["junior"] and head_at.get((hd["id"], d)) == s for hd in heads)
                     if not head_senior:
                         seniors = [v for nid, v in members if not self.byId[nid]["junior"]]
                         seniors += [v for hd, v in flex if not hd["junior"]]
-                        self.terms["juniorOnly"].append(~self._or(seniors))
+                        any_senior = self._or(seniors)
+                        if any_senior is self.false:
+                            # 고연차가 설 수 없는 날: 필수면 불가능(진단 원인), 권고면 벌점 1
+                            if "JUNIOR_ONLY" in self.hard:
+                                self.m.add_bool_or([self.false]).only_enforce_if(
+                                    self.guard(f"JUNIOR_ONLY:{d}:{s}")
+                                )
+                            elif not self.diagnose:
+                                self.terms["juniorOnly"].append(1)
+                        else:
+                            self.no_all("JUNIOR_ONLY", "juniorOnly", [~any_senior], f"JUNIOR_ONLY:{d}:{s}")
 
     # ---- 트레이닝 -------------------------------------------------------
     def training(self) -> None:
@@ -257,9 +295,15 @@ class Builder:
                 fa, fb = self.fixed.get((a, d)), self.fixed.get((b, d))
                 if any(f and f["code"] in ("AL", "LEAVE") for f in (fa, fb)):
                     continue
-                g = self.guard(f"TRAINING:{i}")
                 for c in WORK:
-                    self.m.add(self.is_(a, d, c) == self.is_(b, d, c)).only_enforce_if(g)
+                    la, lb = self.is_(a, d, c), self.is_(b, d, c)
+                    if "TRAINING" in self.hard:
+                        self.m.add(la == lb).only_enforce_if(self.guard(f"TRAINING:{i}"))
+                    elif not self.diagnose and not (la is self.false and lb is self.false):
+                        v = self.m.new_bool_var("")
+                        self.m.add(v >= la - lb)
+                        self.m.add(v >= lb - la)
+                        self.terms["training"].append(v)
 
     # ---- 사람 단위 하드 -------------------------------------------------
     def person(self) -> None:
@@ -283,9 +327,7 @@ class Builder:
                     if not touches(i, k):
                         continue
                     lits = [self.token(nid, tl[i + j], parts[j]) for j in range(k)]
-                    if any(v is self.false for v in lits):
-                        continue
-                    self.m.add_bool_or([~v for v in lits])
+                    self.no_all("PATTERN", "pattern", lits, f"PATTERN:{nid}")
             # H-REST
             for i in range(len(tl) - 1):
                 if not touches(i, 2):
@@ -295,25 +337,29 @@ class Builder:
                     for b in WORK:
                         if a == b or rest_h[a][b] >= r["minRestHours"]:
                             continue
-                        la, lb = self.is_(nid, d1, a), self.is_(nid, d2, b)
-                        if la is self.false or lb is self.false:
-                            continue
-                        self.m.add_bool_or([~la, ~lb])
+                        self.no_all(
+                            "REST", "rest", [self.is_(nid, d1, a), self.is_(nid, d2, b)], f"REST:{nid}"
+                        )
             # H-NIGHT-MAX
             nights = [self.is_(nid, d, "N") for d in self.days]
-            self.m.add(sum(nights) <= n["nightMax"]).only_enforce_if(self.guard(f"NIGHT_MAX:{nid}"))
+            self.at_most("NIGHT_MAX", "nightMax", sum(nights), n["nightMax"], f"NIGHT_MAX:{nid}", ub=31)
             # H-NIGHT-CONSEC: 길이 max+1 창에 N이 모두 들어가지 않게
             w = r["maxConsecutiveNight"] + 1
-            g = self.guard(f"NIGHT_CONSEC:{nid}")
             for i in range(len(tl) - w + 1):
                 if not touches(i, w):
                     continue
                 lits = [self.is_(nid, tl[i + j], "N") for j in range(w)]
-                if any(v is self.false for v in lits):
-                    continue
-                self.m.add_bool_or([~v for v in lits]).only_enforce_if(g)
+                self.no_all("NIGHT_CONSEC", "nightConsec", lits, f"NIGHT_CONSEC:{nid}")
+            # S-WORK-CONSEC: 연속 근무(D·E·N·S) 상한 — 길이 max+1 창이 모두 근무가 아니게(3-5 기본 필수)
+            mw = r.get("maxConsecutiveWork")
+            if mw:
+                w = mw + 1
+                for i in range(len(tl) - w + 1):
+                    if not touches(i, w):
+                        continue
+                    lits = [self.work(nid, tl[i + j]) for j in range(w)]
+                    self.no_all("WORK_CONSEC", "workConsec", lits, f"WORK_CONSEC:{nid}")
             # H-OFF-CONSEC: 휴가(LEAVE)는 0으로 세되 연속을 끊지 않는다
-            g = self.guard(f"OFF_CONSEC:{nid}")
             limit = r["maxConsecutiveOff"]
             for i in range(len(tl)):
                 total, j = 0, i
@@ -326,16 +372,15 @@ class Builder:
                 if total <= limit or not touches(i, j - i):
                     continue
                 lits = [self.rest(nid, tl[q]) for q in range(i, j)]
-                if any(v is self.false for v in lits):
-                    continue
-                self.m.add_bool_or([~v for v in lits]).only_enforce_if(g)
+                self.no_all("OFF_CONSEC", "offConsec", lits, f"OFF_CONSEC:{nid}")
             # H-SLEEPING: 슬리핑오프 수 × 기준 ≤ max(0, 잔여 N + 이번 달 N)
             # (잔여 N이 음수일 때 "N을 그만큼 서라"는 숨은 제약이 되지 않게 0 아래를 자른다, R-1)
             sl = [v for (u, _), v in self.sleeping.items() if u == nid]
             if sl:
-                self.m.add(
-                    r["sleepingOffPerN"] * sum(sl) <= self.night_avail(nid, n["nightBankBefore"], sum(nights))
-                ).only_enforce_if(self.guard(f"SLEEPING:{nid}"))
+                avail = self.night_avail(nid, n["nightBankBefore"], sum(nights))
+                self.at_most(
+                    "SLEEPING", "sleepingOver", r["sleepingOffPerN"] * sum(sl) - avail, 0, f"SLEEPING:{nid}"
+                )
 
     def night_avail(self, nid: str, bank: int, nights: Any) -> Any:
         """max(0, 잔여 N + 이번 달 N 합계식) — 사람마다 한 번만 만든다."""
@@ -354,7 +399,7 @@ class Builder:
         f = self.fixed.get((n, d))
         return bool(f and f["code"] == "LEAVE")
 
-    # ---- 소프트 --------------------------------------------------------
+    # ---- 소프트 (3-5: 필수로 올린 권고 규칙은 여기서 하드 제약이 된다) ---------------
     def soft(self) -> None:
         r = self.req["rules"]
         p = self.req["priorities"]
@@ -365,52 +410,14 @@ class Builder:
             wd = n["workDays"]
             if not wd:
                 continue
-            # 공정성: 목표 OFF와 실제 OFF(정산 actualOff) 차이, 0.5 단위라 ×2
-            actual = []
-            fixed_off = 0
-            for d in wd:
-                f = self.fixed.get((nid, d))
-                if f:
-                    if f["code"] == "OFF" and f.get("offKind") in COUNTED_OFF:
-                        fixed_off += 1
-                else:
-                    actual.append(self.x[(nid, d, "OFF")])
-                    actual.append(-self.sleeping[(nid, d)])
-            target2 = round(n["offTarget"] * 2)
-            short = self.m.new_int_var(0, 200, f"short:{nid}")
-            over = self.m.new_int_var(0, 200, f"over:{nid}")
-            self.m.add(short >= target2 - 2 * (sum(actual) + fixed_off))
-            self.m.add(over >= 2 * (sum(actual) + fixed_off) - target2)
-            off_short.append(short)
-            self.terms["offShort"].append(short)
-            self.terms["offOver"].append(over)
-
-            # 신청 (Q3): 한 사람에게 불충족이 몰리지 않게
-            if p["requests"] and n["requests"]:
-                misses = []
-                for q in n["requests"]:
-                    d = q["date"]
-                    if d not in self.work_days[nid] or (nid, d) in self.fixed:
-                        continue
-                    sat = self._or([self.token(nid, d, o) for o in q["options"]])
-                    misses.append(~sat)
-                self.terms["requestMiss"].extend(misses)
-                miss_max.append(sum(misses) + n["requestMissBefore"] // REQUEST_MISS_BEFORE_DIV)
-
+            if not self.diagnose:
+                self.objective_terms(n, off_short, miss_max)
             nights = sum(self.is_(nid, d, "N") for d in self.days)
             # S-NIGHT-TARGET
             if n["nightTarget"] is not None:
-                ex = self.m.new_int_var(0, 31, "")
-                self.m.add(ex >= nights - n["nightTarget"])
-                self.terms["nightTarget"].append(ex)
-            # 슬리핑오프: 한도만큼 주지 못한 수
-            sl = [v for (u, _), v in self.sleeping.items() if u == nid]
-            allowed = self.m.new_int_var(0, 31, "")
-            per = r["sleepingOffPerN"]
-            avail = self.night_avail(nid, n["nightBankBefore"], nights)
-            self.m.add(per * allowed <= avail)
-            self.m.add(avail <= per * allowed + per - 1)
-            self.terms["sleepingShort"].append(allowed - sum(sl))
+                self.at_most(
+                    "NIGHT_TARGET", "nightTarget", nights, n["nightTarget"], f"NIGHT_TARGET:{nid}", ub=31
+                )
 
             # S-WEEKEND-PAIR · S-WEEKEND-CARRY (토요일이 속한 달로 센다)
             if p["weekendPair"]:
@@ -426,15 +433,20 @@ class Builder:
                     else:
                         pairs.append(sat_rest)
                 has = self._or(pairs)
-                weight = 1 + n["weekendMissedStreak"]
-                self.terms["weekendPair"].append(weight * (1 - has) if has is not self.false else weight)
+                if "WEEKEND_PAIR" in self.hard:
+                    self.m.add_bool_or([has]).only_enforce_if(self.guard(f"WEEKEND_PAIR:{nid}"))
+                elif not self.diagnose:
+                    weight = 1 + n["weekendMissedStreak"]
+                    self.terms["weekendPair"].append(weight * (1 - has) if has is not self.false else weight)
                 first = self.days[0]
                 if n["weekendCarryIn"] and _d(first).weekday() == 6 and self.has_cell(nid, first):
-                    self.terms["weekendCarry"].append(~self.rest(nid, first))
+                    self.no_all(
+                        "WEEKEND_PAIR", "weekendCarry", [~self.rest(nid, first)], f"WEEKEND_PAIR:{nid}"
+                    )
 
-            # S-OFF-AFTER-N: N 뒤 쉬는 칸 1~(k−1)개 다음이 근무
+            # S-OFF-AFTER-N: N 뒤 쉬는 칸 1~(k−1)개 다음이 근무. 필수면 생성 화면 선택과 상관없이 막는다
             k = r["offAfterNight"]
-            if p["offAfterNight"] and k >= 2:
+            if (p["offAfterNight"] or "OFF_AFTER_N" in self.hard) and k >= 2:
                 tl = self.timeline
                 for i, d in enumerate(tl):
                     for rr in range(1, k):
@@ -446,92 +458,175 @@ class Builder:
                         lits = [self.is_(nid, d, "N")]
                         lits += [self.rest(nid, tl[i + q]) for q in range(1, rr + 1)]
                         lits.append(self.work(nid, tl[i + rr + 1]))
-                        v = self._and(lits)
-                        if v is not self.false:
-                            self.terms["offAfterNight"].append(v)
-
-            # S-WORK-CONSEC: 연속 근무 상한(권고). 실제 근무표에 6일 이상이 없다(R-1, DECISIONS 2026-10-08)
-            mw = r.get("maxConsecutiveWork")
-            if mw:
-                tl = self.timeline
-                lo, hi = tl.index(self.days[0]), tl.index(self.days[-1])
-                for i in range(len(tl) - mw):
-                    if i + mw < lo or i > hi:
-                        continue
-                    v = self._and([self.work(nid, tl[i + j]) for j in range(mw + 1)])
-                    if v is not self.false:
-                        self.terms["workConsec"].append(v)
-
-            # S-ROTATION: D→E→N 순환의 역방향(D→N·E→D·N→E)을 쉬는 칸 0~2개 사이로 이어질 때 벌한다.
-            # 실제 근무표에도 역방향이 있어 금지하지 않는다(DECISIONS 2026-10-08)
-            for i, d in enumerate(self.days):
-                for gap in range(3):
-                    j = i + gap + 1
-                    if j >= len(self.days):
-                        break
-                    mids = [self.rest(nid, self.days[i + 1 + k]) for k in range(gap)]
-                    if any(v is self.false for v in mids):
-                        continue
-                    for a, b in REVERSE:
-                        v = self._and([self.is_(nid, d, a), *mids, self.is_(nid, self.days[j], b)])
-                        if v is not self.false:
-                            self.terms["reverseRotation"].append(v)
+                        self.no_all("OFF_AFTER_N", "offAfterNight", lits, f"OFF_AFTER_N:{nid}")
 
             # S-SHIFT-BALANCE
             if n["balanceShiftTypes"]:
-                cnt = {s: sum(self.is_(nid, d, s) for d in self.days) for s in DUTIES}
-                tol = r["shiftBalanceTolerance"]
-                ex = self.m.new_int_var(0, 31, "")
-                for a in DUTIES:
-                    for b in DUTIES:
-                        if a != b:
-                            self.m.add(ex >= cnt[a] - cnt[b] - tol)
-                self.terms["shiftBalance"].append(ex)
-                months = r["shiftBalanceWindowMonths"]
-                before = n["shiftCountsBefore"]
-                if months > 1 and sum(before.values()) > 0:
-                    wtol = tol + months - 1
-                    wex = self.m.new_int_var(0, 200, "")
-                    for a in DUTIES:
-                        for b in DUTIES:
-                            if a != b:
-                                self.m.add(wex >= cnt[a] + before[a] - cnt[b] - before[b] - wtol)
-                    self.terms["shiftBalance"].append(wex)
+                self.shift_balance(n)
 
-        if off_short:
-            m = self.m.new_int_var(0, 200, "offShortMax")
-            self.m.add_max_equality(m, off_short)
-            self.terms["offShortMax"].append(m)
-        if miss_max:
-            m = self.m.new_int_var(0, 100, "requestMissMax")
-            for e in miss_max:
-                self.m.add(m >= e)
-            self.terms["requestMissMax"].append(m)
+        if not self.diagnose:
+            if off_short:
+                m = self.m.new_int_var(0, 200, "offShortMax")
+                self.m.add_max_equality(m, off_short)
+                self.terms["offShortMax"].append(m)
+            if miss_max:
+                m = self.m.new_int_var(0, 100, "requestMissMax")
+                for e in miss_max:
+                    self.m.add(m >= e)
+                self.terms["requestMissMax"].append(m)
 
-        # S-REPEAT-PAIR: 같은 날 같은 듀티 횟수의 임계 초과분 (트레이닝 쌍 제외)
+        # S-REPEAT-PAIR: 같은 날 같은 듀티 횟수 (트레이닝 쌍 제외)
         if p["minimizeRepeatPairs"]:
-            ids = [n["id"] for n in self.nurses if n["workDays"]]
-            for a, b in combinations(ids, 2):
-                together = []
-                for d in self.days:
-                    if self._precepting(a, b, d):
-                        continue
-                    for s in DUTIES:
-                        v = self._and([self.is_(a, d, s), self.is_(b, d, s)])
-                        if v is not self.false:
-                            together.append(v)
-                if len(together) <= REPEAT_PAIR_MIN - 1:
-                    continue
-                ex = self.m.new_int_var(0, 100, "")
-                self.m.add(ex >= sum(together) - (REPEAT_PAIR_MIN - 1))
-                self.terms["repeatPair"].append(ex)
+            self.repeat_pairs()
 
-        # 시드별 동점 깨기
-        rng = random.Random(self.req["seed"])
-        for key in sorted(self.x):
-            coef = rng.randint(0, 3)
-            if coef:
-                self.terms["tieBreak"].append(coef * self.x[key])
+        if not self.diagnose:
+            # 시드별 동점 깨기
+            rng = random.Random(self.req["seed"])
+            for key in sorted(self.x):
+                coef = rng.randint(0, 3)
+                if coef:
+                    self.terms["tieBreak"].append(coef * self.x[key])
+
+    def objective_terms(self, n: dict, off_short: list, miss_max: list) -> None:
+        """규칙이 아닌 목표: 공정성·신청·슬리핑오프 부여·순환 역방향."""
+        r = self.req["rules"]
+        p = self.req["priorities"]
+        nid = n["id"]
+        # 공정성: 목표 OFF와 실제 OFF(정산 actualOff) 차이, 0.5 단위라 ×2
+        actual = []
+        fixed_off = 0
+        for d in n["workDays"]:
+            f = self.fixed.get((nid, d))
+            if f:
+                if f["code"] == "OFF" and f.get("offKind") in COUNTED_OFF:
+                    fixed_off += 1
+            else:
+                actual.append(self.x[(nid, d, "OFF")])
+                actual.append(-self.sleeping[(nid, d)])
+        target2 = round(n["offTarget"] * 2)
+        short = self.m.new_int_var(0, 200, f"short:{nid}")
+        over = self.m.new_int_var(0, 200, f"over:{nid}")
+        self.m.add(short >= target2 - 2 * (sum(actual) + fixed_off))
+        self.m.add(over >= 2 * (sum(actual) + fixed_off) - target2)
+        off_short.append(short)
+        self.terms["offShort"].append(short)
+        self.terms["offOver"].append(over)
+
+        # 신청 (Q3): 한 사람에게 불충족이 몰리지 않게
+        if p["requests"] and n["requests"]:
+            misses = []
+            for q in n["requests"]:
+                d = q["date"]
+                if d not in self.work_days[nid] or (nid, d) in self.fixed:
+                    continue
+                sat = self._or([self.token(nid, d, o) for o in q["options"]])
+                misses.append(~sat)
+            self.terms["requestMiss"].extend(misses)
+            miss_max.append(sum(misses) + n["requestMissBefore"] // REQUEST_MISS_BEFORE_DIV)
+
+        # 슬리핑오프: 한도만큼 주지 못한 수
+        nights = sum(self.is_(nid, d, "N") for d in self.days)
+        sl = [v for (u, _), v in self.sleeping.items() if u == nid]
+        allowed = self.m.new_int_var(0, 31, "")
+        per = r["sleepingOffPerN"]
+        avail = self.night_avail(nid, n["nightBankBefore"], nights)
+        self.m.add(per * allowed <= avail)
+        self.m.add(avail <= per * allowed + per - 1)
+        self.terms["sleepingShort"].append(allowed - sum(sl))
+
+        # S-ROTATION: D→E→N 순환의 역방향(D→N·E→D·N→E)을 쉬는 칸 0~2개 사이로 이어질 때 벌한다.
+        # 실제 근무표에도 역방향이 있어 금지하지 않는다(DECISIONS 2026-10-08)
+        for i, d in enumerate(self.days):
+            for gap in range(3):
+                j = i + gap + 1
+                if j >= len(self.days):
+                    break
+                mids = [self.rest(nid, self.days[i + 1 + k]) for k in range(gap)]
+                if any(v is self.false for v in mids):
+                    continue
+                for a, b in REVERSE:
+                    v = self._and([self.is_(nid, d, a), *mids, self.is_(nid, self.days[j], b)])
+                    if v is not self.false:
+                        self.terms["reverseRotation"].append(v)
+
+    def shift_balance(self, n: dict) -> None:
+        """S-SHIFT-BALANCE. 필수면 검사기와 같은 판정(이번 달은 D·E·N 합이 기준 이상일 때만)."""
+        r = self.req["rules"]
+        nid = n["id"]
+        cnt = {s: sum(self.is_(nid, d, s) for d in self.days) for s in DUTIES}
+        tol = r["shiftBalanceTolerance"]
+        months = r["shiftBalanceWindowMonths"]
+        before = n["shiftCountsBefore"]
+        window = months > 1 and sum(before.values()) > 0
+        wtol = tol + months - 1
+        if "SHIFT_BALANCE" in self.hard:
+            g = self.guard(f"SHIFT_BALANCE:{nid}")
+            enough = self.m.new_bool_var("")
+            total = sum(cnt.values())
+            self.m.add(total >= SHIFT_BALANCE_MIN_WORK).only_enforce_if(enough)
+            self.m.add(total <= SHIFT_BALANCE_MIN_WORK - 1).only_enforce_if(~enough)
+            for a in DUTIES:
+                for b in DUTIES:
+                    if a == b:
+                        continue
+                    self.m.add(cnt[a] - cnt[b] <= tol).only_enforce_if([enough, *g])
+                    if window:
+                        self.m.add(cnt[a] + before[a] - cnt[b] - before[b] <= wtol).only_enforce_if(g)
+            return
+        if self.diagnose:
+            return
+        ex = self.m.new_int_var(0, 31, "")
+        for a in DUTIES:
+            for b in DUTIES:
+                if a != b:
+                    self.m.add(ex >= cnt[a] - cnt[b] - tol)
+        self.terms["shiftBalance"].append(ex)
+        if window:
+            wex = self.m.new_int_var(0, 200, "")
+            for a in DUTIES:
+                for b in DUTIES:
+                    if a != b:
+                        self.m.add(wex >= cnt[a] + before[a] - cnt[b] - before[b] - wtol)
+            self.terms["shiftBalance"].append(wex)
+
+    def repeat_pairs(self) -> None:
+        """S-REPEAT-PAIR. 권고면 고정 임계 초과분 벌점, 필수면 검사기 임계 max(4, ⌈2 × 쌍 평균⌉) 미만으로."""
+        ids = [n["id"] for n in self.nurses if n["workDays"]]
+        together: dict[tuple[str, str], list[Lit]] = {}
+        for a, b in combinations(ids, 2):
+            lits = []
+            for d in self.days:
+                if self._precepting(a, b, d):
+                    continue
+                for s in DUTIES:
+                    v = self._and([self.is_(a, d, s), self.is_(b, d, s)])
+                    if v is not self.false:
+                        lits.append(v)
+            together[(a, b)] = lits
+        if "REPEAT_PAIR" in self.hard:
+            pairs = len(ids) * (len(ids) - 1) // 2
+            if pairs == 0:
+                return
+            all_lits = [v for lits in together.values() for v in lits]
+            total = self.m.new_int_var(0, len(all_lits), "pairTotal")
+            self.m.add(total == sum(all_lits))
+            for (a, _b), lits in together.items():
+                if len(lits) <= REPEAT_PAIR_MIN - 1:
+                    continue
+                # 위반 = 횟수 ≥ 4 이고 횟수 × 쌍 수 ≥ 2 × 전체. 둘 중 하나가 거짓이게
+                g = self.guard(f"REPEAT_PAIR:{a}")
+                low = self.m.new_bool_var("")
+                self.m.add(sum(lits) <= REPEAT_PAIR_MIN - 1).only_enforce_if([low, *g])
+                self.m.add(pairs * sum(lits) <= 2 * total - 1).only_enforce_if([~low, *g])
+            return
+        if self.diagnose:
+            return
+        for lits in together.values():
+            if len(lits) <= REPEAT_PAIR_MIN - 1:
+                continue
+            ex = self.m.new_int_var(0, 100, "")
+            self.m.add(ex >= sum(lits) - (REPEAT_PAIR_MIN - 1))
+            self.terms["repeatPair"].append(ex)
 
     def _precepting(self, a: str, b: str, d: str) -> bool:
         for t in self.req["trainings"]:
@@ -544,8 +639,8 @@ class Builder:
         self.staffing()
         self.training()
         self.person()
+        self.soft()
         if not self.diagnose:
-            self.soft()
             self.m.minimize(sum(WEIGHTS[k] * sum(v) for k, v in self.terms.items() if v))
         return self
 
@@ -634,7 +729,7 @@ def diagnose(req: dict) -> list[dict]:
             continue
         group, *rest = key.split(":")
         c: dict = {"group": group}
-        if group in ("STAFF", "KTASS"):
+        if group in ("STAFF", "KTASS", "JUNIOR_ONLY"):
             c["date"], c["shift"] = rest
         elif group == "TRAINING":
             c["userId"] = req["trainings"][int(rest[0])]["traineeId"]

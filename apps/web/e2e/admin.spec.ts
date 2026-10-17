@@ -14,7 +14,7 @@ test.describe('S10 간호사 관리', () => {
     const panel = page.getByRole('complementary', { name: '간호사 추가' })
     await panel.getByLabel('사번').fill('00150')
     await panel.getByLabel('성명').fill('추가테스트')
-    await panel.getByLabel('입사일').fill('2026-10-01')
+    await panel.getByLabel('응급실 근무 시작일').fill('2026-10-01')
     await panel.getByText('신규 간호사 · 트레이닝 3개월').click()
     await panel.getByLabel('프리셉터').selectOption({ label: NURSE.name })
     await panel.getByRole('button', { name: '추가 · 초기 비밀번호 발급' }).click()

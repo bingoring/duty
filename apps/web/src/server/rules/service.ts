@@ -2,6 +2,8 @@ import {
   DEFAULT_RULES,
   RULE_PARAM_LIMITS,
   RULE_TOGGLE_DEFS,
+  SEVERITY_KEYS,
+  SEVERITY_KEY_LABEL,
   RuleSetSchema,
   diffRuleSets,
   normalizePattern,
@@ -31,12 +33,18 @@ const LABEL: Record<string, string> = {
   negotiationEndDay: '협의 수정 기간 끝',
   ...Object.fromEntries(RULE_TOGGLE_DEFS.map((t) => [t.key, t.label])),
   forbiddenPatterns: '금지 패턴',
+  ...Object.fromEntries(SEVERITY_KEYS.map((k) => [`severity.${k}`, `${SEVERITY_KEY_LABEL[k]} 필수/권고`])),
 }
 const show = (v: unknown) => (v === true ? '켜짐' : v === false ? '꺼짐' : String(v))
 const line = (d: RuleDiff) => `${LABEL[d.key] ?? d.key} ${show(d.before)} → ${show(d.after)}`
 
 const parse = (r: typeof ruleVersions.$inferSelect): RuleSet =>
-  RuleSetSchema.parse({ params: r.params, toggles: r.toggles, forbiddenPatterns: r.forbiddenPatterns })
+  RuleSetSchema.parse({
+    params: r.params,
+    toggles: r.toggles,
+    forbiddenPatterns: r.forbiddenPatterns,
+    severity: r.severity,
+  })
 
 export async function loadRuleEditor(db: Db, today: string): Promise<RuleEditor> {
   const rows = await db.select().from(ruleVersions).orderBy(desc(ruleVersions.version))
@@ -99,6 +107,7 @@ export async function saveRules(
       params: rules.params,
       toggles: rules.toggles,
       forbiddenPatterns: rules.forbiddenPatterns,
+      severity: rules.severity,
       diff,
       changedBy: adminId,
     })

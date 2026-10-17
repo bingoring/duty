@@ -19,6 +19,8 @@ export type NurseProfile = Employment & {
   rotation: Rotation
   seniorityTier: SeniorityTier
   kTass: boolean
+  // 3-5: KTAS 자격 마지막 유효일(수료일 + 3년 − 1일). 없으면 수료일 미입력 → 자격 유지
+  kTassUntil?: IsoDate | null
   unionMember: boolean
   nightDedicated: { from: IsoDate; to: IsoDate } | null
   offCarryBefore: number

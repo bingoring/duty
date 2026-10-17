@@ -1,0 +1,1 @@
+ALTER TABLE "rule_versions" ADD COLUMN "severity" jsonb DEFAULT '{}'::jsonb NOT NULL;

@@ -94,7 +94,10 @@ export function GenerateScreen({ view }: { view: GenerateView }) {
               <span className="rounded-md border border-line px-2.5 py-1 font-semibold">{h.value}</span>
             </div>
           ))}
-          <div className="text-xs text-ink-2">금지 패턴 {view.forbiddenPatterns.join(' · ')} 자동 차단</div>
+          <div className="text-xs text-ink-2">
+            금지 패턴 {view.forbiddenPatterns.join(' · ')}{' '}
+            {view.patternHard ? '자동 차단' : '되도록 피함 (권고)'}
+          </div>
         </div>
         <div className={`${card} gap-2.5`}>
           <div className="font-bold">우선 반영</div>

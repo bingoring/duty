@@ -55,9 +55,12 @@ describe('seedDev', () => {
   it('규칙 v1이 DEFAULT_RULES와 같다 (INV6)', async () => {
     await seedDev(db)
     const [v1] = await db.select().from(ruleVersions)
-    expect({ params: v1!.params, toggles: v1!.toggles, forbiddenPatterns: v1!.forbiddenPatterns }).toEqual(
-      DEFAULT_RULES,
-    )
+    expect({
+      params: v1!.params,
+      toggles: v1!.toggles,
+      forbiddenPatterns: v1!.forbiddenPatterns,
+      severity: v1!.severity,
+    }).toEqual(DEFAULT_RULES)
     expect([v1!.version, v1!.diff, v1!.changedBy]).toEqual([1, [], null])
   })
 
@@ -79,7 +82,7 @@ describe('seedDev', () => {
     })
   })
 
-  it('명단 구성이 요구사항 원문과 같다: K-tass 7명, 노조 4명, 연차 구분 6/2/3', async () => {
+  it('명단 구성이 요구사항 원문과 같다: KTAS 7명, 노조 4명, 연차 구분 6/2/3', async () => {
     expect(DEV_ROSTER.filter((u) => u.kTass)).toHaveLength(7)
     expect(DEV_ROSTER.filter((u) => u.unionMember)).toHaveLength(4)
     const tiers = DEV_ROSTER.map((u) => u.seniorityTier)

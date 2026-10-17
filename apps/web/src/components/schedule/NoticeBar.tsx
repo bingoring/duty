@@ -12,31 +12,40 @@ export function NoticeBar({
   more,
   seenUpTo,
   swaps = 0,
+  proposals = 0,
 }: {
   items: Notice[]
   more: number
   seenUpTo: string | null
   swaps?: number
+  proposals?: number
 }) {
   const [pending, start] = useTransition()
   const router = useRouter()
   const params = useSearchParams()
-  if (items.length === 0 && swaps === 0) return null
+  if (items.length === 0 && swaps === 0 && proposals === 0) return null
   // 2-8 R-SWAP-12: 처리할 일(받은 교환 요청)은 근무 조정으로 보낸다
   const swapLine = swaps > 0 && (
     <Link href="/adjust" className="font-semibold text-ink underline-offset-2 hover:underline">
       받은 교환 요청 {swaps}건 → 근무 조정
     </Link>
   )
+  // 3-5: 관리자가 보낸 휴가 변경 요청은 근무 신청에서 수락·거절한다
+  const proposalLine = proposals > 0 && (
+    <Link href="/requests" className="font-semibold text-ink underline-offset-2 hover:underline">
+      받은 휴가 변경 요청 {proposals}건 → 근무 신청
+    </Link>
+  )
   if (items.length === 0)
     return (
       <div
         role="status"
-        aria-label="받은 교환 요청"
+        aria-label={proposals > 0 ? '받은 요청' : '받은 교환 요청'}
         data-print="hide"
         className="flex items-center gap-3 rounded-[10px] border border-line bg-[#FFF9E8] px-3 py-2.5 text-[13px]"
       >
         {swapLine}
+        {proposalLine}
       </div>
     )
   return (
@@ -61,6 +70,7 @@ export function NoticeBar({
         ))}
         {more > 0 && <span className="text-xs text-ink-3">외 {more}건</span>}
         {swapLine}
+        {proposalLine}
       </div>
       <button
         type="button"

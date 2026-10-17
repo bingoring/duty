@@ -19,9 +19,22 @@ WEIGHTS: dict[str, int] = {
     "juniorOnly": 40,
     "repeatPair": 10,
     "tieBreak": 1,
+    # 3-5: 필수 규칙을 권고로 낮췄을 때의 벌점. 원래 권고 항보다 크게, 인원 부족은 수간호사 보충보다 크게 둔다
+    "staffShort": 30000,
+    "ktasShort": 30000,
+    "training": 5000,
+    "rest": 5000,
+    "pattern": 5000,
+    "nightMax": 3000,
+    "nightConsec": 3000,
+    "offConsec": 2000,
+    "sleepingOver": 3000,
 }
 
-# 검사기 REPEAT_PAIR_MIN과 같은 값. 쌍 평균은 변수라 솔버는 고정 임계 초과분만 벌한다
+# 검사기 REPEAT_PAIR_MIN과 같은 값. 권고일 때 쌍 평균은 변수라 솔버는 고정 임계 초과분만 벌한다
+# (필수면 검사기와 같은 임계로 막는다)
 REPEAT_PAIR_MIN = 4
 # 최근 3개월 불충족 몇 건마다 이번 달 1건으로 치는가 (Q3 가산)
 REQUEST_MISS_BEFORE_DIV = 3
+# 검사기 SHIFT_BALANCE_MIN_WORK와 같은 값: 이번 달 D·E·N 합이 이 수 이상일 때만 이번 달 분포를 본다
+SHIFT_BALANCE_MIN_WORK = 9

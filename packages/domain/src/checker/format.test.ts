@@ -27,7 +27,7 @@ describe('formatViolation (business-logic-model §2.6)', () => {
     })
     expect(f('S-HEAD-FILL', ['b'], ['2026-10-02'], { count: 1, kTass: 0 }, 'D')).toEqual({
       title: '10/2 (금) D 수간호사로 인원 충족',
-      detail: '교대 근무자 1명 · K-tass 0명 (최후의 수단)',
+      detail: '교대 근무자 1명 · KTAS 0명 (최후의 수단)',
     })
   })
 

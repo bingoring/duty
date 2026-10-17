@@ -1,5 +1,5 @@
 // Build Spec 2-1 domain-entities §2. allowed-set 컬럼은 text로 두고 값 검증은 @duty/domain이 한다.
-import type { RuleParams, RuleToggles } from '@duty/domain'
+import type { RuleParams, RuleSeverity, RuleToggles } from '@duty/domain'
 import { sql } from 'drizzle-orm'
 import {
   bigserial,
@@ -41,6 +41,8 @@ export const users = pgTable('users', {
   seniorityTier: text('seniority_tier').notNull(),
   hireDate: day('hire_date'),
   kTass: boolean('k_tass').notNull().default(false),
+  // 3-5: KTAS 수료일. 유효기간 = 수료일 + 3년 − 1일
+  ktasCertifiedOn: day('ktas_certified_on'),
   unionMember: boolean('union_member').notNull().default(false),
   nightDedicatedFrom: day('night_dedicated_from'),
   nightDedicatedTo: day('night_dedicated_to'),
@@ -120,6 +122,11 @@ export const ruleVersions = pgTable(
     params: jsonb('params').$type<RuleParams>().notNull(),
     toggles: jsonb('toggles').$type<RuleToggles>().notNull(),
     forbiddenPatterns: jsonb('forbidden_patterns').$type<string[]>().notNull(),
+    // 3-5: 규칙별 필수/권고. 예전 버전은 빈 객체 → 기본값
+    severity: jsonb('severity')
+      .$type<Partial<RuleSeverity>>()
+      .notNull()
+      .default(sql`'{}'::jsonb`),
     diff: jsonb('diff')
       .$type<{ key: string; before: unknown; after: unknown }[]>()
       .notNull()
@@ -327,6 +334,34 @@ export const monthSettlements = pgTable(
     eduCont: integer('edu_cont').notNull(),
   },
   (t) => [primaryKey({ columns: [t.monthPlanId, t.userId] })],
+)
+
+// 3-5: 관리자가 간호사의 OFF(다음 달 OFF 신청 또는 확정된 근무표의 OFF 칸)를 휴가로 바꾸자는 요청.
+// 간호사가 수락하면 승인된 휴가(leave_requests)가 되고, 거절하면 그대로 둔다
+export const leaveProposals = pgTable(
+  'leave_proposals',
+  {
+    id: id(),
+    userId: uuid('user_id')
+      .notNull()
+      .references(() => users.id),
+    proposedBy: uuid('proposed_by')
+      .notNull()
+      .references(() => users.id),
+    type: text('type').notNull(),
+    reasonCode: text('reason_code'),
+    startDate: day('start_date').notNull(),
+    endDate: day('end_date').notNull(),
+    days: numeric('days', { precision: 4, scale: 1 }).notNull(),
+    comment: text('comment'),
+    // LEAVE_PROPOSAL_STATUSES
+    status: text('status').notNull(),
+    closedReason: text('closed_reason'),
+    leaveRequestId: uuid('leave_request_id').references(() => leaveRequests.id),
+    createdAt: createdAt(),
+    closedAt: tstz('closed_at'),
+  },
+  (t) => [index('leave_proposals_user_status_idx').on(t.userId, t.status)],
 )
 
 // Build Spec 2-8 domain-entities §1 — 간호사 교환 요청 (한 요청 = 한 날짜)

@@ -4,6 +4,7 @@ import { createStaffing } from '../staffing'
 import type { ScheduleInput } from '../types'
 import { checkDuties, checkRepeatPairs, checkTraining } from './duty'
 import { checkPerson } from './person'
+import { severityOf } from '../rule-severity'
 import type { CheckResult, Violation } from './rules'
 
 export * from './rules'
@@ -43,6 +44,8 @@ export function checkSchedule(input: ScheduleInput): CheckResult {
   out.push(...checkDuties(input, grid, staffing))
   if (input.rules.toggles.minimizeRepeatPairs) out.push(...checkRepeatPairs(input, grid, staffing))
 
+  // 3-5: 심각도는 규칙 버전의 필수/권고를 따른다
+  for (const v of out) v.severity = severityOf(v.ruleId, input.rules.severity)
   // H-TRAINING은 [신규, 프리셉터] 순서가 의미를 가진다
   for (const v of out) if (v.ruleId !== 'H-TRAINING') v.userIds.sort()
   out.sort(compare)

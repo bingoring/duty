@@ -103,7 +103,7 @@ test.describe('S4-A 확정된 달 휴가', () => {
     const card = admin.getByRole('article', { name: `${CHAE.name} 휴가` })
     await expect(card).toContainText('10월 · 확정된 달')
     await expect(card).toContainText('10/2 (금) D 인원 1명 · 최소 2명')
-    await expect(card).toContainText('대체 후보: 오민지 (10/2 OFF, K-tass)')
+    await expect(card).toContainText('대체 후보: 오민지 (10/2 OFF, KTAS)')
     await card.getByRole('button', { name: '승인 · 대체 지정' }).click()
 
     // 2-7 R-LEAVE-C1: 승인 뒤 근무 조정의 대체 지정으로 이동 → 후보 지정 → 저장

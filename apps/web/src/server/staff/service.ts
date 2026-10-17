@@ -2,7 +2,9 @@ import {
   addDays,
   defaultTrainingEnd,
   employedDaysInYear,
+  ktasStatus,
   specialLeaveDays,
+  type KtasStatus,
   type Role,
   type RuleSet,
   type Rotation,
@@ -48,6 +50,8 @@ export type StaffRow = {
   hireDate: string | null
   years: number | null
   kTass: boolean
+  ktasCertifiedOn: string | null
+  ktas: KtasStatus
   seniorityTier: SeniorityTier
   seniorityRank: number
   unionMember: boolean
@@ -105,6 +109,8 @@ export async function listStaff(db: Db, today: string): Promise<StaffRow[]> {
       hireDate: u.hireDate,
       years: yearsOfService(u.hireDate, today),
       kTass: u.kTass,
+      ktasCertifiedOn: u.ktasCertifiedOn,
+      ktas: ktasStatus(u.kTass, u.ktasCertifiedOn, today),
       seniorityTier: u.seniorityTier as SeniorityTier,
       seniorityRank: u.seniorityRank,
       unionMember: u.unionMember,
@@ -141,7 +147,10 @@ export type CreateResult =
 export async function createStaff(db: Db, input: StaffCreateInput, ctx: StaffCtx): Promise<CreateResult> {
   const employeeNo = input.employeeNo.trim()
   if (input.training && !input.hireDate)
-    return { ok: false, errors: { hireDate: '신규 간호사는 입사일(트레이닝 시작일)이 필요합니다.' } }
+    return {
+      ok: false,
+      errors: { hireDate: '신규 간호사는 응급실 근무 시작일(트레이닝 시작일)이 필요합니다.' },
+    }
   const tempPassword = generateTempPassword()
   const passwordHash = await hashPassword(tempPassword)
   const year = Number(ctx.today.slice(0, 4))
@@ -166,6 +175,7 @@ export async function createStaff(db: Db, input: StaffCreateInput, ctx: StaffCtx
         seniorityTier: input.seniorityTier,
         hireDate: input.hireDate,
         kTass: input.kTass,
+        ktasCertifiedOn: input.kTass ? (input.ktasCertifiedOn ?? null) : null,
         unionMember: input.unionMember,
       })
       .returning({ id: users.id })
@@ -223,7 +233,10 @@ export async function updateStaff(
   ctx: StaffCtx,
 ): Promise<Result> {
   if (input.training && !input.hireDate)
-    return { ok: false, errors: { hireDate: '신규 간호사는 입사일(트레이닝 시작일)이 필요합니다.' } }
+    return {
+      ok: false,
+      errors: { hireDate: '신규 간호사는 응급실 근무 시작일(트레이닝 시작일)이 필요합니다.' },
+    }
   return db.transaction(async (tx) => {
     if (input.training && !(await checkPreceptor(tx, input.training.preceptorId, userId)))
       return { ok: false as const, errors: { preceptorId: '프리셉터를 선택해 주세요.' } }
@@ -233,6 +246,7 @@ export async function updateStaff(
         name: input.name,
         hireDate: input.hireDate,
         kTass: input.kTass,
+        ktasCertifiedOn: input.kTass ? (input.ktasCertifiedOn ?? null) : null,
         seniorityTier: input.seniorityTier,
         unionMember: input.unionMember,
         rotation: input.rotation,

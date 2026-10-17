@@ -40,7 +40,7 @@ test('12월: 생성 → 결과·요약·격자 → 리롤 → 이전 안 → 입
   const result = page.getByRole('region', { name: '생성 결과' })
   await expect(result.getByText('생성 결과 · 1번째 안')).toBeVisible({ timeout: 60_000 })
   await expect(result.getByText('필수 규칙 위반 0')).toBeVisible()
-  await expect(result.getByText('모든 듀티 인원 2명 이상 · K-tass 1명 포함')).toBeVisible()
+  await expect(result.getByText('모든 듀티 인원 2명 이상 · KTAS 1명 포함')).toBeVisible()
   await expect(result.getByText('전월 근무표가 확정되지 않아')).toBeVisible()
   const table = page.getByRole('table', { name: '간호사별 배정 요약' })
   await expect(table.getByRole('row')).toHaveCount(11) // 헤더 + 교대 근무자 10명

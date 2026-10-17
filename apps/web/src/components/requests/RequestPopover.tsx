@@ -49,6 +49,7 @@ export function RequestPopover({
   sameDay,
   mode: allowed,
   isAdmin,
+  proposal = false,
   onClose,
 }: {
   userId: string
@@ -59,6 +60,8 @@ export function RequestPopover({
   sameDay: string
   mode: 'all' | 'leave'
   isAdmin: boolean
+  // 3-5: 관리자가 다른 간호사의 OFF를 휴가로 바꾸면 간호사가 수락해야 한다
+  proposal?: boolean
   onClose: () => void
 }) {
   const initialMode: Mode =
@@ -320,9 +323,14 @@ export function RequestPopover({
           className="h-8 cursor-pointer rounded-lg bg-ink px-3.5 text-xs font-semibold text-white disabled:opacity-50"
           onClick={save}
         >
-          {isAdmin ? '저장' : '임시 저장'}
+          {proposal && mode === 'leave' ? '휴가로 바꾸기 요청' : isAdmin ? '저장' : '임시 저장'}
         </button>
       </div>
+      {proposal && mode === 'leave' && (
+        <div className="text-xs text-ink-2">
+          {userName} 간호사가 수락해야 OFF가 휴가로 바뀝니다. 답하기 전에는 OFF 그대로입니다.
+        </div>
+      )}
     </Shell>
   )
 }

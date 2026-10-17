@@ -154,12 +154,15 @@ export function generationChecks(
   const days = monthDates(input.year, input.month)
   const p = input.rules.params
   const headFill = result.softWarnings.filter((v) => v.ruleId === 'S-HEAD-FILL').length
-  const staffBad = result.hardViolations.some((v) => v.ruleId === 'H-STAFF' || v.ruleId === 'H-KTASS')
+  // 3-5: 인원 규칙을 권고로 낮췄으면 부족이 경고 쪽에 있다
+  const staffBad = [...result.hardViolations, ...result.softWarnings].some(
+    (v) => v.ruleId === 'H-STAFF' || v.ruleId === 'H-KTASS',
+  )
   const out: GenerationCheck[] = []
   if (!staffBad)
     out.push({
       ok: true,
-      title: `모든 듀티 인원 ${p.minStaffPerShift}명 이상${p.minKTass > 0 ? ` · K-tass ${p.minKTass}명 포함` : ''}`,
+      title: `모든 듀티 인원 ${p.minStaffPerShift}명 이상${p.minKTass > 0 ? ` · KTAS ${p.minKTass}명 포함` : ''}`,
       detail: `${formatMD(days[0]!)}~${days.length} D·E·N ${days.length * 3}개 듀티 전부 충족${
         headFill ? ` · 수간호사 보충 ${headFill}개` : ''
       }`,
