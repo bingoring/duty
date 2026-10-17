@@ -215,6 +215,7 @@
 | 3-3 자동 배포 | [03-continuous-deployment.md](03-operations/03-continuous-deployment.md) · [Build Spec](03-operations/cd/build-spec-index.md) (IMPLEMENTED) | IMPLEMENTED |
 | 3-4 운영 피드백 1 (연차 직접 수정·행 순서·동료 현황 정렬·README) | [04-feedback-1.md](03-operations/04-feedback-1.md) | IMPLEMENTED |
 | 3-5 운영 피드백 2 (KTAS·규칙 필수/권고·오프→휴가) | [05-feedback-2.md](03-operations/05-feedback-2.md) | IMPLEMENTED |
+| 3-6 운영 피드백 3 (대신 신청 표시·휴가 종류·검진 오전/오후·승인 취소·개인 주말 통 OFF·내 설정 KTAS) | [06-feedback-3.md](03-operations/06-feedback-3.md) | IN_PROGRESS |
 
 ---
 
