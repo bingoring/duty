@@ -85,6 +85,8 @@ export function formatViolation(v: Violation, ctx: FormatContext): { title: stri
       }
     case 'S-WORK-CONSEC':
       return { title: `${name} · ${d.count}일 연속 근무`, detail: `${range(v.dates)} · 최대 ${d.max}일` }
+    case 'S-NIGHT-MIN':
+      return { title: `${name} · 나이트 ${d.count}개`, detail: `최소 ${d.min}개` }
     case 'S-NIGHT-TARGET':
       return { title: `${name} · 나이트 ${d.count}개`, detail: `목표 ${d.target}개 이하` }
     case 'S-OFF-AFTER-N':

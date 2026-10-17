@@ -68,6 +68,14 @@ describe('buildRulesGuide', () => {
     expect(item(withToggles({ weekendPairOffMonthly: false }), /주말 이틀/)!.tag).toBe('off')
   })
 
+  it('월 나이트 최소: 0이면 안내하지 않고, 정하면 권고(기본)로 보인다 (3-5)', () => {
+    expect(item(DEFAULT_RULES, /개 이상 배정/)).toBeUndefined()
+    expect(item(withParams({ minNightPerMonth: 4 }), /개 이상 배정/)).toMatchObject({
+      text: expect.stringContaining('나이트는 월 4개 이상 배정합니다'),
+      tag: 'rec',
+    })
+  })
+
   it('규칙 설정의 필수/권고를 따른다 (3-5)', () => {
     const r = {
       ...DEFAULT_RULES,

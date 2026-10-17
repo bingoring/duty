@@ -270,3 +270,17 @@ def test_3_5_KTAS_유효기간이_지난_사람은_KTAS_인원으로_세지_않�
     res = solve(req)
     assert res["status"] == "INFEASIBLE"
     assert any(c["group"] == "KTASS" for c in res["causes"])
+
+
+def test_3_5_월_나이트_최소를_필수로_두면_모두_그만큼_선다():
+    req = request(seed=2, time_limit=8)
+    req["rules"]["hard"].append("NIGHT_MIN")
+    for n in req["nurses"]:
+        n["nightMin"] = 5
+    res = solve(req)
+    assert res["status"] in ("OPTIMAL", "FEASIBLE")
+    nights: dict[str, int] = {}
+    for c in res["cells"]:
+        if c["code"] == "N":
+            nights[c["userId"]] = nights.get(c["userId"], 0) + 1
+    assert all(nights.get(n["id"], 0) >= 5 for n in req["nurses"])

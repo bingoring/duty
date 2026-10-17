@@ -54,6 +54,8 @@ describe('validateRuleSet (R-RULE-EDIT-1·2)', () => {
     const keys = (p: Partial<RuleSet['params']>) => validateRuleSet(withParams(p)).map((e) => e.key)
     expect(keys({ targetNightPerMonth: 8 })).toEqual(['targetNightPerMonth'])
     expect(keys({ minKTass: 3 })).toEqual(['minKTass'])
+    expect(keys({ minNightPerMonth: 7 })).toEqual(['minNightPerMonth'])
+    expect(keys({ minNightPerMonth: 6 })).toEqual([])
     expect(keys({ negotiationStartDay: 15 })).toEqual(['negotiationStartDay'])
     expect(keys({ negotiationEndDay: 16, negotiationStartDay: 17 })).toEqual(['negotiationStartDay'])
     expect(keys({ nightDedicatedMaxPerMonth31: 14 })).toEqual(['nightDedicatedMaxPerMonth31'])

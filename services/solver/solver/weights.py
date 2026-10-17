@@ -12,6 +12,8 @@ WEIGHTS: dict[str, int] = {
     "weekendCarry": 400,
     "workConsec": 300,
     "nightTarget": 200,
+    # 3-5 추가: 월 나이트 최소에 모자란 N 하나당
+    "nightMin": 200,
     "offAfterNight": 150,
     "sleepingShort": 120,
     "shiftBalance": 60,

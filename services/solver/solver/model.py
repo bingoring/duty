@@ -418,6 +418,9 @@ class Builder:
                 self.at_most(
                     "NIGHT_TARGET", "nightTarget", nights, n["nightTarget"], f"NIGHT_TARGET:{nid}", ub=31
                 )
+            # S-NIGHT-MIN (3-5 추가): 근무 가능한 날만큼 비례한 최소
+            if n.get("nightMin"):
+                self.at_most("NIGHT_MIN", "nightMin", n["nightMin"] - nights, 0, f"NIGHT_MIN:{nid}", ub=31)
 
             # S-WEEKEND-PAIR · S-WEEKEND-CARRY (토요일이 속한 달로 센다)
             if p["weekendPair"]:

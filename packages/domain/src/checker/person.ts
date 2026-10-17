@@ -1,6 +1,6 @@
 import { optionsSatisfied, specialSatisfied } from '../cell-source'
 import { addDays, dayOfWeek, isEmployed, isRedDay, type IsoDate } from '../dates'
-import { nightLimits } from '../generation'
+import { nightLimits, nightMinFor } from '../generation'
 import { patternToken, type Grid } from '../grid'
 import { SHIFT_TIMES } from '../shift-times'
 import {
@@ -144,6 +144,13 @@ export function checkPerson(n: NurseProfile, ctx: PersonCtx): Violation[] {
     out.push(violation('H-NIGHT-MAX', [n.id], nightDates, { count: nights, max: nightMax }))
   else if (nightTarget !== null && nights > nightTarget)
     out.push(violation('S-NIGHT-TARGET', [n.id], nightDates, { count: nights, target: nightTarget }))
+  // S-NIGHT-MIN (3-5 추가): 트레이닝 중 신규는 프리셉터를 따라가므로 제외
+  if (!ctx.trainees.has(n.id)) {
+    const leaveDays = monthCells.filter((c) => c.code === 'AL' || c.code === 'LEAVE').length
+    const nightMin = nightMinFor(n, input.rules, input.year, input.month, leaveDays)
+    if (nightMin !== null && nights < nightMin)
+      out.push(violation('S-NIGHT-MIN', [n.id], nightDates, { count: nights, min: nightMin }))
+  }
 
   const sleepingDates = monthCells.filter((c) => c.offKind === 'sleeping').map((c) => c.date)
   // 잔여 N이 음수여도(관리자 예외 적용 등) 한도는 0 아래로 내려가지 않는다(R-1)

@@ -178,6 +178,9 @@ export async function loadGenerateView(
     { key: 'KTAS', label: 'KTAS 권한자 포함', value: `${p.minKTass}명 이상` },
     { key: 'NIGHT_MAX', label: '월 나이트 상한', value: `${p.maxNightPerMonth}개` },
     { key: 'NIGHT_TARGET', label: '월 나이트 목표', value: `≤ ${p.targetNightPerMonth}개` },
+    ...(p.minNightPerMonth > 0
+      ? [{ key: 'NIGHT_MIN' as const, label: '월 나이트 최소', value: `≥ ${p.minNightPerMonth}개` }]
+      : []),
     { key: 'NIGHT_CONSEC', label: '연속 나이트', value: `≤ ${p.maxConsecutiveNight}일` },
     { key: 'WORK_CONSEC', label: '연속 근무', value: `≤ ${p.maxConsecutiveWork}일` },
     { key: 'OFF_CONSEC', label: '연속 오프', value: `≤ ${p.maxConsecutiveOff}일` },

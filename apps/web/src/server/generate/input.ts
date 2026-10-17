@@ -13,6 +13,7 @@ import {
   isRestCode,
   monthDates,
   nightLimits,
+  nightMinFor,
   optionsSatisfied,
   redDaySet,
   restHoursBetween,
@@ -275,6 +276,16 @@ export async function buildGenerationInput(db: Db, plan: PlanRow): Promise<Gener
       nightBankBefore: n.nightBankBefore,
       nightMax: nl.max,
       nightTarget: nl.target,
+      // 3-5 추가: 검사기 S-NIGHT-MIN과 같은 값(고정 연차·휴가 날만큼 비례, 트레이닝 중 신규 제외)
+      nightMin: trainees.has(n.id)
+        ? null
+        : nightMinFor(
+            n,
+            rules,
+            ym.year,
+            ym.month,
+            [...f.values()].filter((c) => c.code === 'AL' || c.code === 'LEAVE').length,
+          ),
       weekendMissedStreak: n.weekendPairMissedStreak,
       weekendCarryIn: n.weekendPairCarryIn,
       shiftCountsBefore: n.shiftCountsBefore,

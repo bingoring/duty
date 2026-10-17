@@ -20,6 +20,8 @@ export const RuleParamsSchema = z.object({
   // 최대 연속 근무(권고, 넘으면 경고·솔버 벌점). 예전 규칙 버전에는 없으므로 기본값으로 채운다(R-1, DECISIONS 2026-10-08)
   maxConsecutiveWork: positiveInt.max(14).default(5),
   maxNightPerMonth: positiveInt,
+  // 3-5 추가: 월 나이트 최소(0 = 사용 안 함)
+  minNightPerMonth: z.number().int().min(0).max(31).default(0),
   targetNightPerMonth: positiveInt,
   maxConsecutiveNight: positiveInt,
   offAfterNight: z.number().int().nonnegative(),
@@ -74,6 +76,7 @@ export const DEFAULT_RULES: RuleSet = {
     maxConsecutiveOff: 15,
     maxConsecutiveWork: 5,
     maxNightPerMonth: 7,
+    minNightPerMonth: 0,
     targetNightPerMonth: 6,
     maxConsecutiveNight: 3,
     offAfterNight: 2,
