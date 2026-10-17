@@ -266,6 +266,9 @@
               "weekendCarryIn": {
                 "type": "boolean"
               },
+              "weekendPair": {
+                "type": "boolean"
+              },
               "shiftCountsBefore": {
                 "type": "object",
                 "properties": {

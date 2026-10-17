@@ -26,10 +26,22 @@ export function ktasValidOn(n: { kTass: boolean; kTassUntil?: IsoDate | null }, 
 export type KtasStatus =
   { kind: 'none' } | { kind: 'missing' } | { kind: 'valid' | 'renew' | 'expired'; until: IsoDate }
 
-export function ktasStatus(kTass: boolean, certifiedOn: IsoDate | null, today: IsoDate): KtasStatus {
+// 3-6: 갱신했으면 갱신일부터 다시 3년. 취득일·갱신일 중 늦은 날이 기준
+export function ktasBaseDate(certifiedOn: IsoDate | null, renewedOn?: IsoDate | null): IsoDate | null {
+  if (certifiedOn && renewedOn) return certifiedOn > renewedOn ? certifiedOn : renewedOn
+  return renewedOn ?? certifiedOn
+}
+
+export function ktasStatus(
+  kTass: boolean,
+  certifiedOn: IsoDate | null,
+  today: IsoDate,
+  renewedOn?: IsoDate | null,
+): KtasStatus {
   if (!kTass) return { kind: 'none' }
-  if (!certifiedOn) return { kind: 'missing' }
-  const until = ktasValidUntil(certifiedOn)
+  const base = ktasBaseDate(certifiedOn, renewedOn)
+  if (!base) return { kind: 'missing' }
+  const until = ktasValidUntil(base)
   if (today > until) return { kind: 'expired', until }
   if (today >= shiftMonths(until, -KTAS_RENEW_MONTHS)) return { kind: 'renew', until }
   return { kind: 'valid', until }

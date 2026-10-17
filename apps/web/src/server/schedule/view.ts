@@ -126,7 +126,12 @@ export function cellView(
   const outline = c.source === 'admin' || c.source === 'swap' || c.source === 'requested' ? c.source : null
   const kind = KIND_LABEL[c.offKind ?? c.leaveKind ?? ''] ?? (c.code === 'AL' ? '연차' : undefined)
   // 3-6: 칸 이름이 이미 종류면 툴팁에 다시 쓰지 않는다
-  const head = [withDay(date), label, kind === label ? undefined : kind, c.checkupHalf ? '검진 반차' : undefined]
+  const head = [
+    withDay(date),
+    label,
+    kind === label ? undefined : kind,
+    c.checkupHalf ? '검진 반차' : undefined,
+  ]
     .filter(Boolean)
     .join(' · ')
   const fallback =

@@ -43,7 +43,11 @@ export const users = pgTable('users', {
   kTass: boolean('k_tass').notNull().default(false),
   // 3-5: KTAS 수료일. 유효기간 = 수료일 + 3년 − 1일
   ktasCertifiedOn: day('ktas_certified_on'),
+  // 3-6: 최근 갱신일. 유효기간은 취득일·갱신일 중 늦은 날 + 3년
+  ktasRenewedOn: day('ktas_renewed_on'),
   unionMember: boolean('union_member').notNull().default(false),
+  // 3-6: 본인이 규칙 안내에서 끄면 주말 통 OFF를 요구하지 않는다(처음엔 자동 신청)
+  weekendPairWanted: boolean('weekend_pair_wanted').notNull().default(true),
   nightDedicatedFrom: day('night_dedicated_from'),
   nightDedicatedTo: day('night_dedicated_to'),
   active: boolean('active').notNull().default(true),

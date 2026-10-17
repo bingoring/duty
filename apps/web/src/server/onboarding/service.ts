@@ -23,6 +23,8 @@ export type OnboardingValues = {
   kTass: boolean
   // 3-5: KTAS 수료일(3년 유효)
   ktasCertifiedOn: string | null
+  // 3-6: 최근 갱신일
+  ktasRenewedOn: string | null
   seniorityTier: SeniorityTier
   unionMember: boolean
   nightDedicated: { from: string; to: string } | null
@@ -40,7 +42,8 @@ const NUMERIC = Object.keys(ACCOUNT) as (keyof typeof ACCOUNT)[]
 export const FIELD_LABEL: Record<Key, string> = {
   hireDate: '응급실 근무 시작일',
   kTass: 'KTAS',
-  ktasCertifiedOn: 'KTAS 수료일',
+  ktasCertifiedOn: 'KTAS 취득일',
+  ktasRenewedOn: 'KTAS 갱신일',
   seniorityTier: '연차 구분',
   unionMember: '노조',
   nightDedicated: '근무 방식',
@@ -51,10 +54,12 @@ export const FIELD_LABEL: Record<Key, string> = {
 }
 
 // R-ONB-2·3·9: 사람·모드별 묻는 항목
-export type OnboardingMode = 'initial' | 'annual' | 'self_edit'
+export type OnboardingMode = 'initial' | 'annual' | 'self_edit' | 'ktas_edit'
 
 export function fieldsFor(head: boolean, mode: OnboardingMode): Key[] {
   if (mode === 'annual' || mode === 'self_edit') return ['annual']
+  // 3-6: 내 설정의 KTAS
+  if (mode === 'ktas_edit') return ['kTass', 'ktasCertifiedOn', 'ktasRenewedOn']
   if (head) return ['hireDate', 'kTass', 'ktasCertifiedOn', 'unionMember', 'annual']
   return [
     'hireDate',
@@ -84,6 +89,7 @@ export const OnboardingInputSchema = z
     hireDate: date.nullable(),
     kTass: z.boolean(),
     ktasCertifiedOn: date.nullable(),
+    ktasRenewedOn: date.nullable(),
     seniorityTier: z.enum(SENIORITY_TIERS),
     unionMember: z.boolean(),
     nightDedicated: z.object({ from: date, to: date }).nullable(),
@@ -138,6 +144,7 @@ export async function currentValues(db: Db, userId: string, today: string): Prom
     hireDate: u.hireDate,
     kTass: u.kTass,
     ktasCertifiedOn: u.ktasCertifiedOn,
+    ktasRenewedOn: u.ktasRenewedOn,
     seniorityTier: u.seniorityTier as SeniorityTier,
     unionMember: u.unionMember,
     nightDedicated:
@@ -231,6 +238,7 @@ async function applyValues(
   if ('hireDate' in changed) patch.hireDate = changed.hireDate ?? null
   if ('kTass' in changed) patch.kTass = changed.kTass!
   if ('ktasCertifiedOn' in changed) patch.ktasCertifiedOn = changed.ktasCertifiedOn ?? null
+  if ('ktasRenewedOn' in changed) patch.ktasRenewedOn = changed.ktasRenewedOn ?? null
   if ('seniorityTier' in changed) patch.seniorityTier = changed.seniorityTier!
   if ('unionMember' in changed) patch.unionMember = changed.unionMember!
   if ('nightDedicated' in changed) {
@@ -314,7 +322,12 @@ export async function saveOnboarding(
         before,
         {
           reason: 'self_input',
-          note: a.mode === 'self_edit' ? '본인 연차 수정' : '본인 초기 설정',
+          note:
+            a.mode === 'self_edit'
+              ? '본인 연차 수정'
+              : a.mode === 'ktas_edit'
+                ? '본인 KTAS 수정'
+                : '본인 초기 설정',
           by: a.userId,
         },
         a.today,
@@ -328,7 +341,7 @@ export async function saveOnboarding(
       })
     }
     // 3-4: 내 설정의 연차 수정은 초기 설정 단계와 상관없다
-    if (a.mode !== 'self_edit')
+    if (a.mode !== 'self_edit' && a.mode !== 'ktas_edit')
       await tx.update(users).set({ onboardedYear: year, updatedAt: new Date() }).where(eq(users.id, a.userId))
     return { ok: true as const, changed }
   })
@@ -339,6 +352,7 @@ export const KIND_LABEL: Record<string, string> = {
   initial: '초기 설정',
   annual: '해마다 연차',
   self_edit: '연차 수정',
+  ktas_edit: 'KTAS 수정',
 }
 export const REVIEW_LABEL: Record<string, string> = { confirmed: '확인', reverted: '되돌림' }
 

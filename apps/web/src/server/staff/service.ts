@@ -51,6 +51,7 @@ export type StaffRow = {
   years: number | null
   kTass: boolean
   ktasCertifiedOn: string | null
+  ktasRenewedOn: string | null
   ktas: KtasStatus
   seniorityTier: SeniorityTier
   seniorityRank: number
@@ -110,7 +111,8 @@ export async function listStaff(db: Db, today: string): Promise<StaffRow[]> {
       years: yearsOfService(u.hireDate, today),
       kTass: u.kTass,
       ktasCertifiedOn: u.ktasCertifiedOn,
-      ktas: ktasStatus(u.kTass, u.ktasCertifiedOn, today),
+      ktasRenewedOn: u.ktasRenewedOn,
+      ktas: ktasStatus(u.kTass, u.ktasCertifiedOn, today, u.ktasRenewedOn),
       seniorityTier: u.seniorityTier as SeniorityTier,
       seniorityRank: u.seniorityRank,
       unionMember: u.unionMember,
@@ -176,6 +178,7 @@ export async function createStaff(db: Db, input: StaffCreateInput, ctx: StaffCtx
         hireDate: input.hireDate,
         kTass: input.kTass,
         ktasCertifiedOn: input.kTass ? (input.ktasCertifiedOn ?? null) : null,
+        ktasRenewedOn: input.kTass ? (input.ktasRenewedOn ?? null) : null,
         unionMember: input.unionMember,
       })
       .returning({ id: users.id })
@@ -247,6 +250,7 @@ export async function updateStaff(
         hireDate: input.hireDate,
         kTass: input.kTass,
         ktasCertifiedOn: input.kTass ? (input.ktasCertifiedOn ?? null) : null,
+        ktasRenewedOn: input.kTass ? (input.ktasRenewedOn ?? null) : null,
         seniorityTier: input.seniorityTier,
         unionMember: input.unionMember,
         rotation: input.rotation,

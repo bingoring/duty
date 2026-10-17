@@ -110,6 +110,7 @@ class Nurse(BaseModel):
     nightMin: NightMin | None = None
     weekendMissedStreak: Annotated[int, Field(ge=0, le=9007199254740991)]
     weekendCarryIn: bool
+    weekendPair: bool | None = None
     shiftCountsBefore: ShiftCountsBefore
     balanceShiftTypes: bool
     requestMissBefore: Annotated[int, Field(ge=0, le=9007199254740991)]

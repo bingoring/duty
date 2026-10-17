@@ -336,6 +336,10 @@ describe('S-WEEKEND-PAIR (토글)', () => {
   it('월 안에 토·일 둘 다 쉬는 주말이 없으면 경고', () => {
     expect(only(solo(month('3 11 17')), 'S-WEEKEND-PAIR')).toMatchObject([{ data: { missedStreak: 0 } }])
     expect(only(solo(month('17 18')), 'S-WEEKEND-PAIR')).toEqual([])
+    // 3-6: 본인이 끄면 요구하지 않는다
+    expect(
+      only(solo(month('3 11 17'), { nurses: [nurse('a', { weekendPairWanted: false })] }), 'S-WEEKEND-PAIR'),
+    ).toEqual([])
   })
 
   // 달을 걸친 주말은 토요일이 속한 달로 센다 (사용자 답변 2026-09-27)

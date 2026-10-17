@@ -27,6 +27,8 @@ export type NurseProfile = Employment & {
   nightBankBefore: number
   // 주말 통 OFF를 받지 못한 연속 개월 수(직전 달부터 거슬러). 0이면 직전 달은 받음
   weekendPairMissedStreak: number
+  // 3-6: 본인이 주말 통 OFF를 원하지 않으면 false(기본 받음)
+  weekendPairWanted?: boolean
   // 최근 (shiftBalanceWindowMonths − 1)개월의 D·E·N 개수 합. 누적 분포 판정용
   shiftCountsBefore: { D: number; E: number; N: number }
   // 올해 대상 월 이전까지 이수한 교육 횟수(연초에 0)

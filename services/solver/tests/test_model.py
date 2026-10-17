@@ -284,3 +284,15 @@ def test_3_5_월_나이트_최소를_필수로_두면_모두_그만큼_선다():
         if c["code"] == "N":
             nights[c["userId"]] = nights.get(c["userId"], 0) + 1
     assert all(nights.get(n["id"], 0) >= 5 for n in req["nurses"])
+
+
+def test_3_6_주말_통_OFF를_끈_사람은_필수여도_요구하지_않는다():
+    req = request(seed=5, time_limit=6)
+    req["rules"]["hard"].append("WEEKEND_PAIR")
+    off = req["nurses"][0]
+    off["weekendPair"] = False
+    # 그 사람의 모든 토요일을 근무로 고정해도 풀린다(필수 주말 통 OFF가 그 사람에게는 없다)
+    sats = [d for d in req["days"] if date.fromisoformat(d).weekday() == 5]
+    off["fixed"] = [{"date": d, "code": "D"} for d in sats]
+    res = solve(req)
+    assert res["status"] in ("OPTIMAL", "FEASIBLE")

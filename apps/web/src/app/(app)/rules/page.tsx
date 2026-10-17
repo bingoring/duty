@@ -1,13 +1,17 @@
 import { GuideSection, ShiftCards } from '@/components/rules-guide/GuideSection'
 import { GuideToc } from '@/components/rules-guide/GuideToc'
+import { WeekendPairToggle } from '@/components/rules-guide/WeekendPairToggle'
 import { requireUser } from '@/server/auth/guards'
 import { getCurrentRules } from '@/server/rules'
 import { buildRulesGuide } from '@/server/rules/guide'
+import { getDb } from '@/server/db/client'
+import { weekendPairPreference } from '@/server/preferences/service'
 
 // S7 규칙 안내 (Build Spec 2-10). 모든 수치는 현재 규칙 버전에서 렌더링한다
 export default async function RulesGuidePage() {
-  await requireUser()
+  const session = await requireUser()
   const { version, ...rules } = await getCurrentRules()
+  const pref = await weekendPairPreference(getDb(), session.user.id)
   const guide = buildRulesGuide(rules, version)
   return (
     <div className="grid min-w-0 gap-6 px-7 py-6 min-[900px]:grid-cols-[200px_1fr]">
@@ -19,6 +23,10 @@ export default async function RulesGuidePage() {
             {guide.version} · 규칙 설정에서 바뀌면 바로 반영됩니다
           </span>
         </div>
+        {/* 3-6: 교대 근무자 본인이 주말 통 OFF를 받을지 정한다 */}
+        {pref.rotating && (
+          <WeekendPairToggle wanted={pref.wanted} ruleOn={rules.toggles.weekendPairOffMonthly} />
+        )}
         {guide.sections.map((s, i) => (
           <GuideSection key={s.id} section={s}>
             {i === 0 && <ShiftCards shifts={guide.shifts} />}

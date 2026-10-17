@@ -423,7 +423,7 @@ class Builder:
                 self.at_most("NIGHT_MIN", "nightMin", n["nightMin"] - nights, 0, f"NIGHT_MIN:{nid}", ub=31)
 
             # S-WEEKEND-PAIR · S-WEEKEND-CARRY (토요일이 속한 달로 센다)
-            if p["weekendPair"]:
+            if p["weekendPair"] and n.get("weekendPair", True):
                 pairs = []
                 for d in self.days:
                     if _d(d).weekday() != 5:

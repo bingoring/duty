@@ -123,7 +123,8 @@ export async function fillProfiles(db: Db, input: ScheduleInput, rules: Schedule
       if (achieved) break
       streak++
     }
-    n.weekendPairMissedStreak = streak
+    // 3-6: 주말 통 OFF를 끈 사람은 미달 개월 수를 쌓지 않는다
+    n.weekendPairMissedStreak = n.weekendPairWanted === false ? 0 : streak
     const prev = shiftYm(ym, -1)
     const pp = recent.find((x) => x.year === prev.year && x.month === prev.month)
     n.weekendPairCarryIn = pp ? weekendPairCarryOut(cellsOf(pp, n.id), pp.year, pp.month) : false
@@ -287,7 +288,8 @@ export async function buildGenerationInput(db: Db, plan: PlanRow): Promise<Gener
             [...f.values()].filter((c) => c.code === 'AL' || c.code === 'LEAVE').length,
           ),
       weekendMissedStreak: n.weekendPairMissedStreak,
-      weekendCarryIn: n.weekendPairCarryIn,
+      weekendCarryIn: n.weekendPairWanted !== false && n.weekendPairCarryIn,
+      weekendPair: n.weekendPairWanted !== false,
       shiftCountsBefore: n.shiftCountsBefore,
       balanceShiftTypes: rules.toggles.balanceShiftTypes && !nl.dedicated && !trainees.has(n.id),
       requestMissBefore: misses.get(n.id) ?? 0,

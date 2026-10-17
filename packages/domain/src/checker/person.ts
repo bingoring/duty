@@ -202,7 +202,7 @@ export function checkPerson(n: NurseProfile, ctx: PersonCtx): Violation[] {
   }
 
   // S-WEEKEND-PAIR · S-WEEKEND-CARRY
-  if (input.rules.toggles.weekendPairOffMonthly) {
+  if (input.rules.toggles.weekendPairOffMonthly && n.weekendPairWanted !== false) {
     const restAt = (d: IsoDate): boolean | undefined => {
       const c = at(d)
       if (!c) return d > grid.monthEnd ? undefined : false

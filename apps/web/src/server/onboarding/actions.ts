@@ -41,6 +41,20 @@ export async function saveAnnualAction(input: unknown): Promise<SaveResult> {
   return r
 }
 
+// 3-6: 내 설정에서 KTAS 취득일·갱신일을 고친다(바로 반영, 관리자 확인 대상)
+export async function saveKtasAction(input: unknown): Promise<SaveResult> {
+  const s = await getSession()
+  if (!s || s.pendingStep) return { ok: false, message: '다시 로그인해 주세요.' }
+  const r = await saveOnboarding(getDb(), {
+    userId: s.user.id,
+    today: await requestToday(),
+    mode: 'ktas_edit',
+    input,
+  })
+  if (r.ok) refresh()
+  return r
+}
+
 // R-ONB-7: 관리자 확인·되돌리기
 export async function reviewSubmissionAction(input: unknown) {
   const s = await getSession()

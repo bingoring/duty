@@ -21,6 +21,7 @@ import {
   type SeniorityTier,
   type SettlementResult,
   type ShiftCode,
+  ktasBaseDate,
   ktasValidUntil,
 } from '@duty/domain'
 import { asc, eq, inArray } from 'drizzle-orm'
@@ -61,7 +62,7 @@ async function loadUsers(db: Db): Promise<(ViewUser & { active: boolean })[]> {
     seniorityRank: u.seniorityRank,
     seniorityTier: u.seniorityTier as SeniorityTier,
     kTass: u.kTass,
-    kTassUntil: u.ktasCertifiedOn ? ktasValidUntil(u.ktasCertifiedOn) : null,
+    kTassUntil: ktasUntilOf(u),
     unionMember: u.unionMember,
     employedFrom: u.hireDate,
     // 마지막 재직일 = 비활성화한 날(서울)의 전날 (2-2 domain-entities NurseProfile)
@@ -503,4 +504,10 @@ export async function planSettlements(db: Db, plan: PlanRow) {
     name: ctx.users.find((u) => u.id === userId)!.name,
     result,
   }))
+}
+
+// 3-6: 취득일·갱신일 중 늦은 날 + 3년 − 1일
+function ktasUntilOf(u: { ktasCertifiedOn: string | null; ktasRenewedOn: string | null }) {
+  const base = ktasBaseDate(u.ktasCertifiedOn, u.ktasRenewedOn)
+  return base ? ktasValidUntil(base) : null
 }

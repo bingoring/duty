@@ -68,6 +68,8 @@ export const SolverNurse = z.object({
   weekendMissedStreak: z.number().int().nonnegative(),
   // 1일(일)이 전월 마지막 토요일과 이어지는 주말
   weekendCarryIn: z.boolean(),
+  // 3-6: 본인이 주말 통 OFF를 원하지 않으면 false. 예전 요청과 호환되도록 선택(없으면 받음)
+  weekendPair: z.boolean().optional(),
   shiftCountsBefore: z.object({ D: z.number().int(), E: z.number().int(), N: z.number().int() }),
   // D·E·N 분포 검사 대상 (전담·트레이닝 중 신규 제외)
   balanceShiftTypes: z.boolean(),
