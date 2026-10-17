@@ -4,10 +4,12 @@
 **Requirements:** [inputs/requirements_v3.md](inputs/requirements_v3.md) (근무 지침 원문 + 근무자 명단)
 **Design handoff:** [inputs/design-handoff_v5/](inputs/design-handoff_v5/README.md) (최신, 2026-09-30) · [v4](inputs/design-handoff_v4/README.md) · [v3](inputs/design-handoff_v3/README.md) · [v2](inputs/design-handoff_v2/README.md) · [v1](inputs/design-handoff_v1/README.md)
 **Decisions (audit):** [DECISIONS.md](DECISIONS.md)
-**Last updated:** 2026-10-17
+**Last updated:** 2026-10-18
 
 > 🔒 **개인정보:** 공개 저장소다. 간호사 이름·사번은 모두 가명이며, 실명 자료는 커밋하지 않는다([DECISIONS](DECISIONS.md) 2026-09-26).
 
+> 🏗️ **3-5 운영 피드백 2 구현 완료 → 승인 대기 (2026-10-18, 브랜치 `feature/3-5-feedback-2`, 운영 미반영).** KTAS 표기·생성 화면 문구, **모든 규칙의 필수/권고를 규칙 설정에서 전환**(최대 연속 근무 기본 필수), KTAS 수료일·유효기간(만료 6개월 전 빨간색, 만료 뒤 KTAS 인원 제외), 관리자의 OFF → 휴가 변경 요청(간호사 수락). 단위 421 · pytest 24 · 통합 172 그린, **E2E는 로컬 브라우저 없어 미실행**. 마이그레이션 3개, 동의서 버전 v2.
+>
 > 📝 **3-5 운영 피드백 2 제안 (2026-10-17).** KTAS 표기 통일, 생성 화면 문구 3건, KTAS 수료일·유효기간(3년, 만료 6개월 전 빨간색), 최대 연속 근무 필수화 + 규칙 설정에서 필수/권고 전환, 관리자의 오프 신청 → 휴가 변경(간호사 수락). 슬리핑오프·잔여 N 이월은 이미 동작함을 확인. 질문 Q1~Q5 답변 대기.
 >
 > 🏗️ **3-4 운영 피드백 1 구현·운영 반영 → 승인 대기 (2026-10-12).** 간호사가 내 설정에서 남은 연차를 언제든 고침(바로 반영 + 관리자 확인·이력), 간호사 관리 목록 행의 ⠿ 손잡이를 끌어 놓아 표 순서 즉시 저장(노션식, 키보드 ↑↓), 동료 현황도 표 순서, 근무 신청 격자 화면 폭 맞춤, README에 운영 주소. 자동 배포 `deploy` 성공.
@@ -210,7 +212,7 @@
 | 3-2 Monitoring | [02-monitoring.md](03-operations/02-monitoring.md) · [Build Spec](03-operations/monitoring/build-spec-index.md) (IMPLEMENTED) | HUMAN_APPROVED |
 | 3-3 자동 배포 | [03-continuous-deployment.md](03-operations/03-continuous-deployment.md) · [Build Spec](03-operations/cd/build-spec-index.md) (IMPLEMENTED) | IMPLEMENTED |
 | 3-4 운영 피드백 1 (연차 직접 수정·행 순서·동료 현황 정렬·README) | [04-feedback-1.md](03-operations/04-feedback-1.md) | IMPLEMENTED |
-| 3-5 운영 피드백 2 (KTAS·규칙 필수/권고·오프→휴가) | [05-feedback-2.md](03-operations/05-feedback-2.md) | AI_PROPOSED |
+| 3-5 운영 피드백 2 (KTAS·규칙 필수/권고·오프→휴가) | [05-feedback-2.md](03-operations/05-feedback-2.md) | IMPLEMENTED |
 
 ---
 
