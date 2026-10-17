@@ -92,7 +92,7 @@ export function swapEdits(
 
 export type ReplacementCandidate = { userId: string; kTass: boolean; edit: CellEdit; newHard: Violation[] }
 
-// R-ADJ-10: 그날 쉬는 교대 근무자. K-tass가 모자라면 K-tass 먼저, 그다음 표 순서(input.nurses 순)
+// R-ADJ-10: 그날 쉬는 교대 근무자. KTAS가 모자라면 KTAS 먼저, 그다음 표 순서(input.nurses 순)
 export function replacementCandidates(
   input: ScheduleInput,
   date: IsoDate,
@@ -119,7 +119,7 @@ export function replacementCandidates(
     out.push({ userId: n.id, kTass: n.kTass, edit, newHard: newViolations(base, trial).hardViolations })
   }
   // 사용자 결정(2026-09-30): 덜 일한 사람 먼저 = 이달 지금까지의 누적 OFF(월초 이월 + 실제 OFF − 기준 OFF)가 큰 사람,
-  // 같으면 이달 근무일이 적은 사람, 그다음 표 순서. K-tass가 모자라면 K-tass 보유자를 먼저 둔다
+  // 같으면 이달 근무일이 적은 사람, 그다음 표 순서. KTAS가 모자라면 KTAS 보유자를 먼저 둔다
   const order = new Map(input.nurses.map((n, i) => [n.id, i]))
   const stat = new Map(
     out.map((c) => {

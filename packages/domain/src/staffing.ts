@@ -7,7 +7,7 @@ import type { DutyCode, NurseProfile, ScheduleInput, TrainingSpan } from './type
 export type StaffCount = {
   // 교대 근무자 중 3인 근무 신규를 뺀 인원 (R-STAFF-1)
   count: number
-  // 그중 K-tass 보유자, 트레이닝 중 신규 제외 (R-STAFF-2)
+  // 그중 KTAS 보유자, 트레이닝 중 신규 제외 (R-STAFF-2)
   kTass: number
   // 수간호사 보충 (R-STAFF-4)
   fallback: number

@@ -52,7 +52,7 @@ export function formatViolation(v: Violation, ctx: FormatContext): { title: stri
     case 'H-STAFF':
       return { title: `${day} ${v.shift} 인원 ${d.count}명`, detail: `최소 ${d.min}명` }
     case 'H-KTASS':
-      return { title: `${day} ${v.shift} K-tass ${d.count}명`, detail: `최소 ${d.min}명` }
+      return { title: `${day} ${v.shift} KTAS ${d.count}명`, detail: `최소 ${d.min}명` }
     case 'H-TRAINING':
       return {
         title: `${name} · 프리셉터와 다른 근무`,
@@ -110,10 +110,10 @@ export function formatViolation(v: Violation, ctx: FormatContext): { title: stri
     case 'S-HEAD-FILL':
       return {
         title: `${day} ${v.shift} 수간호사로 인원 충족`,
-        detail: `교대 근무자 ${d.count}명 · K-tass ${d.kTass}명 (최후의 수단)`,
+        detail: `교대 근무자 ${d.count}명 · KTAS ${d.kTass}명 (최후의 수단)`,
       }
     case 'S-JUNIOR-ONLY':
-      return { title: `${day} ${v.shift} 저연차만 배정`, detail: names.join(', ') }
+      return { title: `${day} ${v.shift} 저연차끼리 배정`, detail: names.join(', ') }
     case 'S-REPEAT-PAIR':
       return { title: `${names.join('·')} · 같은 근무 ${d.count}회`, detail: `경고 기준 ${d.threshold}회` }
     case 'S-REQUEST': {

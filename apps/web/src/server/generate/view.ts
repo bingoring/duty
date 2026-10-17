@@ -136,7 +136,7 @@ export async function loadGenerateView(
     .select()
     .from(trainings)
     .where(and(lte(trainings.startDate, days.at(-1)!), gte(trainings.endDate, days[0]!)))
-  const pairs = tr.map((t) => `${nameOf(t.preceptorId)}·${nameOf(t.traineeId)}`)
+  const pairs = tr.map((t) => `${nameOf(t.traineeId)} → ${nameOf(t.preceptorId)}`)
   const t = rules.toggles
   const priorities: PriorityItem[] = [
     {
@@ -152,7 +152,12 @@ export async function loadGenerateView(
       checked: t.weekendPairOffMonthly,
       disabled: false,
     },
-    { key: 'avoidJuniorOnly', label: '저연차만 배정 방지', checked: t.avoidJuniorOnly, disabled: false },
+    {
+      key: 'avoidJuniorOnly',
+      label: '동일듀티 저연차끼리 배정 방지',
+      checked: t.avoidJuniorOnly,
+      disabled: false,
+    },
     {
       key: 'minimizeRepeatPairs',
       label: '특정 근무자 반복 겹침 최소화',
@@ -161,7 +166,7 @@ export async function loadGenerateView(
     },
     {
       key: 'training',
-      label: `프리셉터–신규 동일 근무 (${pairs.length ? pairs.join(', ') : '해당 없음'}) · 필수`,
+      label: `신규는 프리셉터와 같은 근무 (${pairs.length ? pairs.join(', ') : '이번 달 트레이닝 중인 신규 없음'}) · 필수`,
       checked: true,
       disabled: true,
     },
@@ -169,7 +174,7 @@ export async function loadGenerateView(
 
   const hard = [
     { label: '듀티당 최소 인원', value: `${p.minStaffPerShift}명` },
-    { label: 'K-tass 권한자 포함', value: `${p.minKTass}명 이상` },
+    { label: 'KTAS 권한자 포함', value: `${p.minKTass}명 이상` },
     { label: '월 나이트 상한', value: `${p.maxNightPerMonth}개` },
     { label: '연속 나이트', value: `≤ ${p.maxConsecutiveNight}일` },
     { label: '근무 간 휴식', value: `≥ ${p.minRestHours}시간` },

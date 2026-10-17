@@ -1,5 +1,5 @@
 // 개발용 시드 (R-SEED-1~4). 이름·사번은 가명이다 — 실명은 절대 넣지 않는다(공개 저장소).
-// 연차 구분·K-tass·노조 구성은 요구사항 원문 「응급실 근무자」와 같다.
+// 연차 구분·KTAS·노조 구성은 요구사항 원문 「응급실 근무자」와 같다.
 import { eq } from 'drizzle-orm'
 import { credentials, privacyConsents, users } from '../db/schema'
 import { PRIVACY_NOTICE_VERSION } from '../privacy/notice'

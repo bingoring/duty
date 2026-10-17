@@ -132,7 +132,7 @@ describe('H-OFF-CONSEC (기본 15일, Q2)', () => {
   })
 })
 
-describe('인원·K-tass·수간호사 보충', () => {
+describe('인원·KTAS·수간호사 보충', () => {
   const day = (
     cells: GridCell[],
     nurses = [nurse('a'), nurse('b', { kTass: false }), nurse('h', { rotation: 'fixed_weekday' as const })],
@@ -140,7 +140,7 @@ describe('인원·K-tass·수간호사 보충', () => {
   const onD = (ids: string[]) => ids.flatMap((id) => row(id, OCT1, 'D'))
   const dOnly = (vs: Violation[]) => vs.filter((v) => v.dates[0] === OCT1 && v.shift === 'D')
 
-  it('최소 인원 2명, K-tass 1명', () => {
+  it('최소 인원 2명, KTAS 1명', () => {
     expect(dOnly(only(day(onD(['a', 'b'])), 'H-STAFF'))).toEqual([])
     expect(dOnly(only(day(onD(['b'])), 'H-STAFF'))).toMatchObject([{ data: { count: 1, min: 2 } }])
     expect(dOnly(only(day(onD(['b'])), 'H-KTASS'))).toMatchObject([{ data: { count: 0, min: 1 } }])

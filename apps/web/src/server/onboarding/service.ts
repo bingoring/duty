@@ -37,7 +37,7 @@ const NUMERIC = Object.keys(ACCOUNT) as (keyof typeof ACCOUNT)[]
 
 export const FIELD_LABEL: Record<Key, string> = {
   hireDate: '입사일',
-  kTass: 'K-tass',
+  kTass: 'KTAS',
   seniorityTier: '연차 구분',
   unionMember: '노조',
   nightDedicated: '근무 방식',

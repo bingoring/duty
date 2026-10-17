@@ -39,7 +39,7 @@ describe('buildRulesGuide', () => {
       { code: 'D', time: '07:00 – 15:30', desc: 'Day' },
       { code: 'E', time: '14:30 – 23:00', desc: 'Evening' },
       { code: 'N', time: '22:30 – 익일 07:30', desc: '휴게 1시간 포함' },
-      { code: 'S', time: '09:00 – 18:00', desc: 'K-tass 교육' },
+      { code: 'S', time: '09:00 – 18:00', desc: 'KTAS 교육' },
     ])
   })
 
@@ -59,7 +59,7 @@ describe('buildRulesGuide', () => {
 
   it('강제하지 않는 지침은 "안내", 켜고 끄는 규칙이 꺼지면 "사용 안 함" (R-GUIDE-3)', () => {
     expect(item(DEFAULT_RULES, /순환/)!.tag).toBe('rec') // 솔버 벌점(DECISIONS 2026-10-08)
-    expect(item(DEFAULT_RULES, /K-tass 교육/)!.tag).toBe('info')
+    expect(item(DEFAULT_RULES, /KTAS 교육/)!.tag).toBe('info')
     expect(item(withParams({ maxConsecutiveWork: 6 }), /연속 근무는/)).toMatchObject({
       text: '연속 근무는 6일 이하로 편성합니다.',
       tag: 'rec',

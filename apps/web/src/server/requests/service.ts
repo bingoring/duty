@@ -576,7 +576,7 @@ export async function cancelApprovedLeave(db: Db, actor: Actor, id: string): Pro
 
 // R-APPROVE-3: 확정된 달이면 승인으로 새로 생기는 하드 위반과 대체 후보(그날 OFF인 교대 근무자, 표 순서 최대 3명).
 // 신청 중인 달이면 null. 대체 지정 자체는 2-7 근무 조정에서 한다.
-// focus: 2-7 「승인 · 대체 지정」이 여는 S9 대체 지정의 날짜·듀티(첫 인원·K-tass 부족)
+// focus: 2-7 「승인 · 대체 지정」이 여는 S9 대체 지정의 날짜·듀티(첫 인원·KTAS 부족)
 export type LeaveImpact = {
   lines: string[]
   candidates: string[]
@@ -618,7 +618,7 @@ export async function leaveImpact(db: Db, id: string): Promise<LeaveImpact | nul
   })
   const staff = added.find((v) => (v.ruleId === 'H-STAFF' || v.ruleId === 'H-KTASS') && v.shift && v.dates[0])
   const focus = staff ? { date: staff.dates[0]!, shift: staff.shift as 'D' | 'E' | 'N' } : null
-  // 대체 후보: 2-7 S9 대체 지정과 같은 기준(그날 쉬는 교대 근무자, K-tass 부족이면 K-tass 먼저, 덜 일한 사람 먼저,
+  // 대체 후보: 2-7 S9 대체 지정과 같은 기준(그날 쉬는 교대 근무자, KTAS 부족이면 KTAS 먼저, 덜 일한 사람 먼저,
   // 넣어도 새 필수 위반이 없는 사람) 상위 3명. 누적 OFF 비교를 위해 월초 잔여를 채운다
   const candidates: string[] = []
   if (focus) {
@@ -627,7 +627,7 @@ export async function leaveImpact(db: Db, id: string): Promise<LeaveImpact | nul
       if (candidates.length >= 3) break
       if (c.userId === l.userId || c.newHard.length) continue
       candidates.push(
-        `${names.get(c.userId) ?? c.userId} (${formatMD(focus.date)} OFF${c.kTass ? ', K-tass' : ''})`,
+        `${names.get(c.userId) ?? c.userId} (${formatMD(focus.date)} OFF${c.kTass ? ', KTAS' : ''})`,
       )
     }
   }

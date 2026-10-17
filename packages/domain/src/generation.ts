@@ -159,7 +159,7 @@ export function generationChecks(
   if (!staffBad)
     out.push({
       ok: true,
-      title: `모든 듀티 인원 ${p.minStaffPerShift}명 이상${p.minKTass > 0 ? ` · K-tass ${p.minKTass}명 포함` : ''}`,
+      title: `모든 듀티 인원 ${p.minStaffPerShift}명 이상${p.minKTass > 0 ? ` · KTAS ${p.minKTass}명 포함` : ''}`,
       detail: `${formatMD(days[0]!)}~${days.length} D·E·N ${days.length * 3}개 듀티 전부 충족${
         headFill ? ` · 수간호사 보충 ${headFill}개` : ''
       }`,

@@ -50,7 +50,7 @@ describe('validateRuleSet (R-RULE-EDIT-1·2)', () => {
     expect(validateRuleSet(withParams({ minStaffPerShift: 0 }))[0]?.key).toBe('minStaffPerShift')
   })
 
-  it('상호 제약: 목표 ≤ 상한, K-tass ≤ 최소 인원, 마감 < 협의 시작 ≤ 끝, 전담 값 순서', () => {
+  it('상호 제약: 목표 ≤ 상한, KTAS ≤ 최소 인원, 마감 < 협의 시작 ≤ 끝, 전담 값 순서', () => {
     const keys = (p: Partial<RuleSet['params']>) => validateRuleSet(withParams(p)).map((e) => e.key)
     expect(keys({ targetNightPerMonth: 8 })).toEqual(['targetNightPerMonth'])
     expect(keys({ minKTass: 3 })).toEqual(['minKTass'])

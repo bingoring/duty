@@ -91,7 +91,7 @@ export function causeText(
     case 'STAFF':
       return day ? `${day} ${c.shift} 인원을 채울 수 없습니다` : '듀티 최소 인원을 채울 수 없습니다'
     case 'KTASS':
-      return `${day} ${c.shift} K-tass 보유자를 배정할 수 없습니다`
+      return `${day} ${c.shift} KTAS 보유자를 배정할 수 없습니다`
     case 'NIGHT_MAX':
       return `${who} · 월 나이트 상한(${rules.nightMax}개)과 충돌합니다`
     case 'NIGHT_CONSEC':

@@ -148,7 +148,7 @@ export function OnboardingForm({ view, params }: { view: OnboardingView; params:
               </div>
             </Field>
           )}
-          {yesNo('kTass', 'K-tass 자격')}
+          {yesNo('kTass', 'KTAS 자격')}
           {yesNo('unionMember', '노조 가입')}
           {has('nightDedicated') && (
             <div className="col-span-2">

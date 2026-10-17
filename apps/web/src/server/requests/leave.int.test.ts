@@ -304,7 +304,7 @@ describe('leaveImpact (R-APPROVE-3)', () => {
     // 대체 후보 = 그날 쉬는 교대 근무자 중 넣어도 새 필수 위반이 없는 사람, 덜 일한 사람 먼저(2-7 사용자 결정), 최대 3명
     expect(await leaveImpact(db, id)).toEqual({
       lines: ['10/2 (금) D 인원 1명 · 최소 2명'],
-      candidates: ['오민지 (10/2 OFF, K-tass)', '배지현 (10/2 OFF, K-tass)'],
+      candidates: ['오민지 (10/2 OFF, KTAS)', '배지현 (10/2 OFF, KTAS)'],
       // 2-7 R-LEAVE-C1: 「승인 · 대체 지정」이 여는 S9 대체 지정 날짜·듀티
       focus: { date: '2026-10-02', shift: 'D' },
     })

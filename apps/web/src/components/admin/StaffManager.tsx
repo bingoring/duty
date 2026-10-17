@@ -233,9 +233,9 @@ function AddPanel({
             onChange={(e) => set('hireDate', e.target.value)}
           />
         </Field>
-        <Field label="K-tass 권한">
+        <Field label="KTAS 권한">
           <Select
-            label="K-tass 권한"
+            label="KTAS 권한"
             value={f.kTass ? 'y' : 'n'}
             onChange={(v) => set('kTass', v === 'y')}
             options={[
@@ -435,7 +435,7 @@ function EditDialog({
       <div className="flex gap-4">
         {(
           [
-            ['kTass', 'K-tass'],
+            ['kTass', 'KTAS'],
             ['unionMember', '노조'],
             ['admin', '관리자 권한'],
           ] as const
@@ -632,7 +632,7 @@ export function StaffManager({
             <span>성명</span>
             <span>사번</span>
             <span>연차(년)</span>
-            <span>K-tass</span>
+            <span>KTAS</span>
             <span>역할</span>
             <span>트레이닝</span>
             <span />
@@ -691,7 +691,7 @@ export function StaffManager({
                 <span className="text-ink-2">{r.employeeNo}</span>
                 <span>{r.years ?? '—'}</span>
                 <span className={r.kTass ? 'font-semibold text-primary' : 'text-ink-4'}>
-                  {r.kTass ? 'K-tass' : '—'}
+                  {r.kTass ? 'KTAS' : '—'}
                 </span>
                 <span
                   className={

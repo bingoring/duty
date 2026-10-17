@@ -11,7 +11,7 @@ export type RulesGuide = {
   sections: GuideSection[]
 }
 
-const SHIFT_DESC = { D: 'Day', E: 'Evening', N: '휴게 1시간 포함', S: 'K-tass 교육' } as const
+const SHIFT_DESC = { D: 'Day', E: 'Evening', N: '휴게 1시간 포함', S: 'KTAS 교육' } as const
 // 2-4 패턴 표기: OFF → off
 const pattern = (p: string) => p.replace(/OFF/g, 'off')
 
@@ -38,7 +38,7 @@ export function buildRulesGuide(rules: RuleSet, version: number | null): RulesGu
         },
         { text: `연속 근무는 ${p.maxConsecutiveWork}일 이하로 편성합니다.`, tag: 'rec' },
         {
-          text: `K-tass 교육은 S 근무(${SHIFT_TIMES.S.start}–${SHIFT_TIMES.S.end})로 배정합니다.`,
+          text: `KTAS 교육은 S 근무(${SHIFT_TIMES.S.start}–${SHIFT_TIMES.S.end})로 배정합니다.`,
           tag: 'info',
         },
       ],
@@ -100,7 +100,7 @@ export function buildRulesGuide(rules: RuleSet, version: number | null): RulesGu
           tag: 'auto',
         },
         {
-          text: `누적 N ${p.sleepingOffPerN}개마다 슬리핑오프 1일을 줍니다. 남은 N은 연말 정산 없이 이월됩니다.`,
+          text: `누적 N ${p.sleepingOffPerN}개마다 슬리핑오프 1일을 줍니다. 남은 N은 연말 정산 없이 이월됩니다(예: 이번 달 N ${p.sleepingOffPerN + 1}개 → 슬리핑오프 1일, 남은 1개는 다음 달 N과 합산).`,
           tag: 'auto',
         },
         {
@@ -135,10 +135,10 @@ export function buildRulesGuide(rules: RuleSet, version: number | null): RulesGu
       title: '응급실 지침',
       items: [
         {
-          text: `듀티(D·E·N)마다 최소 ${p.minStaffPerShift}명, K-tass 권한자 ${p.minKTass}명 이상을 배정합니다.`,
+          text: `듀티(D·E·N)마다 최소 ${p.minStaffPerShift}명, KTAS 권한자 ${p.minKTass}명 이상을 배정합니다.`,
           tag: 'auto',
         },
-        { text: '저연차만으로 근무를 짜지 않도록 합니다.', tag: toggled(t.avoidJuniorOnly) },
+        { text: '같은 듀티에 저연차끼리만 서지 않도록 합니다.', tag: toggled(t.avoidJuniorOnly) },
         {
           text: '한 달에 한 번 주말 이틀(토·일)을 통으로 OFF 배정합니다. 불가능하면 다음 달 최우선으로 배정합니다.',
           tag: toggled(t.weekendPairOffMonthly),

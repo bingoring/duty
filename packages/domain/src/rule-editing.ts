@@ -62,7 +62,7 @@ export const RULE_PARAM_LIMITS: RuleParamLimit[] = [
   p('offAfterNight', 'N 후 OFF', '권고', '개', 0, 4, '나이트', '불가피 시 N-OFF-E 허용'),
   p('sleepingOffPerN', '슬리핑오프 기준 N', '필수', '개', 1, 12, '나이트', '누적 N마다 OFF 1'),
   p('minStaffPerShift', '듀티당 최소 인원', '필수', '명', 1, 10, '인원·신규', 'D·E·N 각각'),
-  p('minKTass', 'K-tass 권한자', '필수', '명 이상', 0, 5, '인원·신규', '듀티마다'),
+  p('minKTass', 'KTAS 권한자', '필수', '명 이상', 0, 5, '인원·신규', '듀티마다'),
   p('trainingMonths', '신규 트레이닝 기간', '필수', '개월', 1, 12, '인원·신규', '프리셉터와 같은 근무'),
   p('newbieTripleWeeks', '3인 배정 기간(완전 신규)', '필수', '주', 0, 12, '인원·신규', '트레이닝 시작 후'),
   p(
@@ -112,7 +112,11 @@ export const RULE_TOGGLE_DEFS: { key: keyof RuleToggles; label: string; desc: st
     label: '모든 간호사 월 1회 주말 이틀 통 OFF',
     desc: '토·일 연속 OFF. 불가능한 사람은 다음 달 최우선',
   },
-  { key: 'avoidJuniorOnly', label: '저연차만 배정 방지', desc: '듀티마다 저연차(연차 구분)만 서지 않도록' },
+  {
+    key: 'avoidJuniorOnly',
+    label: '동일듀티 저연차끼리 배정 방지',
+    desc: '같은 듀티에 저연차(연차 구분)끼리만 서지 않도록',
+  },
   { key: 'minimizeRepeatPairs', label: '특정 근무자 반복 겹침 최소화', desc: '트레이닝 기간 제외' },
   {
     key: 'nightDedicated',
@@ -142,7 +146,7 @@ export function validateRuleSet(rules: RuleSet): RuleError[] {
   }
   if (v.targetNightPerMonth > v.maxNightPerMonth)
     add('targetNightPerMonth', '월 나이트 목표는 상한 이하여야 합니다.')
-  if (v.minKTass > v.minStaffPerShift) add('minKTass', 'K-tass 권한자는 듀티당 최소 인원 이하여야 합니다.')
+  if (v.minKTass > v.minStaffPerShift) add('minKTass', 'KTAS 권한자는 듀티당 최소 인원 이하여야 합니다.')
   if (v.negotiationStartDay <= v.requestDeadlineDay || v.negotiationStartDay > v.negotiationEndDay)
     add('negotiationStartDay', '협의 수정 기간은 신청 마감 다음 날 이후이고 시작 ≤ 끝이어야 합니다.')
   if (v.nightDedicatedMaxPerMonth31 < v.nightDedicatedMaxPerMonth)
