@@ -1,4 +1,4 @@
-import { formatMD, type LeaveType } from '@duty/domain'
+import { formatMD, type LeaveType, leaveCellLabel } from '@duty/domain'
 import { and, desc, eq, gte, inArray, lte } from 'drizzle-orm'
 import type { Db } from '../db/client'
 import {
@@ -15,10 +15,10 @@ import type { ScheduleCellRow } from './types'
 // Build Spec 2-11 R-TIP-2~4 — 칸 툴팁의 출처 줄. 근무표 조회 때 달 단위로 한 번에 읽는다.
 // 코멘트·메모·사유는 본인과 관리자만(R-1 ①)
 
-type Snap = { code?: string; offKind?: string | null }
+type Snap = { code?: string; offKind?: string | null; leaveKind?: string | null }
 const SPECIAL_LABEL: Record<string, string> = { AL: '연차', EDU_CONT: '보수교육', EDU_UNION: '노조교육' }
 const codeLabel = (c: Snap | null) =>
-  !c?.code ? '—' : c.code === 'OFF' ? 'off' : c.code === 'AL' || c.code === 'LEAVE' ? '휴' : c.code
+  !c?.code ? '—' : (leaveCellLabel(c) ?? (c.code === 'OFF' ? 'off' : c.code))
 // "10/2 09:30" (서울)
 const at = (d: Date) => {
   const p = Object.fromEntries(

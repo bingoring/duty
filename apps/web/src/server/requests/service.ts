@@ -121,6 +121,8 @@ export async function saveShiftRequest(
       comment: input.comment?.trim() || null,
       // R-REQ-DRAFT-1·2: 간호사 저장은 임시(수정해도 다시 임시), 관리자 편집은 곧바로 제출
       submittedAt: actor.role === 'admin' ? new Date() : null,
+      // 3-6: 관리자가 남의 신청을 넣으면 파란 표시. 본인이 고치면 본인 신청으로 돌아간다
+      byAdmin: actor.role === 'admin' && actor.id !== input.userId,
       updatedAt: new Date(),
     }
     await db

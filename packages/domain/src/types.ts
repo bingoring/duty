@@ -70,6 +70,8 @@ export type RequestEntry = {
   date: IsoDate
   options: RequestOption[]
   special?: RequestSpecial
+  // 3-6: 관리자가 대신 넣은 신청 → 반영된 칸의 출처는 admin(파란 외곽선)
+  byAdmin?: boolean
 }
 
 export type ScheduleInput = {

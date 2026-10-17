@@ -44,7 +44,7 @@ test.describe('S4 근무 신청', () => {
     await Promise.all([me.close(), peer.close(), admin.close()])
   })
 
-  test('경조사 휴가: 종료일 자동 → 제출 → 관리자 승인 → 채운 휴', async ({ browser }) => {
+  test('경조사 휴가: 종료일 자동 → 제출 → 관리자 승인 → 채운 경조', async ({ browser }) => {
     const me = await as(browser, PEER.employeeNo)
     await me.getByRole('button', { name: `${PEER.name} 2026-11-19` }).click()
     const pop = me.getByRole('dialog')
@@ -55,7 +55,7 @@ test.describe('S4 근무 신청', () => {
     await expect(pop.getByText('11/19–25 · 7일 · 유급')).toBeVisible()
     await pop.getByRole('button', { name: '임시 저장' }).click()
     for (const d of ['2026-11-19', '2026-11-25'])
-      await expect(me.getByRole('button', { name: `${PEER.name} ${d}` })).toHaveText('휴')
+      await expect(me.getByRole('button', { name: `${PEER.name} ${d}` })).toHaveText('경조')
     await me.getByRole('button', { name: '신청 제출' }).click()
     await expect(me.getByRole('status')).toContainText('제출했습니다')
 
@@ -88,7 +88,7 @@ test.describe('S4 근무 신청', () => {
 })
 
 test.describe('S4-A 확정된 달 휴가', () => {
-  test('10월 병가 → 인원 영향 경고 → 승인하면 근무표에 휴', async ({ browser }) => {
+  test('10월 병가 → 인원 영향 경고 → 승인하면 근무표에 병가', async ({ browser }) => {
     const me = await as(browser, CHAE.employeeNo, '/requests?ym=2026-10')
     await expect(me.getByText('확정된 달 · 휴가만 신청')).toBeVisible()
     await me.getByRole('button', { name: `${CHAE.name} 2026-10-02` }).click()
@@ -124,7 +124,7 @@ test.describe('S4-A 확정된 달 휴가', () => {
 
     await admin.goto('/?ym=2026-10')
     const row = admin.getByRole('grid').getByRole('row', { name: CHAE.name })
-    await expect(row.locator('[data-date="2026-10-02"]')).toHaveAttribute('data-tip', /휴 · 병가/)
+    await expect(row.locator('[data-date="2026-10-02"]')).toHaveAttribute('data-tip', /10\/2 \(금\) · 병가/)
 
     // 2-7 Q4: 확정된 달의 승인 휴가 취소 → 승인 전 칸(D)으로 복원
     await admin.goto('/adjust?ym=2026-10')

@@ -151,12 +151,13 @@ export function generatedCellSource(
   request: RequestEntry | undefined,
   isFixed: boolean,
 ): CellSource {
-  if (isFixed) return 'requested'
+  const requested = request?.byAdmin ? 'admin' : 'requested'
+  if (isFixed) return requested
   if (!request) return 'auto'
   const ok = request.special
     ? specialSatisfied(cell, request.special)
     : optionsSatisfied(cell, request.options)
-  return ok ? 'requested' : 'auto'
+  return ok ? requested : 'auto'
 }
 
 export type GenerationCheck = { ok: boolean; title: string; detail: string }

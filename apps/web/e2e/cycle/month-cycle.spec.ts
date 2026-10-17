@@ -93,7 +93,7 @@ test('11월 한 달: 신청·휴가 → 생성·확정 → 교환·관리자 조
     ).toHaveAttribute('data-tip', /off[\s\S]*신청 반영/)
     await expect(
       grid.getByRole('row', { name: B.name }).locator(`[data-date="${LEAVE_DATE}"]`),
-    ).toHaveAttribute('data-tip', /휴/)
+    ).toHaveAttribute('data-tip', /연차/)
   })
 
   // 생성 결과에 따라 칸이 달라지므로 규칙을 통과하는 교환·편집을 도메인 검사기로 고른다

@@ -17,6 +17,7 @@ import {
   type GridCell,
   type ScheduleInput,
   type Violation,
+  leaveCellLabel,
 } from '@duty/domain'
 import { useMemo, useRef, useState, useSyncExternalStore, useTransition } from 'react'
 import { cancelApprovedLeaveAction } from '@/server/adjust/actions'
@@ -48,13 +49,7 @@ const isLeaveCell = (c: GridCell) =>
 export const cellLabel = (c: GridCell | undefined) =>
   !c
     ? '—'
-    : c.code === 'OFF'
-      ? c.offKind === 'sleeping'
-        ? '슬리핑 off'
-        : 'off'
-      : isLeaveCell(c)
-        ? '휴'
-        : c.code
+    : (leaveCellLabel(c) ?? (c.code === 'OFF' ? (c.offKind === 'sleeping' ? '슬리핑 off' : 'off') : c.code))
 const shiftDate = (d: string, n: number) => {
   const t = new Date(`${d}T00:00:00Z`)
   t.setUTCDate(t.getUTCDate() + n)

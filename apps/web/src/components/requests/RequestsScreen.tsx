@@ -50,7 +50,9 @@ function Chip({ c, compact = false }: { c: RequestCellDTO; compact?: boolean }) 
     ? approved
       ? ''
       : 'border border-dashed border-[#8fa874]'
-    : 'shadow-[inset_0_0_0_1.5px_var(--color-danger)]'
+    : c.byAdmin
+      ? 'shadow-[inset_0_0_0_1.5px_var(--color-admin)]'
+      : 'shadow-[inset_0_0_0_1.5px_var(--color-danger)]'
   return (
     <span
       className={`flex items-center justify-center rounded-md font-bold text-ink ${box} ${size} ${bg} ${outline} ${
@@ -255,8 +257,12 @@ function Legend({ admin = false }: { admin?: boolean }) {
         O/D
       </span>
       신청
-      <span className="ml-1.5 rounded-[5px] bg-shift-leave px-2 py-[3px] font-bold text-ink">휴</span>
-      휴가{admin ? '' : ' (연차·경조·병가·공가·특휴)'}
+      <span className="ml-1.5 rounded-[5px] bg-shift-off px-2 py-[3px] font-bold text-ink shadow-[inset_0_0_0_1.5px_var(--color-admin)]">
+        O
+      </span>
+      관리자 입력
+      <span className="ml-1.5 rounded-[5px] bg-shift-leave px-2 py-[3px] font-bold text-ink">연차</span>
+      휴가{admin ? '' : ' (연차·검진·개원·병가·경조·공가·특휴)'}
       <span className="ml-1.5 underline decoration-dotted underline-offset-[3px]">밑줄</span>
       코멘트{admin ? ' — 관리자는 셀에 마우스를 올리면 코멘트 전문이 보입니다' : ''}
     </div>

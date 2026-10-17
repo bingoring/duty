@@ -157,8 +157,19 @@ export async function buildScheduleInput(
       .filter((r) => personIds.has(r.userId))
       .map((r) =>
         r.special
-          ? { userId: r.userId, date: r.date, options: [], special: r.special as RequestSpecial }
-          : { userId: r.userId, date: r.date, options: r.options as RequestOption[] },
+          ? {
+              userId: r.userId,
+              date: r.date,
+              options: [],
+              special: r.special as RequestSpecial,
+              ...(r.byAdmin ? { byAdmin: true } : {}),
+            }
+          : {
+              userId: r.userId,
+              date: r.date,
+              options: r.options as RequestOption[],
+              ...(r.byAdmin ? { byAdmin: true } : {}),
+            },
       ),
   }
   return { input, cells }

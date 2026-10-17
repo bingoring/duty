@@ -257,6 +257,8 @@ export const shiftRequests = pgTable(
     comment: text('comment'),
     // 2-5 Q2: null = 임시 저장(본인만), 시각 = 제출
     submittedAt: tstz('submitted_at'),
+    // 3-6: 관리자가 다른 간호사 대신 넣은 신청(신청 화면·근무표에 파란 외곽선)
+    byAdmin: boolean('by_admin').notNull().default(false),
     createdAt: createdAt(),
     updatedAt: tstz('updated_at').notNull().defaultNow(),
   },
