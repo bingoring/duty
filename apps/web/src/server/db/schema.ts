@@ -336,6 +336,34 @@ export const monthSettlements = pgTable(
   (t) => [primaryKey({ columns: [t.monthPlanId, t.userId] })],
 )
 
+// 3-5: 관리자가 간호사의 OFF(다음 달 OFF 신청 또는 확정된 근무표의 OFF 칸)를 휴가로 바꾸자는 요청.
+// 간호사가 수락하면 승인된 휴가(leave_requests)가 되고, 거절하면 그대로 둔다
+export const leaveProposals = pgTable(
+  'leave_proposals',
+  {
+    id: id(),
+    userId: uuid('user_id')
+      .notNull()
+      .references(() => users.id),
+    proposedBy: uuid('proposed_by')
+      .notNull()
+      .references(() => users.id),
+    type: text('type').notNull(),
+    reasonCode: text('reason_code'),
+    startDate: day('start_date').notNull(),
+    endDate: day('end_date').notNull(),
+    days: numeric('days', { precision: 4, scale: 1 }).notNull(),
+    comment: text('comment'),
+    // LEAVE_PROPOSAL_STATUSES
+    status: text('status').notNull(),
+    closedReason: text('closed_reason'),
+    leaveRequestId: uuid('leave_request_id').references(() => leaveRequests.id),
+    createdAt: createdAt(),
+    closedAt: tstz('closed_at'),
+  },
+  (t) => [index('leave_proposals_user_status_idx').on(t.userId, t.status)],
+)
+
 // Build Spec 2-8 domain-entities §1 — 간호사 교환 요청 (한 요청 = 한 날짜)
 export const swapRequests = pgTable(
   'swap_requests',

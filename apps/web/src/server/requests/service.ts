@@ -37,9 +37,10 @@ import type { YearMonth } from '../schedule/month'
 import { fillProfiles } from '../generate/input'
 import { INVALID_BY_ADMIN, invalidateSwapsForCells } from '../swaps/invalidate'
 import { buildScheduleInput } from '../schedule/input'
-import { lockPlansFor, Rejected, rejectable } from '../plans/lock'
+import { lockPlansFor, Rejected, rejectable, type Tx } from '../plans/lock'
 import { projectedLeaveBalance } from './balance'
 import { PRE_GENERATION, findPlan, type PlanRow } from './plan'
+import { createLeaveProposal, invalidateProposalsOn, isOffTarget } from './proposals'
 
 // Build Spec 2-5 business-rules §1 — 근무 신청·휴가
 export type Actor = { id: string; role: 'nurse' | 'admin' }
@@ -126,6 +127,9 @@ export async function saveShiftRequest(
       .insert(shiftRequests)
       .values(values)
       .onConflictDoUpdate({ target: [shiftRequests.userId, shiftRequests.date], set: values })
+    // 3-5: OFF가 아니게 바꾸면 그 날의 휴가 변경 요청은 무효
+    if (input.special || !input.options.includes('OFF'))
+      await invalidateProposalsOn(db, input.userId, input.date)
     return { ok: true }
   })
 }
@@ -188,6 +192,7 @@ export async function deleteShiftRequest(
     await db
       .delete(shiftRequests)
       .where(and(eq(shiftRequests.userId, input.userId), eq(shiftRequests.date, input.date)))
+    await invalidateProposalsOn(db, input.userId, input.date)
     return { ok: true }
   })
 }
@@ -267,12 +272,53 @@ function canRequestLeave(plan: PlanRow | undefined, actor: Actor, today: string)
   return canEditShiftRequests(plan, actor, today)
 }
 
+// 휴가 내용 검사: 사유·종료일·일수, 다른 휴가와 겹침(R-LEAVE-4), 예정 잔여(R-LEAVE-5).
+// 3-5 휴가 변경 요청(보낼 때·수락할 때)도 같은 검사를 쓴다
+export async function checkLeaveInput(
+  db: Db,
+  input: LeaveInput,
+  today: string,
+): Promise<{ ok: true; endDate: string; days: number } | { ok: false; message: string }> {
+  if (input.type === 'family' && !(input.reasonCode && input.reasonCode in FAMILY_LEAVE_DAYS))
+    return deny('사유를 선택해 주세요.')
+  if (input.type === 'official' && !(input.reasonCode && input.reasonCode in OFFICIAL_LEAVE_REASONS))
+    return deny('사유를 선택해 주세요.')
+  const endDate = leaveEnd(input.type, input.startDate, input.reasonCode, input.endDate)
+  if (!endDate) return deny('종료일을 확인해 주세요.')
+  const days = leaveDays(input.type, input.startDate, endDate, input.reasonCode)
+
+  // R-LEAVE-4: 겹침
+  const overlapLeave = await db.$count(
+    leaveRequests,
+    and(
+      eq(leaveRequests.userId, input.userId),
+      inArray(leaveRequests.status, ACTIVE_LEAVE),
+      lte(leaveRequests.startDate, endDate),
+      gte(leaveRequests.endDate, input.startDate),
+    ),
+  )
+  if (overlapLeave > 0) return deny('기간 안에 다른 휴가가 있습니다.')
+
+  // R-LEAVE-5: 예정 잔여
+  const account = leaveAccount(input.type)
+  if (account && account in BALANCE_LABEL) {
+    const [label, field] = BALANCE_LABEL[account as keyof typeof BALANCE_LABEL]
+    const bal = await projectedLeaveBalance(db, input.userId, today, {
+      year: Number(input.startDate.slice(0, 4)),
+    })
+    const available = bal[field]
+    if (!(field === 'annual' && bal.annualUnknown) && days > available)
+      return deny(`${label} 잔여를 넘습니다 (신청 ${days}일 / 잔여 ${Math.max(0, available)}일).`)
+  }
+  return { ok: true, endDate, days }
+}
+
 export async function saveLeave(
   outer: Db,
   actor: Actor,
   input: LeaveInput,
   today: string,
-): Promise<{ ok: true; id: string } | { ok: false; message: string }> {
+): Promise<{ ok: true; id: string; proposed?: true } | { ok: false; message: string }> {
   // R-1: 그 달 계획 행을 잠그고 검사·쓰기를 한다(확정·다른 저장과 직렬화, 더블 클릭 중복 방지)
   return outer.transaction(async (tx) => {
     const db = tx as unknown as Db
@@ -281,25 +327,14 @@ export async function saveLeave(
       return deny('다른 사람의 신청은 바꿀 수 없습니다.')
     const plan = await findPlan(db, ymOfDate(input.startDate))
     if (!canRequestLeave(plan, actor, today)) return deny('휴가를 신청할 수 있는 달이 아닙니다.')
-    if (input.type === 'family' && !(input.reasonCode && input.reasonCode in FAMILY_LEAVE_DAYS))
-      return deny('사유를 선택해 주세요.')
-    if (input.type === 'official' && !(input.reasonCode && input.reasonCode in OFFICIAL_LEAVE_REASONS))
-      return deny('사유를 선택해 주세요.')
-    const endDate = leaveEnd(input.type, input.startDate, input.reasonCode, input.endDate)
-    if (!endDate) return deny('종료일을 확인해 주세요.')
-    const days = leaveDays(input.type, input.startDate, endDate, input.reasonCode)
+    const checked = await checkLeaveInput(db, input, today)
+    if (!checked.ok) return checked
+    const { endDate, days } = checked
 
-    // R-LEAVE-4: 겹침
-    const overlapLeave = await db.$count(
-      leaveRequests,
-      and(
-        eq(leaveRequests.userId, input.userId),
-        inArray(leaveRequests.status, ACTIVE_LEAVE),
-        lte(leaveRequests.startDate, endDate),
-        gte(leaveRequests.endDate, input.startDate),
-      ),
-    )
-    if (overlapLeave > 0) return deny('기간 안에 다른 휴가가 있습니다.')
+    // 3-5: 관리자가 간호사의 OFF(OFF 신청·확정된 OFF 칸)를 휴가로 바꾸려면 간호사가 수락해야 한다
+    if (actor.role === 'admin' && actor.id !== input.userId && (await isOffTarget(db, plan!, input)))
+      return createLeaveProposal(db, actor, input, { endDate, days })
+
     const overlapShift = await db.$count(
       shiftRequests,
       and(
@@ -309,18 +344,6 @@ export async function saveLeave(
       ),
     )
     if (overlapShift > 0) return deny('기간 안에 근무 신청이 있습니다.')
-
-    // R-LEAVE-5: 예정 잔여
-    const account = leaveAccount(input.type)
-    if (account && account in BALANCE_LABEL) {
-      const [label, field] = BALANCE_LABEL[account as keyof typeof BALANCE_LABEL]
-      const bal = await projectedLeaveBalance(db, input.userId, today, {
-        year: Number(input.startDate.slice(0, 4)),
-      })
-      const available = bal[field]
-      if (!(field === 'annual' && bal.annualUnknown) && days > available)
-        return deny(`${label} 잔여를 넘습니다 (신청 ${days}일 / 잔여 ${Math.max(0, available)}일).`)
-    }
     const [row] = await db
       .insert(leaveRequests)
       .values({
@@ -413,69 +436,82 @@ export async function decideLeave(
         .where(and(eq(leaveRequests.id, id), eq(leaveRequests.status, 'SUBMITTED')))
         .returning({ id: leaveRequests.id })
       if (!done) throw new Rejected('제출된 휴가만 처리할 수 있습니다.')
-      for (const date of dates) {
-        const plan = statusOf(date)
-        if (plan?.status !== 'CONFIRMED') continue
-        const [c] = await tx
-          .select()
-          .from(scheduleCells)
-          .where(
-            and(
-              eq(scheduleCells.monthPlanId, plan.id),
-              eq(scheduleCells.userId, l.userId),
-              eq(scheduleCells.date, date),
-            ),
-          )
-        if (!c) continue
-        const before = {
-          code: c.code,
-          offKind: c.offKind,
-          leaveKind: c.leaveKind,
-          checkupHalf: c.checkupHalf,
-        }
-        const next = applyLeave(
-          {
-            userId: c.userId,
-            date,
-            code: c.code as GridCell['code'],
-            checkupHalf: c.checkupHalf,
-            ...(c.offKind ? { offKind: c.offKind as GridCell['offKind'] } : {}),
-            ...(c.leaveKind ? { leaveKind: c.leaveKind as GridCell['leaveKind'] } : {}),
-          },
-          l.type as LeaveType,
-        )
-        const after = {
-          code: next.code,
-          offKind: next.offKind ?? null,
-          leaveKind: next.leaveKind ?? null,
-          checkupHalf: next.checkupHalf,
-        }
-        // 2-11 R-MARK-2: 승인 휴가로 바뀐 칸은 관리자 개입이 아니라 신청 반영(빨간 실선)
-        await tx
-          .update(scheduleCells)
-          .set({ ...after, source: 'requested', editedBy: actor.id, editedAt: now })
-          .where(
-            and(
-              eq(scheduleCells.monthPlanId, plan.id),
-              eq(scheduleCells.userId, l.userId),
-              eq(scheduleCells.date, date),
-            ),
-          )
-        await tx.insert(cellEditLogs).values({
-          monthPlanId: plan.id,
-          userId: l.userId,
-          date,
-          before,
-          after,
-          editedBy: actor.id,
-          editedAt: now,
-          reason: 'leave_approved',
-        })
-        await invalidateSwapsForCells(tx, plan.id, [{ userId: l.userId, date }], INVALID_BY_ADMIN)
-      }
+      await applyApprovedLeaveToCells(tx, plans, l, actor.id, now)
       return { ok: true as const }
     }),
   )
+}
+
+// R-APPROVE-2: 확정된 달의 칸을 휴가로 바꾸고 이력·교환 무효를 남긴다 (휴가 승인·3-5 휴가 변경 수락)
+export async function applyApprovedLeaveToCells(
+  tx: Tx,
+  plans: Awaited<ReturnType<typeof lockPlansFor>>,
+  l: Pick<LeaveRow, 'userId' | 'type' | 'startDate' | 'endDate'>,
+  editorId: string,
+  now: Date,
+) {
+  const statusOf = (date: string) =>
+    plans.find((p) => p.year === Number(date.slice(0, 4)) && p.month === Number(date.slice(5, 7)))
+  for (const date of leaveDates(l.startDate, l.endDate)) {
+    const plan = statusOf(date)
+    if (plan?.status !== 'CONFIRMED') continue
+    const [c] = await tx
+      .select()
+      .from(scheduleCells)
+      .where(
+        and(
+          eq(scheduleCells.monthPlanId, plan.id),
+          eq(scheduleCells.userId, l.userId),
+          eq(scheduleCells.date, date),
+        ),
+      )
+    if (!c) continue
+    const before = {
+      code: c.code,
+      offKind: c.offKind,
+      leaveKind: c.leaveKind,
+      checkupHalf: c.checkupHalf,
+    }
+    const next = applyLeave(
+      {
+        userId: c.userId,
+        date,
+        code: c.code as GridCell['code'],
+        checkupHalf: c.checkupHalf,
+        ...(c.offKind ? { offKind: c.offKind as GridCell['offKind'] } : {}),
+        ...(c.leaveKind ? { leaveKind: c.leaveKind as GridCell['leaveKind'] } : {}),
+      },
+      l.type as LeaveType,
+    )
+    const after = {
+      code: next.code,
+      offKind: next.offKind ?? null,
+      leaveKind: next.leaveKind ?? null,
+      checkupHalf: next.checkupHalf,
+    }
+    // 2-11 R-MARK-2: 승인 휴가로 바뀐 칸은 관리자 개입이 아니라 신청 반영(빨간 실선)
+    await tx
+      .update(scheduleCells)
+      .set({ ...after, source: 'requested', editedBy: editorId, editedAt: now })
+      .where(
+        and(
+          eq(scheduleCells.monthPlanId, plan.id),
+          eq(scheduleCells.userId, l.userId),
+          eq(scheduleCells.date, date),
+        ),
+      )
+    await tx.insert(cellEditLogs).values({
+      monthPlanId: plan.id,
+      userId: l.userId,
+      date,
+      before,
+      after,
+      editedBy: editorId,
+      editedAt: now,
+      reason: 'leave_approved',
+    })
+    await invalidateSwapsForCells(tx, plan.id, [{ userId: l.userId, date }], INVALID_BY_ADMIN)
+  }
 }
 
 // Build Spec 2-7 R-LEAVE-C2·Q4: 확정된 달의 승인 휴가 취소 = 승인 전 칸으로 복원.

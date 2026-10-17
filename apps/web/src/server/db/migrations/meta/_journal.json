@@ -64,6 +64,13 @@
       "when": 1792248303308,
       "tag": "0008_ktas_certified_on",
       "breakpoints": true
+    },
+    {
+      "idx": 9,
+      "version": "7",
+      "when": 1792248737844,
+      "tag": "0009_leave_proposals",
+      "breakpoints": true
     }
   ]
 }

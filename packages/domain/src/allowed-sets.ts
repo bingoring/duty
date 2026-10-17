@@ -58,10 +58,13 @@ export const ONBOARDING_REVIEWS = ['confirmed', 'reverted'] as const
 // 2-8 교환 요청
 export const SWAP_STATUSES = ['PENDING', 'APPLIED', 'REJECTED', 'CANCELLED', 'EXPIRED', 'INVALID'] as const
 export const SWAP_RESPONSES = ['PENDING', 'ACCEPTED', 'REJECTED'] as const
+// 3-5 관리자가 간호사의 OFF를 휴가로 바꾸자는 요청 — 간호사가 수락해야 휴가(승인됨)가 된다
+export const LEAVE_PROPOSAL_STATUSES = ['PENDING', 'ACCEPTED', 'REJECTED', 'CANCELLED', 'INVALID'] as const
 export const TRAINEE_KINDS = ['new_grad', 'experienced'] as const
 export const EDIT_REASONS = ['manual', 'swap', 'leave_approved', 'leave_cancelled'] as const
 
 export type Role = (typeof ROLES)[number]
+export type LeaveProposalStatus = (typeof LEAVE_PROPOSAL_STATUSES)[number]
 export type Rotation = (typeof ROTATIONS)[number]
 export type SeniorityTier = (typeof SENIORITY_TIERS)[number]
 export type ShiftCode = (typeof SHIFT_CODES)[number]

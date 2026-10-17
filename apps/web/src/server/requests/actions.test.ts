@@ -8,7 +8,7 @@ describe('신청 서버 액션 가드', () => {
   const chunks = src.split('export async function ').slice(1)
   const names = chunks.map((c) => c.slice(0, c.indexOf('(')))
 
-  it('액션 6개', () => {
+  it('액션 8개 (3-5 휴가 변경 요청 수락·거절·취소 포함)', () => {
     expect(names).toEqual([
       'saveShiftRequestAction',
       'deleteShiftRequestAction',
@@ -16,6 +16,8 @@ describe('신청 서버 액션 가드', () => {
       'cancelLeaveAction',
       'submitRequestsAction',
       'decideLeaveAction',
+      'respondLeaveProposalAction',
+      'cancelLeaveProposalAction',
     ])
   })
 
