@@ -142,6 +142,7 @@ export async function loadRequestsRaw(
       .orderBy(desc(leaveRequests.decidedAt))
       .limit(10)
     history = done.map((l) => ({
+      id: l.id,
       name: names.get(l.userId) ?? '',
       // 핸드오프 4a: '연차 · 11/6–7', 처리일 '09/24'
       kindLabel: `${leaveKindLabel(l.type as LeaveType, l.reasonCode).split(' · ')[0]} · ${

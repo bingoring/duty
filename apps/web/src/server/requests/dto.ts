@@ -65,6 +65,8 @@ export type PendingLeave = {
 }
 
 export type LeaveHistory = {
+  // 3-6: 관리자가 처리 이력에서 승인을 취소한다
+  id: string
   name: string
   kindLabel: string
   status: 'APPROVED' | 'REJECTED'

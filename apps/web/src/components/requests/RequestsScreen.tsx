@@ -1,5 +1,6 @@
 'use client'
 
+import { cancelApprovedLeaveAction } from '@/server/adjust/actions'
 import type { ProposalDTO } from '@/server/requests/proposals'
 import { ProposalPanel } from './ProposalPanel'
 import { formatMD } from '@duty/domain'
@@ -183,6 +184,45 @@ function ApprovalCard({ p }: { p: PendingLeave }) {
   )
 }
 
+// 3-6: 승인한 휴가를 처리 이력에서 취소한다. 확정된 달은 승인 전 칸으로 되돌린다(근무 조정의 휴가 취소와 같음)
+function CancelApproved({ id, label }: { id: string; label: string }) {
+  const [busy, start] = useTransition()
+  const [msg, setMsg] = useState('')
+  return (
+    <>
+      <button
+        type="button"
+        disabled={busy}
+        aria-label={`${label} 승인 취소`}
+        className="cursor-pointer rounded-md border border-line px-1.5 text-[11px] whitespace-nowrap text-danger disabled:opacity-50"
+        onClick={() => {
+          if (
+            !window.confirm(`${label} 승인을 취소할까요? 확정된 달이면 근무표 칸도 승인 전으로 돌아갑니다.`)
+          )
+            return
+          start(async () => {
+            const r = await cancelApprovedLeaveAction({ leaveId: id })
+            setMsg(
+              !r.ok
+                ? (r.message ?? '취소하지 못했습니다.')
+                : 'skipped' in r && r.skipped.length
+                  ? `취소했습니다. ${r.skipped.map((x) => x.date.slice(5).replace('-', '/')).join(', ')}은 그사이 바뀌어 되돌리지 않았습니다.`
+                  : '승인을 취소했습니다.',
+            )
+          })
+        }}
+      >
+        승인 취소
+      </button>
+      {msg && (
+        <span role="status" className="basis-full text-[11px] text-ink-2">
+          {msg}
+        </span>
+      )}
+    </>
+  )
+}
+
 function ApprovalPanel({
   view,
   collapsed,
@@ -229,7 +269,7 @@ function ApprovalPanel({
         {view.history.map((h, i) => (
           <div
             key={i}
-            className="flex items-center gap-2 border-b border-line-soft py-[7px] text-xs last:border-b-0"
+            className="flex flex-wrap items-center gap-2 border-b border-line-soft py-[7px] text-xs last:border-b-0"
           >
             <span className="font-semibold whitespace-nowrap">{h.name}</span>
             <span className="min-w-0 truncate text-ink-2">{h.kindLabel}</span>
@@ -239,6 +279,7 @@ function ApprovalPanel({
               {h.status === 'APPROVED' ? '승인' : `반려${h.reason ? ` · ${h.reason}` : ''}`}
             </span>
             <span className="ml-auto whitespace-nowrap text-ink-3">{h.when}</span>
+            {h.status === 'APPROVED' && <CancelApproved id={h.id} label={`${h.name} ${h.kindLabel}`} />}
           </div>
         ))}
       </div>
