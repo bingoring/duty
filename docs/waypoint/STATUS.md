@@ -4,11 +4,12 @@
 **Requirements:** [inputs/requirements_v3.md](inputs/requirements_v3.md) (근무 지침 원문 + 근무자 명단)
 **Design handoff:** [inputs/design-handoff_v5/](inputs/design-handoff_v5/README.md) (최신, 2026-09-30) · [v4](inputs/design-handoff_v4/README.md) · [v3](inputs/design-handoff_v3/README.md) · [v2](inputs/design-handoff_v2/README.md) · [v1](inputs/design-handoff_v1/README.md)
 **Decisions (audit):** [DECISIONS.md](DECISIONS.md)
-**Last updated:** 2026-10-12
+**Last updated:** 2026-10-17
 
 > 🔒 **개인정보:** 공개 저장소다. 간호사 이름·사번은 모두 가명이며, 실명 자료는 커밋하지 않는다([DECISIONS](DECISIONS.md) 2026-09-26).
 
-> 🏗️ **3-4 운영 피드백 1 구현 (2026-10-12).** 간호사가 내 설정에서 남은 연차를 언제든 고침(바로 반영 + 관리자 확인·이력), 간호사 관리 「순서 바꾸기」로 행 순서 편집, README에 운영 주소.
+> 🏗️ **3-4 운영 피드백 1 구현·운영 반영 → 승인 대기 (2026-10-12).** 간호사가 내 설정에서 남은 연차를 언제든 고침(바로 반영 + 관리자 확인·이력), 간호사 관리 목록 행의 ⠿ 손잡이를 끌어 놓아 표 순서 즉시 저장(노션식, 키보드 ↑↓), 동료 현황도 표 순서, 근무 신청 격자 화면 폭 맞춤, README에 운영 주소. 자동 배포 `deploy` 성공.
+> 남은 일: 3-3·3-4 승인(3-4는 운영에서 연차 수정·순서 저장 확인), 간호사 공지 전 준비(동의서 병원 검토, 개원기념일·신청 마감일 설정, 표 순서 확인).
 >
 > 🏗️ **3-3 자동 배포 구현 완료 → 승인 대기 (2026-10-10).** main 머지 + CI 통과 → 운영 자동 배포 확인(앱 변경 → 백업·재빌드·헬스 체크, 문서만 → git만). 로그인 화면 문구도 줄여 자동 배포로 반영.
 >
@@ -206,7 +207,7 @@
 | 3-1 Deployment ⚠️ | [01-deployment.md](03-operations/01-deployment.md) · [Build Spec](03-operations/deployment/build-spec-index.md) (IMPLEMENTED) | HUMAN_APPROVED |
 | 3-2 Monitoring | [02-monitoring.md](03-operations/02-monitoring.md) · [Build Spec](03-operations/monitoring/build-spec-index.md) (IMPLEMENTED) | HUMAN_APPROVED |
 | 3-3 자동 배포 | [03-continuous-deployment.md](03-operations/03-continuous-deployment.md) · [Build Spec](03-operations/cd/build-spec-index.md) (IMPLEMENTED) | IMPLEMENTED |
-| 3-4 운영 피드백 1 (연차 직접 수정·행 순서·README) | [04-feedback-1.md](03-operations/04-feedback-1.md) | IMPLEMENTED |
+| 3-4 운영 피드백 1 (연차 직접 수정·행 순서·동료 현황 정렬·README) | [04-feedback-1.md](03-operations/04-feedback-1.md) | IMPLEMENTED |
 
 ---
 
