@@ -62,10 +62,20 @@ describe('buildRulesGuide', () => {
     expect(item(DEFAULT_RULES, /KTAS 교육/)!.tag).toBe('info')
     expect(item(withParams({ maxConsecutiveWork: 6 }), /연속 근무는/)).toMatchObject({
       text: '연속 근무는 6일 이하로 편성합니다.',
-      tag: 'rec',
+      tag: 'auto', // 3-5: 기본 필수
     })
     expect(item(DEFAULT_RULES, /주말 이틀/)!.tag).toBe('rec')
     expect(item(withToggles({ weekendPairOffMonthly: false }), /주말 이틀/)!.tag).toBe('off')
+  })
+
+  it('규칙 설정의 필수/권고를 따른다 (3-5)', () => {
+    const r = {
+      ...DEFAULT_RULES,
+      severity: { ...DEFAULT_RULES.severity, WORK_CONSEC: 'soft', WEEKEND_PAIR: 'hard', KTAS: 'soft' },
+    } as const
+    expect(item(r, /연속 근무는/)!.tag).toBe('rec')
+    expect(item(r, /주말 이틀/)!.tag).toBe('auto')
+    expect(item(r, /KTAS 권한자/)!.tag).toBe('rec')
   })
 
   it('야간 전담: 꺼지면 응급실은 없음, 켜지면 상한과 기간', () => {

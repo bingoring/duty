@@ -34,6 +34,20 @@ describe('saveRules (R-RULE-SAVE-1·2)', () => {
     expect(rows[1]!.changedBy).toBe(await adminId())
   })
 
+  it('3-5: 필수/권고를 바꾸면 새 버전에 저장하고 이력에 남긴다, 예전 버전(심각도 없음)은 기본값으로 읽는다', async () => {
+    await db.update(ruleVersions).set({ severity: {} }).where(eq(ruleVersions.version, 1))
+    const before = await loadRuleEditor(db, '2026-10-17')
+    expect(before.rules.severity).toEqual(DEFAULT_RULES.severity)
+    const rules = edit({}, { severity: { ...DEFAULT_RULES.severity, WORK_CONSEC: 'soft', STAFF: 'soft' } })
+    expect(await saveRules(db, { rules, baseVersion: 1 }, await adminId())).toEqual({ ok: true, version: 2 })
+    const editor = await loadRuleEditor(db, '2026-10-17')
+    expect(editor.rules.severity).toMatchObject({ WORK_CONSEC: 'soft', STAFF: 'soft', KTAS: 'hard' })
+    expect(editor.history[0]!.lines).toEqual([
+      '최대 연속 근무 필수/권고 필수 → 권고',
+      '듀티당 최소 인원 필수/권고 필수 → 권고',
+    ])
+  })
+
   it('금지 패턴은 정규화·중복 제거 후 저장', async () => {
     const rules = edit({}, { forbiddenPatterns: [...DEFAULT_RULES.forbiddenPatterns, 'n-off-e', 'N-OFF-E'] })
     await saveRules(db, { rules, baseVersion: 1 }, await adminId())

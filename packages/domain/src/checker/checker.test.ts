@@ -227,15 +227,34 @@ describe('신청', () => {
   })
 })
 
-describe('S-WORK-CONSEC (R-1, DECISIONS 2026-10-08)', () => {
-  it('연속 근무가 상한(기본 5일)을 넘으면 경고, 쉬는 칸이 끊는다', () => {
+describe('S-WORK-CONSEC (R-1, DECISIONS 2026-10-08 · 3-5 필수)', () => {
+  it('연속 근무가 상한(기본 5일)을 넘으면 필수 위반, 쉬는 칸이 끊는다', () => {
     expect(only(solo('D D E E N N O'), 'S-WORK-CONSEC')).toMatchObject([
-      { severity: 'soft', data: { count: 6, max: 5 } },
+      { severity: 'hard', data: { count: 6, max: 5 } },
     ])
     expect(only(solo('D D E E N O N'), 'S-WORK-CONSEC')).toEqual([])
     expect(only(solo('D D E E N N O', { rules: rules({ maxConsecutiveWork: 6 }) }), 'S-WORK-CONSEC')).toEqual(
       [],
     )
+  })
+})
+
+describe('규칙별 필수/권고 (3-5)', () => {
+  it('규칙 버전의 심각도를 따른다 — 권고로 낮춘 인원 부족은 경고, 필수로 올린 주말 통 OFF 누락은 위반', () => {
+    const r = rules({}, {}, { WORK_CONSEC: 'soft', STAFF: 'soft', WEEKEND_PAIR: 'hard' })
+    expect(only(solo('D D E E N N O', { rules: r }), 'S-WORK-CONSEC')).toMatchObject([{ severity: 'soft' }])
+    const res = checkSchedule(solo('D D E E N N O', { rules: r }))
+    expect(res.hardViolations.some((v) => v.ruleId === 'H-STAFF')).toBe(false)
+    expect(res.softWarnings.some((v) => v.ruleId === 'H-STAFF')).toBe(true)
+  })
+  it('심각도 키가 없는 규칙(칸·특수 신청·잔여)은 접두사대로', () => {
+    const r = rules({}, {}, Object.fromEntries(Object.keys(rules().severity).map((k) => [k, 'soft'])))
+    const res = checkSchedule(solo('D D E E N N O', { rules: r }))
+    expect(
+      res.hardViolations.every((v) =>
+        ['H-CELL', 'H-SPECIAL-REQ', 'H-EDU-UNION', 'H-BALANCE'].includes(v.ruleId),
+      ),
+    ).toBe(true)
   })
 })
 

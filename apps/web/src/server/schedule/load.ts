@@ -73,7 +73,12 @@ async function loadRules(db: Db): Promise<Map<number, RuleSet>> {
   return new Map(
     rows.map((r) => [
       r.version,
-      RuleSetSchema.parse({ params: r.params, toggles: r.toggles, forbiddenPatterns: r.forbiddenPatterns }),
+      RuleSetSchema.parse({
+        params: r.params,
+        toggles: r.toggles,
+        forbiddenPatterns: r.forbiddenPatterns,
+        severity: r.severity,
+      }),
     ]),
   )
 }

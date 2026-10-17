@@ -10,6 +10,26 @@ const WorkCode = z.enum(['D', 'E', 'N', 'S'])
 const Code = z.enum(['D', 'E', 'N', 'S', 'OFF', 'AL', 'LEAVE'])
 const OffKind = z.enum(['regular', 'sleeping', 'edu_cont', 'edu_union', 'special', 'founding'])
 const RequestOption = z.enum(['OFF', 'D', 'E', 'N'])
+// 3-5: 규칙별 필수/권고 키 (@duty/domain SEVERITY_KEYS와 같아야 한다 — web 테스트가 확인)
+export const SEVERITY_KEYS = [
+  'REST',
+  'PATTERN',
+  'OFF_CONSEC',
+  'WORK_CONSEC',
+  'NIGHT_MAX',
+  'NIGHT_TARGET',
+  'NIGHT_CONSEC',
+  'SLEEPING',
+  'OFF_AFTER_N',
+  'STAFF',
+  'KTAS',
+  'TRAINING',
+  'SHIFT_BALANCE',
+  'WEEKEND_PAIR',
+  'JUNIOR_ONLY',
+  'REPEAT_PAIR',
+  'EDU_LIMIT',
+] as const
 
 export const SolverCell = z.object({
   userId: z.string(),
@@ -80,17 +100,19 @@ export const SolverRequest = z.object({
     minRestHours: z.number().int().positive(),
     maxConsecutiveNight: z.number().int().positive(),
     maxConsecutiveOff: z.number().int().positive(),
-    // 최대 연속 근무(권고, 넘으면 벌점). 예전 요청과 호환되도록 선택(R-1)
+    // 최대 연속 근무. 예전 요청과 호환되도록 선택(R-1)
     maxConsecutiveWork: z.number().int().positive().optional(),
     offAfterNight: z.number().int().nonnegative(),
     sleepingOffPerN: z.number().int().positive(),
     forbiddenPatterns: z.array(z.string()),
     shiftBalanceTolerance: z.number().int().nonnegative(),
     shiftBalanceWindowMonths: z.number().int().positive(),
+    // 3-5: 필수(하드 제약)로 둘 규칙. 나머지는 벌점(권고)
+    hard: z.array(z.enum(SEVERITY_KEYS)),
   }),
   // 앞 근무 종료 ~ 다음 날 근무 시작 시간 (TS SHIFT_TIMES에서 계산해 넘긴다)
   restHours: z.record(WorkCode, z.record(WorkCode, z.number())),
-  // Q4: 생성마다 켜고 끄는 권고 항
+  // Q4: 생성마다 켜고 끄는 권고 항. 3-5: 필수로 둔 규칙은 켜진 채로 온다
   priorities: z.object({
     requests: z.boolean(),
     offAfterNight: z.boolean(),
@@ -118,6 +140,16 @@ export const TERM_KEYS = [
   'juniorOnly',
   'repeatPair',
   'tieBreak',
+  // 3-5: 권고로 낮춘 필수 규칙의 벌점
+  'staffShort',
+  'ktasShort',
+  'training',
+  'rest',
+  'pattern',
+  'nightMax',
+  'nightConsec',
+  'offConsec',
+  'sleepingOver',
 ] as const
 
 export const CAUSE_GROUPS = [
@@ -129,6 +161,16 @@ export const CAUSE_GROUPS = [
   'TRAINING',
   'FIXED',
   'SLEEPING',
+  // 3-5: 필수로 올린 권고 규칙과 예전에 이름 없던 하드 제약
+  'REST',
+  'PATTERN',
+  'WORK_CONSEC',
+  'NIGHT_TARGET',
+  'OFF_AFTER_N',
+  'SHIFT_BALANCE',
+  'WEEKEND_PAIR',
+  'JUNIOR_ONLY',
+  'REPEAT_PAIR',
 ] as const
 
 export const SolverCause = z.object({

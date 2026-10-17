@@ -78,10 +78,13 @@ describe('diffRuleSets (R-RULE-SAVE-1)', () => {
       params: { ...DEFAULT_RULES.params, maxConsecutiveOff: 16 },
       toggles: { ...DEFAULT_RULES.toggles, nightDedicated: true },
       forbiddenPatterns: [...DEFAULT_RULES.forbiddenPatterns, 'N-S'],
+      severity: { ...DEFAULT_RULES.severity, WORK_CONSEC: 'soft', WEEKEND_PAIR: 'hard' },
     }
     expect(diffRuleSets(DEFAULT_RULES, after)).toEqual([
       { key: 'maxConsecutiveOff', before: 15, after: 16 },
       { key: 'nightDedicated', before: false, after: true },
+      { key: 'severity.WORK_CONSEC', before: '필수', after: '권고' },
+      { key: 'severity.WEEKEND_PAIR', before: '권고', after: '필수' },
       { key: 'forbiddenPatterns', before: 'E-D, N-E, N-OFF-D, E-S', after: 'E-D, N-E, N-OFF-D, E-S, N-S' },
     ])
   })

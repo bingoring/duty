@@ -55,9 +55,12 @@ describe('seedDev', () => {
   it('규칙 v1이 DEFAULT_RULES와 같다 (INV6)', async () => {
     await seedDev(db)
     const [v1] = await db.select().from(ruleVersions)
-    expect({ params: v1!.params, toggles: v1!.toggles, forbiddenPatterns: v1!.forbiddenPatterns }).toEqual(
-      DEFAULT_RULES,
-    )
+    expect({
+      params: v1!.params,
+      toggles: v1!.toggles,
+      forbiddenPatterns: v1!.forbiddenPatterns,
+      severity: v1!.severity,
+    }).toEqual(DEFAULT_RULES)
     expect([v1!.version, v1!.diff, v1!.changedBy]).toEqual([1, [], null])
   })
 

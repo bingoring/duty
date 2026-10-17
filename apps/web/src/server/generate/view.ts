@@ -1,4 +1,5 @@
 import {
+  SEVERITY_LABEL,
   formatMD,
   generationChecks,
   summarizeNurse,
@@ -6,6 +7,7 @@ import {
   type GenerationCheck,
   monthDates,
   type MonthPlanStatus,
+  type SeverityKey,
 } from '@duty/domain'
 import { and, asc, eq, gte, isNotNull, lte } from 'drizzle-orm'
 import type { Db } from '../db/client'
@@ -61,6 +63,8 @@ export type GenerateView = {
   blockedReason: string | null
   hard: { label: string; value: string }[]
   forbiddenPatterns: string[]
+  // 3-5: 금지 패턴이 필수면 자동 차단, 권고면 피하도록
+  patternHard: boolean
   priorities: PriorityItem[]
   candidates: { id: string; no: number }[]
   current: CandidateView | null
@@ -138,6 +142,17 @@ export async function loadGenerateView(
     .where(and(lte(trainings.startDate, days.at(-1)!), gte(trainings.endDate, days[0]!)))
   const pairs = tr.map((t) => `${nameOf(t.traineeId)} → ${nameOf(t.preceptorId)}`)
   const t = rules.toggles
+  const sev = rules.severity
+  // 3-5: 필수로 둔 규칙은 켜진 채 끌 수 없다(토글이 꺼진 규칙은 쓰지 않으므로 꺼진 채)
+  const item = (
+    key: Exclude<PriorityItem['key'], 'requests' | 'training'>,
+    label: string,
+    on: boolean,
+    severityKey: SeverityKey,
+  ): PriorityItem => {
+    const hard = sev[severityKey] === 'hard'
+    return { key, label: hard && on ? `${label} · 필수` : label, checked: on, disabled: hard }
+  }
   const priorities: PriorityItem[] = [
     {
       key: 'requests',
@@ -145,40 +160,39 @@ export async function loadGenerateView(
       checked: true,
       disabled: false,
     },
-    { key: 'offAfterNight', label: 'N 후 OFF 2개 (불가피 시 N-OFF-E)', checked: true, disabled: false },
-    {
-      key: 'weekendPair',
-      label: '모든 간호사 월 1회 주말 이틀 통 OFF',
-      checked: t.weekendPairOffMonthly,
-      disabled: false,
-    },
-    {
-      key: 'avoidJuniorOnly',
-      label: '동일듀티 저연차끼리 배정 방지',
-      checked: t.avoidJuniorOnly,
-      disabled: false,
-    },
-    {
-      key: 'minimizeRepeatPairs',
-      label: '특정 근무자 반복 겹침 최소화',
-      checked: t.minimizeRepeatPairs,
-      disabled: false,
-    },
+    item('offAfterNight', `N 후 OFF ${p.offAfterNight}개 (불가피 시 N-OFF-E)`, true, 'OFF_AFTER_N'),
+    item('weekendPair', '모든 간호사 월 1회 주말 이틀 통 OFF', t.weekendPairOffMonthly, 'WEEKEND_PAIR'),
+    item('avoidJuniorOnly', '동일듀티 저연차끼리 배정 방지', t.avoidJuniorOnly, 'JUNIOR_ONLY'),
+    item('minimizeRepeatPairs', '특정 근무자 반복 겹침 최소화', t.minimizeRepeatPairs, 'REPEAT_PAIR'),
     {
       key: 'training',
-      label: `신규는 프리셉터와 같은 근무 (${pairs.length ? pairs.join(', ') : '이번 달 트레이닝 중인 신규 없음'}) · 필수`,
+      label: `신규는 프리셉터와 같은 근무 (${pairs.length ? pairs.join(', ') : '이번 달 트레이닝 중인 신규 없음'}) · ${SEVERITY_LABEL[sev.TRAINING]}`,
       checked: true,
       disabled: true,
     },
   ]
 
-  const hard = [
-    { label: '듀티당 최소 인원', value: `${p.minStaffPerShift}명` },
-    { label: 'KTAS 권한자 포함', value: `${p.minKTass}명 이상` },
-    { label: '월 나이트 상한', value: `${p.maxNightPerMonth}개` },
-    { label: '연속 나이트', value: `≤ ${p.maxConsecutiveNight}일` },
-    { label: '근무 간 휴식', value: `≥ ${p.minRestHours}시간` },
+  // 3-5: 규칙 설정에서 필수로 둔 수치 규칙만 (우선 반영 목록에 있는 규칙과 금지 패턴은 따로 보인다)
+  const hardRules: { key: SeverityKey; label: string; value: string }[] = [
+    { key: 'STAFF', label: '듀티당 최소 인원', value: `${p.minStaffPerShift}명` },
+    { key: 'KTAS', label: 'KTAS 권한자 포함', value: `${p.minKTass}명 이상` },
+    { key: 'NIGHT_MAX', label: '월 나이트 상한', value: `${p.maxNightPerMonth}개` },
+    { key: 'NIGHT_TARGET', label: '월 나이트 목표', value: `≤ ${p.targetNightPerMonth}개` },
+    { key: 'NIGHT_CONSEC', label: '연속 나이트', value: `≤ ${p.maxConsecutiveNight}일` },
+    { key: 'WORK_CONSEC', label: '연속 근무', value: `≤ ${p.maxConsecutiveWork}일` },
+    { key: 'OFF_CONSEC', label: '연속 오프', value: `≤ ${p.maxConsecutiveOff}일` },
+    { key: 'REST', label: '근무 간 휴식', value: `≥ ${p.minRestHours}시간` },
+    { key: 'SLEEPING', label: '슬리핑오프', value: `N ${p.sleepingOffPerN}개당 1일까지` },
+    ...(t.balanceShiftTypes
+      ? [{ key: 'SHIFT_BALANCE' as const, label: 'D·E·N 차이', value: `≤ ${p.shiftBalanceTolerance}개` }]
+      : []),
+    {
+      key: 'EDU_LIMIT',
+      label: '교육 연간',
+      value: `보수 ${p.eduContPerYear}회 · 노조 ${p.eduUnionPerYear}회`,
+    },
   ]
+  const hard = hardRules.filter((h) => sev[h.key] === 'hard').map(({ label, value }) => ({ label, value }))
 
   const cands = plan
     ? await db
@@ -262,6 +276,7 @@ export async function loadGenerateView(
     blockedReason,
     hard,
     forbiddenPatterns: rules.forbiddenPatterns,
+    patternHard: rules.severity.PATTERN === 'hard',
     priorities,
     candidates: cands.map((c) => ({ id: c.id, no: c.generationNo })),
     current,

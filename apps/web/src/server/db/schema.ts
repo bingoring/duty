@@ -1,5 +1,5 @@
 // Build Spec 2-1 domain-entities §2. allowed-set 컬럼은 text로 두고 값 검증은 @duty/domain이 한다.
-import type { RuleParams, RuleToggles } from '@duty/domain'
+import type { RuleParams, RuleSeverity, RuleToggles } from '@duty/domain'
 import { sql } from 'drizzle-orm'
 import {
   bigserial,
@@ -120,6 +120,11 @@ export const ruleVersions = pgTable(
     params: jsonb('params').$type<RuleParams>().notNull(),
     toggles: jsonb('toggles').$type<RuleToggles>().notNull(),
     forbiddenPatterns: jsonb('forbidden_patterns').$type<string[]>().notNull(),
+    // 3-5: 규칙별 필수/권고. 예전 버전은 빈 객체 → 기본값
+    severity: jsonb('severity')
+      .$type<Partial<RuleSeverity>>()
+      .notNull()
+      .default(sql`'{}'::jsonb`),
     diff: jsonb('diff')
       .$type<{ key: string; before: unknown; after: unknown }[]>()
       .notNull()

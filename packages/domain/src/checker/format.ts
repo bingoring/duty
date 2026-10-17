@@ -84,7 +84,7 @@ export function formatViolation(v: Violation, ctx: FormatContext): { title: stri
         detail: `이번 달 ${d.used}일 사용 / 잔여 ${d.remaining}일`,
       }
     case 'S-WORK-CONSEC':
-      return { title: `${name} · ${d.count}일 연속 근무`, detail: `${range(v.dates)} · 권고 ${d.max}일 이하` }
+      return { title: `${name} · ${d.count}일 연속 근무`, detail: `${range(v.dates)} · 최대 ${d.max}일` }
     case 'S-NIGHT-TARGET':
       return { title: `${name} · 나이트 ${d.count}개`, detail: `목표 ${d.target}개 이하` }
     case 'S-OFF-AFTER-N':

@@ -154,7 +154,10 @@ export function generationChecks(
   const days = monthDates(input.year, input.month)
   const p = input.rules.params
   const headFill = result.softWarnings.filter((v) => v.ruleId === 'S-HEAD-FILL').length
-  const staffBad = result.hardViolations.some((v) => v.ruleId === 'H-STAFF' || v.ruleId === 'H-KTASS')
+  // 3-5: 인원 규칙을 권고로 낮췄으면 부족이 경고 쪽에 있다
+  const staffBad = [...result.hardViolations, ...result.softWarnings].some(
+    (v) => v.ruleId === 'H-STAFF' || v.ruleId === 'H-KTASS',
+  )
   const out: GenerationCheck[] = []
   if (!staffBad)
     out.push({

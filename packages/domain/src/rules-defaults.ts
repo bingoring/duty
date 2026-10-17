@@ -1,4 +1,5 @@
 import { z } from 'zod'
+import { DEFAULT_SEVERITY, RuleSeveritySchema } from './rule-severity'
 
 // 금지 패턴 문법: 근무 코드 2개 이상을 '-'로 연결 (예: E-D, N-OFF-D)
 export const PATTERN_REGEX = /^(D|E|N|S|OFF)(-(D|E|N|S|OFF))+$/
@@ -57,6 +58,8 @@ export const RuleSetSchema = z.object({
   params: RuleParamsSchema,
   toggles: RuleTogglesSchema,
   forbiddenPatterns: z.array(z.string().regex(PATTERN_REGEX)),
+  // 3-5: 규칙별 필수/권고. 예전 버전은 기본값
+  severity: RuleSeveritySchema,
 })
 
 export type RuleParams = z.infer<typeof RuleParamsSchema>
@@ -101,4 +104,5 @@ export const DEFAULT_RULES: RuleSet = {
     balanceShiftTypes: true,
   },
   forbiddenPatterns: ['E-D', 'N-E', 'N-off-D', 'E-S'].map(normalizePattern),
+  severity: { ...DEFAULT_SEVERITY },
 }
