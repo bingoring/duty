@@ -4,7 +4,12 @@ import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import { useState, useTransition } from 'react'
 import { ScheduleGrid } from '@/components/schedule/ScheduleGrid'
-import { confirmCandidateAction, generateAction } from '@/server/generate/actions'
+import {
+  confirmCandidateAction,
+  generateAction,
+  revokeConfirmationAction,
+  revokePreviewAction,
+} from '@/server/generate/actions'
 import { saveShiftRequestAction } from '@/server/requests/actions'
 import type { Priorities } from '@/server/generate/input'
 import type { GenerateView } from '@/server/generate/view'
@@ -79,6 +84,30 @@ export function GenerateScreen({ view }: { view: GenerateView }) {
       else setMessage(`${name} ${md} ${code} 신청을 저장했습니다. 다시 생성하면 반영됩니다.`)
     })
   }
+  // 3-8: 확정 철회 → 생성안 검토로. 사라질 변경을 먼저 보여 준다
+  const revoke = () =>
+    start(async () => {
+      setFailure(null)
+      const p = await revokePreviewAction({ year: view.year, month: view.month })
+      if (!p.ok) return setFailure({ message: p.message })
+      const lost = [
+        p.swaps ? `교환 ${p.swaps}건` : '',
+        p.adminEdits ? `관리자 수정 ${p.adminEdits}칸` : '',
+        p.leaveEdits ? `확정 뒤 휴가 반영 ${p.leaveEdits}칸(휴가 승인은 유지)` : '',
+      ].filter(Boolean)
+      const ok = window.confirm(
+        `${view.month}월 근무표 확정을 철회하고 생성안 검토로 돌아갑니다.\n` +
+          (lost.length
+            ? `확정 뒤 바뀐 ${lost.join(', ')}이 사라집니다.\n`
+            : '확정 뒤 바뀐 근무는 없습니다.\n') +
+          '간호사에게는 다시 확정할 때까지 근무표가 보이지 않습니다. 철회할까요?',
+      )
+      if (!ok) return
+      const r = await revokeConfirmationAction({ year: view.year, month: view.month })
+      if (r.ok)
+        setMessage(`${view.month}월 근무표 확정을 철회했습니다. 다시 생성하거나 안을 골라 확정하세요.`)
+      else setFailure({ message: r.message })
+    })
   const confirm = () => {
     if (!cur) return
     if (
@@ -140,6 +169,16 @@ export function GenerateScreen({ view }: { view: GenerateView }) {
             <Link href={`/?ym=${view.ym}`} className="font-bold underline">
               근무표 보기 →
             </Link>
+            {view.planStatus === 'CONFIRMED' && (
+              <button
+                type="button"
+                disabled={pending}
+                onClick={revoke}
+                className="mt-2 block h-8 cursor-pointer rounded-lg border border-danger bg-surface px-3 text-xs font-semibold text-danger disabled:opacity-50"
+              >
+                확정 철회 · 다시 생성
+              </button>
+            )}
           </div>
         ) : (
           <>

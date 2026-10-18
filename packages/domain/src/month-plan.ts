@@ -2,7 +2,16 @@ import type { MonthPlanStatus } from './allowed-sets'
 import { daysInMonth, isoOf, monthDates, prevMonth, type IsoDate } from './dates'
 import type { RuleParams } from './rules-defaults'
 
-export const PLAN_EVENTS = ['CLOSE_REQUESTS', 'GENERATE', 'CONFIRM', 'ADJUST', 'CLOSE', 'REOPEN'] as const
+// REVOKE: 3-8 확정 철회 → 생성안 검토로
+export const PLAN_EVENTS = [
+  'CLOSE_REQUESTS',
+  'GENERATE',
+  'CONFIRM',
+  'ADJUST',
+  'CLOSE',
+  'REOPEN',
+  'REVOKE',
+] as const
 export type PlanEvent = (typeof PLAN_EVENTS)[number]
 
 export class PlanTransitionError extends Error {
@@ -25,7 +34,7 @@ const TRANSITIONS: Partial<Record<MonthPlanStatus, Partial<Record<PlanEvent, Mon
   REQUESTING: { CLOSE_REQUESTS: 'REQUEST_CLOSED' },
   REQUEST_CLOSED: { GENERATE: 'DRAFTING' },
   DRAFTING: { GENERATE: 'DRAFTING', CONFIRM: 'CONFIRMED' },
-  CONFIRMED: { ADJUST: 'CONFIRMED', CLOSE: 'CLOSED' },
+  CONFIRMED: { ADJUST: 'CONFIRMED', CLOSE: 'CLOSED', REVOKE: 'DRAFTING' },
   CLOSED: { REOPEN: 'CONFIRMED' },
 }
 
