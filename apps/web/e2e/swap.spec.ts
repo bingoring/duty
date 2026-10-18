@@ -38,12 +38,12 @@ test('교환 요청: 요청 보내기 → 상대 근무표 띠·메뉴 배지 �
     await waitHydrated(me)
     await expect(me.getByRole('heading', { name: '2026년 10월 · 근무 조정' })).toBeVisible()
     await expect(me.getByText('협의 기간 10/10 – 10/20 · 8일 남음')).toBeVisible()
-    await me.getByRole('button', { name: '근무 조정' }).click()
     await me.getByRole('checkbox', { name: `${B.name} 선택` }).click()
     await me.getByRole('button', { name: `${mdOf(pair.date)} 재배정` }).click()
     const pop = me.getByRole('dialog', { name: `${mdOf(pair.date)} 근무 재배정` })
-    await pop.getByRole('button', { name: `${A.name} 변경 후 ${pair.ca}` }).click()
-    await pop.getByRole('button', { name: `${B.name} 변경 후 ${pair.cb}` }).click()
+    // 3-8: 두 사람이면 맞바꾼 상태로 열린다
+    await expect(pop.getByRole('button', { name: `${A.name} 변경 후 ${pair.cb}` })).toBeVisible()
+    await expect(pop.getByRole('button', { name: `${B.name} 변경 후 ${pair.ca}` })).toBeVisible()
     await expect(pop.getByText('규칙 검사 통과')).toBeVisible()
     await pop.getByLabel('코멘트').fill('이날 바꿔 주실 수 있을까요?')
     await pop.getByRole('button', { name: '요청 보내기' }).click()
@@ -85,7 +85,7 @@ test('협의 기간 밖이면 「근무 조정」 버튼이 비활성', async ({
   await page.goto('/adjust?ym=2026-10')
   await waitHydrated(page)
   await expect(page.getByText('협의 기간 아님 (9/16 – 9/20)')).toBeVisible()
-  await expect(page.getByRole('button', { name: '근무 조정' })).toBeDisabled()
+  await expect(page.getByRole('button', { name: '조정 신청' })).toBeDisabled()
 })
 
 // 2-9 커버리지 보강: 거절·철회. 오늘을 쿠키로 10월 협의 기간(9/17)에 둔다 — DB 날짜를 바꾸지 않는다
@@ -114,12 +114,12 @@ test('교환 요청: 상대가 거절하면 종료, 요청자는 대기 요청�
     return page
   }
   const send = async (me: Page) => {
-    await me.getByRole('button', { name: '근무 조정' }).click()
     await me.getByRole('checkbox', { name: `${B.name} 선택` }).click()
     await me.getByRole('button', { name: `${mdOf(pair.date)} 재배정` }).click()
     const pop = me.getByRole('dialog', { name: `${mdOf(pair.date)} 근무 재배정` })
-    await pop.getByRole('button', { name: `${A.name} 변경 후 ${pair.ca}` }).click()
-    await pop.getByRole('button', { name: `${B.name} 변경 후 ${pair.cb}` }).click()
+    // 3-8: 두 사람이면 맞바꾼 상태로 열린다
+    await expect(pop.getByRole('button', { name: `${A.name} 변경 후 ${pair.cb}` })).toBeVisible()
+    await expect(pop.getByRole('button', { name: `${B.name} 변경 후 ${pair.ca}` })).toBeVisible()
     await pop.getByRole('button', { name: '요청 보내기' }).click()
     await expect(me.getByRole('status')).toContainText(`${B.name}에게 교환을 요청했습니다`)
   }
@@ -190,12 +190,10 @@ test('수간호사 교환: 간호사 D → OFF + 수간호사 S → D, 수간호
     await loginAndWait(me, N.no)
     await me.goto('/adjust')
     await waitHydrated(me)
-    await me.getByRole('button', { name: '근무 조정' }).click()
     await me.getByRole('checkbox', { name: `${head.name} 선택` }).click()
     await me.getByRole('button', { name: `${mdOf(found.date)} 재배정` }).click()
     const pop = me.getByRole('dialog', { name: `${mdOf(found.date)} 근무 재배정` })
-    await pop.getByRole('button', { name: `${N.name} 변경 후 D` }).click()
-    await pop.getByRole('button', { name: `${head.name} 변경 후 S` }).click()
+    // 3-8: 두 사람이면 맞바꾼 상태로 열린다(수간호사 S ↔ 간호사 D → 간호사 OFF·수간호사 D)
     await expect(pop.getByRole('button', { name: `${N.name} 변경 후 OFF` })).toBeVisible()
     await expect(pop.getByRole('button', { name: `${head.name} 변경 후 D` })).toBeVisible()
     await expect(pop.getByText('규칙 검사 통과')).toBeVisible()
