@@ -19,7 +19,13 @@ export async function startSolver(port = TEST_SOLVER_PORT): Promise<() => Promis
   const child: ChildProcess = spawn(
     'uv',
     ['run', 'uvicorn', 'solver.app:app', '--host', '127.0.0.1', '--port', String(port)],
-    { cwd: solverDir, stdio: ['ignore', 'ignore', 'inherit'] },
+    {
+      cwd: solverDir,
+      stdio: ['ignore', 'ignore', 'inherit'],
+      // 테스트는 결정적 시간으로만 멈추게 한다(벽시계 상한을 넉넉히). 느린 CI에서 벽시계 1.5배에 먼저 걸리면
+      // 로컬과 다른, 덜 다듬어진 안이 나와 신청 반영 같은 검사가 흔들렸다(3-5·3-6 main CI)
+      env: { ...process.env, SOLVER_WALL_FACTOR: process.env.SOLVER_WALL_FACTOR ?? '6' },
+    },
   )
   const until = Date.now() + 120_000
   while (!(await healthy(url))) {
