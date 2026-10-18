@@ -87,12 +87,7 @@ export function DoctorGenerateScreen(p: Props) {
           </div>
         )}
         {p.calendar ? (
-          <div className="flex items-start gap-4">
-            <div className="min-w-0 flex-1">
-              <DoctorCalendarGrid month={p.ym.month} weeks={p.calendar.weeks} viewerId={null} />
-            </div>
-            <DoctorSidePanel cal={p.calendar} showNext={false} />
-          </div>
+          <DoctorCalendarGrid month={p.ym.month} weeks={p.calendar.weeks} viewerId={null} />
         ) : (
           <div className="rounded-card border border-line bg-surface px-6 py-16 text-center text-sm text-ink-2">
             아직 생성안이 없습니다. 오른쪽 「생성」을 눌러 주세요.
@@ -235,6 +230,8 @@ export function DoctorGenerateScreen(p: Props) {
             )}
           </section>
         )}
+
+        {p.calendar && <DoctorSidePanel cal={p.calendar} showNext={false} className="" />}
 
         {early && p.picked && (
           <section className="flex flex-col gap-2 rounded-card border border-line bg-surface p-4">

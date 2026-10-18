@@ -114,7 +114,7 @@ function DateCell({ c }: { c: CalDay | null }) {
       {c.dom}
       {c.holiday && <span className="truncate text-[10px] font-semibold">{c.holiday}</span>}
       {c.allDay && (
-        <span className="ml-auto rounded-full border border-line bg-surface px-1.5 text-[10px] leading-4 font-bold text-ink">
+        <span className="ml-auto rounded-full border border-line bg-surface px-1.5 text-[10px] leading-4 font-bold whitespace-nowrap text-ink">
           올데이
         </span>
       )}
@@ -210,9 +210,17 @@ export function KindChip({ kind }: { kind: 'D' | 'N' | 'ALLDAY' }) {
 }
 
 // 우측 패널(250px): 다음 근무 · 의사별 집계 · 안내
-export function DoctorSidePanel({ cal, showNext }: { cal: Cal; showNext: boolean }) {
+export function DoctorSidePanel({
+  cal,
+  showNext,
+  className = 'w-[250px] shrink-0',
+}: {
+  cal: Cal
+  showNext: boolean
+  className?: string
+}) {
   return (
-    <aside className="flex w-[250px] shrink-0 flex-col gap-3" data-print="hide">
+    <aside className={`flex flex-col gap-3 ${className}`} data-print="hide">
       {showNext && (
         <div className="flex flex-col gap-2 rounded-card bg-ink p-3.5 text-white">
           <div className="text-[13px] font-bold">다음 근무</div>

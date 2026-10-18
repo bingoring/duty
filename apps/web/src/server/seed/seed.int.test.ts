@@ -34,12 +34,13 @@ async function counts() {
 beforeEach(() => resetDb(db))
 
 describe('seedDev', () => {
-  it('병동·규칙 v1·공휴일·가명 11명을 넣는다', async () => {
+  it('병동·규칙 v1·공휴일·가명 간호사 11명·의사 5명을 넣는다', async () => {
     await seedDev(db)
     expect(await counts()).toEqual({
       wards: 1,
-      users: 11,
-      credentials: 11,
+      // 3-7: 가명 의사 5명(로그인 ID 800101 등)
+      users: 16,
+      credentials: 16,
       holidays: SEED_HOLIDAYS.length,
       rule_versions: 1,
     })

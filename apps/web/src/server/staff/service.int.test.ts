@@ -1,5 +1,6 @@
 import { DEFAULT_RULES } from '@duty/domain'
 import { and, asc, eq } from 'drizzle-orm'
+import { NURSES } from '../role-group'
 import { beforeEach, describe, expect, it } from 'vitest'
 import { resetDb, setupTestDb } from '../../test/db'
 import { authenticate, createSession } from '../auth/service'
@@ -272,7 +273,7 @@ describe('순서 바꾸기 (3-4)', () => {
     const act = await db
       .select({ id: users.id })
       .from(users)
-      .where(eq(users.active, true))
+      .where(and(NURSES, eq(users.active, true)))
       .orderBy(asc(users.seniorityRank))
     const ids = act.map((u) => u.id)
     const swapped = [ids[0]!, ids[2]!, ids[1]!, ...ids.slice(3)]
@@ -280,7 +281,7 @@ describe('순서 바꾸기 (3-4)', () => {
     const after = await db
       .select({ id: users.id })
       .from(users)
-      .where(eq(users.active, true))
+      .where(and(NURSES, eq(users.active, true)))
       .orderBy(asc(users.seniorityRank))
     expect(after.map((u) => u.id)).toEqual(swapped)
     expect(await reorderStaff(db, swapped.slice(1))).toMatchObject({ ok: false })

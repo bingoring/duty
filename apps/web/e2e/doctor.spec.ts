@@ -77,7 +77,7 @@ test('의사 관리: 생년월일 ID를 사번으로 변경하면 새 ID로 로�
   await other.close()
 })
 
-test('의사 교환: 진하람에게 요청 → 배지 → 수락하면 바로 반영', async ({ page, browser }) => {
+test('의사 교환: 진하람 → 고은서에게 요청 → 배지 → 수락하면 바로 반영', async ({ page, browser }) => {
   await doctorLogin(page, DOC.jin)
   await page.goto('/doctor/adjust')
   // 10/23(금) Day 진하람 ↔ 10/26(월) Day 고은서 — 고정 조건(토 Night 필수)과 무관한 칸
