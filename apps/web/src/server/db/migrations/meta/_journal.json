@@ -85,6 +85,13 @@
       "when": 1792265640527,
       "tag": "0011_weekend_pref_ktas_renewed",
       "breakpoints": true
+    },
+    {
+      "idx": 12,
+      "version": "7",
+      "when": 1792341482042,
+      "tag": "0012_ktas_reminder",
+      "breakpoints": true
     }
   ]
 }
