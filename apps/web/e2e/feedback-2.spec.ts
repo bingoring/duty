@@ -17,6 +17,11 @@ test('관리자가 OFF 신청을 휴가로 바꾸자고 하면 간호사가 수�
   const cellOf = (p: typeof me) => p.getByRole('button', { name: `${SORA.name} 2026-11-27` })
   await cellOf(me).click()
   await me.getByRole('dialog').getByRole('button', { name: 'OFF', exact: true }).click()
+  // 3-8: OFF만 신청하면 전날 N 안내 확인 창
+  me.once('dialog', (d) => {
+    expect(d.message()).toContain('전날(11/26)')
+    void d.accept()
+  })
   await me.getByRole('dialog').getByRole('button', { name: '임시 저장' }).click()
   await me.getByRole('button', { name: '신청 제출' }).click()
   await expect(me.getByRole('status')).toContainText('제출했습니다')

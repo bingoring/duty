@@ -51,6 +51,7 @@ test('11월 한 달: 신청·휴가 → 생성·확정 → 교환·관리자 조
     await expect(me.getByText('신청 중 · 마감 10/15 (2일 남음)')).toBeVisible()
     await me.getByRole('button', { name: `${A.name} ${REQ_DATE}` }).click()
     await me.getByRole('dialog').getByRole('button', { name: 'OFF', exact: true }).click()
+    me.once('dialog', (d) => void d.accept()) // 3-8 전날 N 안내 확인 창
     await me.getByRole('dialog').getByRole('button', { name: '임시 저장' }).click()
     await me.getByRole('button', { name: '신청 제출' }).click()
     await expect(me.getByRole('status')).toHaveText('1건을 제출했습니다.')

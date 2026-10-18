@@ -283,6 +283,28 @@ describe('규칙별 필수/권고 (3-5)', () => {
   })
 })
 
+describe('3-8 N 재시작 · 신청 OFF 전날', () => {
+  it('N을 마치고 1~3일 쉰 뒤 다시 N이면 권고 경고, 4일 쉬면 아님, 토글을 끄면 보지 않는다', () => {
+    expect(only(solo('N O N'), 'S-NIGHT-RESTART')).toMatchObject([{ severity: 'soft', data: { rest: 1 } }])
+    expect(only(solo('N O O O N'), 'S-NIGHT-RESTART')).toMatchObject([{ data: { rest: 3 } }])
+    expect(only(solo('N O O O O N'), 'S-NIGHT-RESTART')).toEqual([])
+    expect(only(solo('N O O D'), 'S-NIGHT-RESTART')).toEqual([])
+    expect(
+      only(solo('N O N', { rules: rules({}, { avoidNightRestart: false }) }), 'S-NIGHT-RESTART'),
+    ).toEqual([])
+  })
+  it('OFF만 신청한 날의 전날 N은 필수 위반, 전날 신청에 N이 있으면 예외', () => {
+    const inp = solo('D N O', { requests: [req('a', '2026-10-03', ['OFF'])] })
+    expect(only(inp, 'H-OFF-EVE')).toMatchObject([{ severity: 'hard', dates: ['2026-10-02', '2026-10-03'] }])
+    const ok = solo('D N O', {
+      requests: [req('a', '2026-10-03', ['OFF']), req('a', '2026-10-02', ['D', 'E', 'N', 'OFF'])],
+    })
+    expect(only(ok, 'H-OFF-EVE')).toEqual([])
+    const multi = solo('D N O', { requests: [req('a', '2026-10-03', ['OFF', 'D'])] })
+    expect(only(multi, 'H-OFF-EVE')).toEqual([])
+  })
+})
+
 describe('H-SLEEPING', () => {
   it('부여 가능 수를 넘는 슬리핑오프는 위반', () => {
     const five = 'N N O O N N O O N SO'

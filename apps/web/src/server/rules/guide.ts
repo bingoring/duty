@@ -69,6 +69,15 @@ export function buildRulesGuide(rules: RuleSet, version: number | null): RulesGu
           text: `N 근무 후에는 가능한 한 OFF ${p.offAfterNight}개를 줍니다. 불가피하면 N-off-E를 허용합니다.`,
           tag: sev('OFF_AFTER_N'),
         },
+        // 3-8
+        {
+          text: 'N을 마치고 1~3일 쉰 뒤 다시 일할 때는 N이 아니라 D·E로 시작합니다.',
+          tag: toggled(t.avoidNightRestart, 'NIGHT_RESTART'),
+        },
+        {
+          text: 'OFF만 신청한 날의 전날은 N을 주지 않습니다(D·E·OFF). 전날 N이 가능하면 전날 신청을 D·E·N·OFF 모두 골라 주세요.',
+          tag: toggled(t.offEveNoNight, 'OFF_EVE'),
+        },
       ],
     },
     {

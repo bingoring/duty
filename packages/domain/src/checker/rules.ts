@@ -17,6 +17,8 @@ export const HARD_RULE_IDS = [
   'H-EDU-UNION',
   'H-EDU-LIMIT',
   'H-BALANCE',
+  // 3-8: 신청한 OFF 전날 N 금지(전날 N을 포함해 신청했으면 예외)
+  'H-OFF-EVE',
 ] as const
 
 export const SOFT_RULE_IDS = [
@@ -31,6 +33,8 @@ export const SOFT_RULE_IDS = [
   'S-JUNIOR-ONLY',
   'S-REPEAT-PAIR',
   'S-REQUEST',
+  // 3-8: N 연속 뒤 1~3일 쉬고 다시 N으로 시작
+  'S-NIGHT-RESTART',
 ] as const
 
 export type HardRuleId = (typeof HARD_RULE_IDS)[number]

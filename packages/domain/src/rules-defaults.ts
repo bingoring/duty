@@ -54,6 +54,9 @@ export const RuleTogglesSchema = z.object({
   minimizeRepeatPairs: z.boolean(),
   nightDedicated: z.boolean(),
   balanceShiftTypes: z.boolean().default(true),
+  // 3-8
+  avoidNightRestart: z.boolean().default(true),
+  offEveNoNight: z.boolean().default(true),
 })
 
 export const RuleSetSchema = z.object({
@@ -105,6 +108,8 @@ export const DEFAULT_RULES: RuleSet = {
     minimizeRepeatPairs: true,
     nightDedicated: false,
     balanceShiftTypes: true,
+    avoidNightRestart: true,
+    offEveNoNight: true,
   },
   forbiddenPatterns: ['E-D', 'N-E', 'N-off-D', 'E-S'].map(normalizePattern),
   severity: { ...DEFAULT_SEVERITY },

@@ -177,6 +177,18 @@ export const RULE_TOGGLE_DEFS: {
     desc: '응급실은 사용 안 함 · 켜면 월 15일(31일 달 16일) 상한',
   },
   {
+    key: 'avoidNightRestart',
+    label: 'N 뒤 다시 일할 때 D·E로',
+    desc: 'N을 마치고 1~3일 쉰 뒤 다시 N으로 시작하지 않게',
+    severityKey: 'NIGHT_RESTART',
+  },
+  {
+    key: 'offEveNoNight',
+    label: '신청 OFF 전날 N 금지',
+    desc: 'OFF만 신청한 날의 전날은 D·E·OFF. 전날 신청에 N이 있으면 예외',
+    severityKey: 'OFF_EVE',
+  },
+  {
     key: 'balanceShiftTypes',
     label: 'D·E·N 고르게',
     desc: '한 사람의 D·E·N 차이가 허용치를 넘지 않게',

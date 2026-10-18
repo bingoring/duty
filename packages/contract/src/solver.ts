@@ -30,6 +30,8 @@ export const SEVERITY_KEYS = [
   'JUNIOR_ONLY',
   'REPEAT_PAIR',
   'EDU_LIMIT',
+  'NIGHT_RESTART',
+  'OFF_EVE',
 ] as const
 
 export const SolverCell = z.object({
@@ -70,6 +72,8 @@ export const SolverNurse = z.object({
   weekendCarryIn: z.boolean(),
   // 3-6: 본인이 주말 통 OFF를 원하지 않으면 false. 예전 요청과 호환되도록 선택(없으면 받음)
   weekendPair: z.boolean().optional(),
+  // 3-8 H-OFF-EVE: N을 주지 않을 날(OFF만 신청한 날의 전날). 없으면 빈 목록
+  noNightDates: z.array(IsoDate).optional(),
   shiftCountsBefore: z.object({ D: z.number().int(), E: z.number().int(), N: z.number().int() }),
   // D·E·N 분포 검사 대상 (전담·트레이닝 중 신규 제외)
   balanceShiftTypes: z.boolean(),
@@ -124,6 +128,8 @@ export const SolverRequest = z.object({
     shiftBalanceWindowMonths: z.number().int().positive(),
     // 3-5: 필수(하드 제약)로 둘 규칙. 나머지는 벌점(권고)
     hard: z.array(z.enum(SEVERITY_KEYS)),
+    // 3-8 S-NIGHT-RESTART: N 연속 뒤 1~3일 쉬고 다시 N 피하기(토글). 없으면 끔
+    avoidNightRestart: z.boolean().optional(),
   }),
   // 앞 근무 종료 ~ 다음 날 근무 시작 시간 (TS SHIFT_TIMES에서 계산해 넘긴다)
   restHours: z.record(WorkCode, z.record(WorkCode, z.number())),
@@ -167,6 +173,9 @@ export const TERM_KEYS = [
   'sleepingOver',
   // 3-5 추가: 월 나이트 최소에 모자란 수
   'nightMin',
+  // 3-8
+  'nightRestart',
+  'offEve',
 ] as const
 
 export const CAUSE_GROUPS = [
@@ -189,6 +198,8 @@ export const CAUSE_GROUPS = [
   'JUNIOR_ONLY',
   'REPEAT_PAIR',
   'NIGHT_MIN',
+  'NIGHT_RESTART',
+  'OFF_EVE',
 ] as const
 
 export const SolverCause = z.object({

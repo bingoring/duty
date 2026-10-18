@@ -14,6 +14,7 @@ import {
   monthDates,
   nightLimits,
   nightMinFor,
+  offEveNoNightDates,
   optionsSatisfied,
   redDaySet,
   restHoursBetween,
@@ -290,6 +291,10 @@ export async function buildGenerationInput(db: Db, plan: PlanRow): Promise<Gener
       weekendMissedStreak: n.weekendPairMissedStreak,
       weekendCarryIn: n.weekendPairWanted !== false && n.weekendPairCarryIn,
       weekendPair: n.weekendPairWanted !== false,
+      // 3-8 H-OFF-EVE: 검사기와 같은 날짜
+      noNightDates: rules.toggles.offEveNoNight
+        ? offEveNoNightDates(input.requests, n.id, (d) => d.slice(0, 7) === days[0]!.slice(0, 7))
+        : [],
       shiftCountsBefore: n.shiftCountsBefore,
       balanceShiftTypes: rules.toggles.balanceShiftTypes && !nl.dedicated && !trainees.has(n.id),
       requestMissBefore: misses.get(n.id) ?? 0,
@@ -356,6 +361,7 @@ export async function buildGenerationInput(db: Db, plan: PlanRow): Promise<Gener
       shiftBalanceTolerance: rules.params.shiftBalanceTolerance,
       shiftBalanceWindowMonths: rules.params.shiftBalanceWindowMonths,
       hard: SEVERITY_KEYS.filter((k) => rules.severity[k] === 'hard'),
+      avoidNightRestart: rules.toggles.avoidNightRestart,
     },
     restHours,
   }
