@@ -4,7 +4,7 @@ import { isIsoDate } from '@duty/domain'
 import { eq } from 'drizzle-orm'
 import { refresh } from 'next/cache'
 import { z } from 'zod'
-import { getSession } from '../auth/session'
+import { groupSession } from '../auth/session'
 import { getDb } from '../db/client'
 import { monthPlans } from '../db/schema'
 import { cancelApprovedLeave } from '../requests/service'
@@ -17,7 +17,7 @@ const DENIED = { ok: false as const, message: '권한이 없습니다.' }
 const BAD = { ok: false as const, message: '입력 형식이 올바르지 않습니다.' }
 
 async function adminOnly() {
-  const s = await getSession()
+  const s = await groupSession('nurse')
   return s && !s.pendingStep && s.user.role === 'admin' ? { id: s.user.id, role: 'admin' as const } : null
 }
 

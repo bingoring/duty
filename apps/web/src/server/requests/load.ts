@@ -26,6 +26,7 @@ import {
 import { leaveKindLabel, type RequestsRaw } from './dto'
 import { ensureRequestPlan } from './plan'
 import { leaveImpact, type Actor } from './service'
+import { NURSES } from '../role-group'
 
 // 3-6: 휴가 칸은 종류 이름
 const cellLabel = (c: { code: string; offKind: string | null; leaveKind: string | null }) =>
@@ -51,7 +52,7 @@ export async function loadRequestsRaw(
     .from(leaveRequests)
     .where(and(lte(leaveRequests.startDate, last), gte(leaveRequests.endDate, first)))
   const involved = new Set([...requests.map((r) => r.userId), ...leaves.map((l) => l.userId)])
-  const people = (await db.select().from(users).orderBy(asc(users.seniorityRank))).filter(
+  const people = (await db.select().from(users).where(NURSES).orderBy(asc(users.seniorityRank))).filter(
     // 2-11 R-HEAD-2: 수간호사도 행이 있다(OFF·D만 신청)
     (u) => u.active || involved.has(u.id),
   )

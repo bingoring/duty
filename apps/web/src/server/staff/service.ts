@@ -29,6 +29,7 @@ import { ensureWard } from '../seed/core'
 import { reconcileFoundingOff } from '../holidays/founding'
 import { ledgerSums, round1, type Sums } from '../schedule/balances'
 import type { BalanceAdjustInput, FieldErrors, StaffCreateInput, StaffUpdateInput } from '../admin/schemas'
+import { NURSES } from '../role-group'
 
 // Build Spec 2-4 business-rules §1.1 — S10 간호사 관리
 export type StaffCtx = { adminId: string; today: string; rules: RuleSet }
@@ -72,7 +73,11 @@ export function yearsOfService(hireDate: string | null, today: string): number |
 }
 
 export async function listStaff(db: Db, today: string): Promise<StaffRow[]> {
-  const people = await db.select().from(users).where(eq(users.active, true)).orderBy(asc(users.seniorityRank))
+  const people = await db
+    .select()
+    .from(users)
+    .where(and(NURSES, eq(users.active, true)))
+    .orderBy(asc(users.seniorityRank))
   const names = new Map(
     (await db.select({ id: users.id, name: users.name }).from(users)).map((u) => [u.id, u.name]),
   )
@@ -164,7 +169,8 @@ export async function createStaff(db: Db, input: StaffCreateInput, ctx: StaffCtx
     const wardId = await ensureWard(tx)
     const [{ max }] = (await tx
       .select({ max: sql<number>`coalesce(max(${users.seniorityRank}), 0)` })
-      .from(users)) as [{ max: number }]
+      .from(users)
+      .where(NURSES)) as [{ max: number }]
     const [u] = await tx
       .insert(users)
       .values({
@@ -262,7 +268,7 @@ export async function updateStaff(
     const active = await tx
       .select({ id: users.id })
       .from(users)
-      .where(eq(users.active, true))
+      .where(and(NURSES, eq(users.active, true)))
       .orderBy(asc(users.seniorityRank))
     const order = active.map((x) => x.id).filter((id) => id !== userId)
     order.splice(Math.min(input.seniorityRank, order.length + 1) - 1, 0, userId)
@@ -306,7 +312,7 @@ export async function removeStaff(db: Db, userId: string, ctx: StaffCtx): Promis
     if (u.role === 'admin') {
       const others = await tx.$count(
         users,
-        and(eq(users.role, 'admin'), eq(users.active, true), ne(users.id, userId)),
+        and(NURSES, eq(users.role, 'admin'), eq(users.active, true), ne(users.id, userId)),
       )
       if (others === 0) return { ok: false as const, message: '마지막 관리자는 제거할 수 없습니다.' }
     }
@@ -401,7 +407,11 @@ export async function adjustBalances(db: Db, input: BalanceAdjustInput, adminId:
 export async function reorderStaff(db: Db, ids: string[]): Promise<Result> {
   if (new Set(ids).size !== ids.length) return { ok: false, message: '같은 사람이 두 번 들어 있습니다.' }
   return db.transaction(async (tx) => {
-    const active = await tx.select({ id: users.id }).from(users).where(eq(users.active, true)).for('update')
+    const active = await tx
+      .select({ id: users.id })
+      .from(users)
+      .where(and(NURSES, eq(users.active, true)))
+      .for('update')
     const set = new Set(active.map((u) => u.id))
     if (ids.length !== set.size || ids.some((id) => !set.has(id)))
       return { ok: false as const, message: '그사이 명단이 바뀌었습니다. 새로고침 뒤 다시 정해 주세요.' }

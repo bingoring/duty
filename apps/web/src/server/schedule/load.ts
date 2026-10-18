@@ -46,13 +46,14 @@ import type {
   ScheduleCellRow,
   ViewUser,
 } from './types'
+import { NURSES } from '../role-group'
 
 type PlanRow = typeof monthPlans.$inferSelect
 const SHOWN: MonthPlanStatus[] = ['CONFIRMED', 'CLOSED']
 const before = (a: YearMonth, b: YearMonth) => a.year * 12 + a.month < b.year * 12 + b.month
 
 async function loadUsers(db: Db): Promise<(ViewUser & { active: boolean })[]> {
-  const rows = await db.select().from(users).orderBy(asc(users.seniorityRank))
+  const rows = await db.select().from(users).where(NURSES).orderBy(asc(users.seniorityRank))
   return rows.map((u) => ({
     id: u.id,
     employeeNo: u.employeeNo,

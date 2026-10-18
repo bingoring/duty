@@ -1,10 +1,12 @@
 'use server'
 
 import { RuleSetSchema } from '@duty/domain'
+import { eq } from 'drizzle-orm'
 import { refresh } from 'next/cache'
 import { z } from 'zod'
-import { getSession } from '../auth/session'
+import { groupSession } from '../auth/session'
 import { getDb } from '../db/client'
+import { users } from '../db/schema'
 import { addHoliday, deleteHoliday, importHolidays, type ImportResult } from '../holidays/service'
 import { getCurrentRules } from '../rules'
 import { saveRules, type SaveResult } from '../rules/service'
@@ -31,8 +33,16 @@ import { requestToday } from '../clock'
 const DENIED = { ok: false as const, message: '권한이 없습니다.' }
 
 async function adminOnly(): Promise<string | null> {
-  const s = await getSession()
+  const s = await groupSession('nurse')
   return s && !s.pendingStep && s.user.role === 'admin' ? s.user.id : null
+}
+
+// 3-7a: 간호사 관리자는 간호사만 고친다(의사 계정은 의사 관리에서)
+async function isNurse(userId: string): Promise<boolean> {
+  const id = z.string().uuid().safeParse(userId)
+  if (!id.success) return false
+  const [u] = await getDb().select({ g: users.roleGroup }).from(users).where(eq(users.id, id.data))
+  return u?.g === 'nurse'
 }
 
 function fieldErrors(e: z.ZodError): FieldErrors {
@@ -60,7 +70,7 @@ export async function createStaffAction(input: unknown): Promise<CreateResult | 
 
 export async function updateStaffAction(userId: string, input: unknown): Promise<Result> {
   const admin = await adminOnly()
-  if (!admin) return DENIED
+  if (!admin || !(await isNurse(userId))) return DENIED
   const parsed = StaffUpdateSchema.safeParse(input)
   if (!parsed.success) return { ok: false, errors: fieldErrors(parsed.error) }
   const r = await updateStaff(getDb(), z.string().uuid().parse(userId), parsed.data, await staffCtx(admin))
@@ -80,7 +90,7 @@ export async function reorderStaffAction(ids: unknown): Promise<Result> {
 
 export async function removeStaffAction(userId: string): Promise<Result> {
   const admin = await adminOnly()
-  if (!admin) return DENIED
+  if (!admin || !(await isNurse(userId))) return DENIED
   const r = await removeStaff(getDb(), z.string().uuid().parse(userId), await staffCtx(admin))
   if (r.ok) refresh()
   return r
@@ -90,7 +100,7 @@ export async function reissuePasswordAction(
   userId: string,
 ): Promise<{ ok: true; tempPassword: string } | { ok: false; message: string }> {
   const admin = await adminOnly()
-  if (!admin) return DENIED
+  if (!admin || !(await isNurse(userId))) return DENIED
   const id = z.string().uuid().safeParse(userId)
   if (!id.success) return { ok: false, message: '간호사를 찾을 수 없습니다.' }
   return reissuePassword(getDb(), id.data)
@@ -101,6 +111,7 @@ export async function adjustBalancesAction(input: unknown): Promise<Result> {
   if (!admin) return DENIED
   const parsed = BalanceAdjustSchema.safeParse(input)
   if (!parsed.success) return { ok: false, errors: fieldErrors(parsed.error) }
+  if (!(await isNurse(parsed.data.userId))) return DENIED
   await adjustBalances(getDb(), parsed.data, admin)
   refresh()
   return { ok: true }

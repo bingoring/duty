@@ -2,13 +2,13 @@ import Link from 'next/link'
 import { AnnualForm } from '@/components/auth/AnnualForm'
 import { KtasForm } from '@/components/auth/KtasForm'
 import { PasswordForm } from '@/components/auth/PasswordForm'
-import { requireUser } from '@/server/auth/guards'
+import { requireNurse } from '@/server/auth/guards'
 import { requestToday } from '@/server/clock'
 import { getDb } from '@/server/db/client'
 import { currentValues } from '@/server/onboarding/service'
 
 export default async function SettingsPage() {
-  const s = await requireUser()
+  const s = await requireNurse()
   const today = await requestToday()
   const { annual, kTass, ktasCertifiedOn, ktasRenewedOn } = await currentValues(getDb(), s.user.id, today)
   return (

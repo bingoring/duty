@@ -1,10 +1,11 @@
+import { DoctorScheduleSection, GroupTabs } from '@/components/doctor/DoctorScheduleSection'
 import { FocusClear } from '@/components/schedule/FocusClear'
 import { NoticeBar } from '@/components/schedule/NoticeBar'
 import { ScheduleGrid } from '@/components/schedule/ScheduleGrid'
 import { ScrollToSelected } from '@/components/schedule/ScrollToSelected'
 import { ScheduleHeader } from '@/components/schedule/ScheduleHeader'
 import { SummaryCards } from '@/components/schedule/SummaryCards'
-import { requireUser } from '@/server/auth/guards'
+import { requireNurse } from '@/server/auth/guards'
 import { getDb } from '@/server/db/client'
 import { loadNotices } from '@/server/notices/service'
 import { pendingProposalCount } from '@/server/requests/proposals'
@@ -13,14 +14,15 @@ import { loadMonthView } from '@/server/schedule/load'
 import { parseYm } from '@/server/schedule/month'
 import { buildScheduleView } from '@/server/schedule/view'
 import { requestToday } from '@/server/clock'
+import { loadDoctorSchedule } from '@/server/doctor/schedule'
 
 // S3 근무표 — 홈 (Build Spec 2-3). 서버 컴포넌트로 렌더링한다(클라이언트 JS는 인쇄 버튼, 2-7 바뀐 근무 안내의 「확인」, 강조 열 해제뿐)
 export default async function SchedulePage({
   searchParams,
 }: {
-  searchParams: Promise<{ ym?: string | string[]; focus?: string | string[] }>
+  searchParams: Promise<{ ym?: string | string[]; focus?: string | string[]; view?: string | string[]; hl?: string | string[] }>
 }) {
-  const session = await requireUser()
+  const session = await requireNurse()
   const today = await requestToday()
   const sp = await searchParams
   const { year, month } = parseYm(sp.ym, today)
@@ -31,6 +33,22 @@ export default async function SchedulePage({
       ? sp.focus
       : null
   const db = getDb()
+  // 3-7b: 「의사」 탭 — 의사 확정 근무표만 읽기 전용
+  const tabs = (
+    <GroupTabs active={sp.view === 'doctor' ? 'doctor' : 'nurse'} nurseHref={`/?ym=${ym}`} doctorHref={`/?view=doctor&ym=${ym}`} />
+  )
+  if (sp.view === 'doctor') {
+    const dv = await loadDoctorSchedule(db, { year, month, viewerId: null, today })
+    const hl = typeof sp.hl === 'string' && dv.doctors.some((d) => d.id === sp.hl) ? sp.hl : null
+    return (
+      <DoctorScheduleSection
+        view={dv}
+        tabs={tabs}
+        highlight={hl}
+        hrefOf={({ ym: m, hl: h }) => `/?view=doctor&ym=${m}${h ? `&hl=${h}` : ''}`}
+      />
+    )
+  }
   const data = await loadMonthView(db, { year, month, viewerId: session.user.id, today })
   const view = buildScheduleView(data)
   const notices = await loadNotices(db, session.user.id)
@@ -46,7 +64,7 @@ export default async function SchedulePage({
         swaps={swaps}
         proposals={proposals}
       />
-      <ScheduleHeader view={view} />
+      <ScheduleHeader view={view} tabs={tabs} />
       {!view.empty && <SummaryCards cards={view.cards} />}
       <FocusClear focus={focus} ym={ym}>
         <ScheduleGrid

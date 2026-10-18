@@ -18,8 +18,30 @@ export async function requireUser(opts: { allowStep?: readonly PendingStep[] } =
   return s
 }
 
-export async function requireAdmin(): Promise<ValidSession> {
+// 3-7a: 직군마다 화면이 따로다. 다른 직군 화면에 오면 자기 홈으로 보낸다
+export const HOME_OF = { nurse: '/', doctor: '/doctor' } as const
+
+export async function requireNurse(): Promise<ValidSession> {
   const s = await requireUser()
+  if (s.user.roleGroup !== 'nurse') redirect(HOME_OF.doctor)
+  return s
+}
+
+export async function requireDoctor(): Promise<ValidSession> {
+  const s = await requireUser()
+  if (s.user.roleGroup !== 'doctor') redirect(HOME_OF.nurse)
+  return s
+}
+
+// 관리자 = 같은 직군의 관리자만 (간호사 관리자는 의사 근무표를, 의사 관리자는 간호사 근무표를 고치지 못한다)
+export async function requireAdmin(): Promise<ValidSession> {
+  const s = await requireNurse()
+  if (s.user.role !== 'admin') forbidden()
+  return s
+}
+
+export async function requireDoctorAdmin(): Promise<ValidSession> {
+  const s = await requireDoctor()
   if (s.user.role !== 'admin') forbidden()
   return s
 }

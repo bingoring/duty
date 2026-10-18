@@ -3,7 +3,7 @@
 import { LEAVE_TYPES, REQUEST_OPTIONS, REQUEST_SPECIALS, isIsoDate } from '@duty/domain'
 import { refresh } from 'next/cache'
 import { z } from 'zod'
-import { getSession } from '../auth/session'
+import { groupSession } from '../auth/session'
 import { getDb } from '../db/client'
 import {
   cancelLeave,
@@ -22,7 +22,7 @@ const DENIED = { ok: false as const, message: '로그인이 필요합니다.' }
 const BAD = { ok: false as const, message: '입력 형식이 올바르지 않습니다.' }
 
 async function sessionActor(): Promise<Actor | null> {
-  const s = await getSession()
+  const s = await groupSession('nurse')
   if (!s || s.pendingStep) return null
   return { id: s.user.id, role: s.user.role === 'admin' ? 'admin' : 'nurse' }
 }

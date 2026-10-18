@@ -23,6 +23,7 @@ import type { Db } from '../db/client'
 import { holidays, monthPlans, scheduleCells, shiftRequests, trainings, users } from '../db/schema'
 import { latestRuleSet } from '../rules/service'
 import { shiftYm, todaySeoul } from './month'
+import { NURSES } from '../role-group'
 
 // DB → 2-2 검사기 입력. 2-5 인원 영향·2-6 솔버 재검사·2-7 조정이 함께 쓴다.
 // 잔여 관련 필드(누적 OFF·잔여 N·잔여치)는 아직 채우지 않는다(0·null) — 전후 비교(인원 영향)에는 영향이 없다. 2-6에서 채운다.
@@ -90,7 +91,9 @@ export async function buildScheduleInput(
   )
   const ids = new Set([...cells, ...prevTail, ...nextHead].map((c) => c.userId))
   // 행 순서는 입력 해시·솔버 결정성에 들어가므로 모든 조회에 정렬을 둔다 (2-7 CI에서 확정이 간헐적으로 막힘)
-  const people = (await db.select().from(users).orderBy(asc(users.seniorityRank), asc(users.id))).filter(
+  const people = (
+    await db.select().from(users).where(NURSES).orderBy(asc(users.seniorityRank), asc(users.id))
+  ).filter(
     (u) => u.active || ids.has(u.id),
   )
   const nurses: NurseProfile[] = people.map((u) => ({

@@ -107,6 +107,9 @@ export type SessionUser = {
   role: string
   rotation: string
   wardName: string
+  // 3-7a: 'nurse' | 'doctor'
+  roleGroup: string
+  loginIdKind: string
 }
 
 // 2-11 R-ONB-1: 로그인 뒤 남은 단계(순서대로 하나씩). null이면 모든 화면·액션을 쓸 수 있다
@@ -177,7 +180,10 @@ export async function validateSession(
     ? 'consent'
     : row.mustChange
       ? 'password'
-      : user.onboardedYear === null
+      : // 3-7a: 의사는 간호사 초기 설정(연차·KTAS 등)이 없다
+        user.roleGroup === 'doctor'
+        ? null
+        : user.onboardedYear === null
         ? 'onboarding'
         : user.onboardedYear < year
           ? 'annual'
@@ -190,6 +196,8 @@ export async function validateSession(
       role: user.role,
       rotation: user.rotation,
       wardName: row.wardName,
+      roleGroup: user.roleGroup,
+      loginIdKind: user.loginIdKind,
     },
     mustChangePassword: row.mustChange,
     pendingStep,

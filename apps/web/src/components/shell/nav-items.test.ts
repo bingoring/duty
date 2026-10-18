@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { ADMIN_NAV, MAIN_NAV, isActive } from './nav-items'
+import { ADMIN_NAV, DOCTOR_ADMIN_NAV, DOCTOR_MAIN_NAV, MAIN_NAV, isActive } from './nav-items'
 
 describe('사이드바 메뉴', () => {
   // 핸드오프 v2 공통 셸: 근무 조정은 모든 간호사 메뉴, 휴가 신청은 근무 신청 팝오버로 통합
@@ -18,6 +18,12 @@ describe('사이드바 메뉴', () => {
   it('근무표(/)는 정확히 일치할 때만 활성', () => {
     expect(isActive('/', '/')).toBe(true)
     expect(isActive('/requests', '/')).toBe(false)
+  })
+  it('3-7a 의사 메뉴: 근무표·근무 신청·근무 조정·규칙 안내 → 듀티 생성·의사 관리·규칙 설정', () => {
+    expect(DOCTOR_MAIN_NAV.map((n) => n.label)).toEqual(['근무표', '근무 신청', '근무 조정', '규칙 안내'])
+    expect(DOCTOR_ADMIN_NAV.map((n) => n.label)).toEqual(['듀티 생성', '의사 관리', '규칙 설정'])
+    expect(isActive('/doctor', '/doctor')).toBe(true)
+    expect(isActive('/doctor/requests', '/doctor')).toBe(false)
   })
   it('하위 경로도 활성으로 본다', () => {
     expect(isActive('/admin/staff/new', '/admin/staff')).toBe(true)

@@ -2,7 +2,7 @@
 
 import { refresh } from 'next/cache'
 import { z } from 'zod'
-import { getSession } from '../auth/session'
+import { groupSession } from '../auth/session'
 import { getDb } from '../db/client'
 import { ackNotices } from './service'
 
@@ -10,7 +10,7 @@ import { ackNotices } from './service'
 const DENIED = { ok: false as const, message: '로그인이 필요합니다.' }
 
 async function sessionActor() {
-  const s = await getSession()
+  const s = await groupSession('nurse')
   return s && !s.pendingStep ? { id: s.user.id } : null
 }
 

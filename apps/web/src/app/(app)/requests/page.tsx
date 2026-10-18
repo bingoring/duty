@@ -1,5 +1,5 @@
 import { RequestsScreen } from '@/components/requests/RequestsScreen'
-import { requireUser } from '@/server/auth/guards'
+import { requireNurse } from '@/server/auth/guards'
 import { getDb } from '@/server/db/client'
 import { buildRequestsView } from '@/server/requests/dto'
 import { loadRequestsRaw } from '@/server/requests/load'
@@ -13,7 +13,7 @@ export default async function RequestsPage({
 }: {
   searchParams: Promise<{ ym?: string | string[] }>
 }) {
-  const session = await requireUser()
+  const session = await requireNurse()
   const today = await requestToday()
   const raw = (await searchParams).ym
   const ym = raw ? parseYm(raw, today) : shiftYm(parseYm(undefined, today), 1)

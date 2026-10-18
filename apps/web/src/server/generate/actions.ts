@@ -2,7 +2,7 @@
 
 import { refresh } from 'next/cache'
 import { z } from 'zod'
-import { getSession } from '../auth/session'
+import { groupSession } from '../auth/session'
 import { getDb } from '../db/client'
 import { confirmCandidate, generate } from './service'
 import { requestToday } from '../clock'
@@ -12,7 +12,7 @@ const DENIED = { ok: false as const, kind: 'blocked' as const, message: '권한�
 const BAD = { ok: false as const, kind: 'blocked' as const, message: '입력 형식이 올바르지 않습니다.' }
 
 async function adminOnly() {
-  const s = await getSession()
+  const s = await groupSession('nurse')
   return s && !s.pendingStep && s.user.role === 'admin' ? { id: s.user.id, role: 'admin' as const } : null
 }
 

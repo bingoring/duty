@@ -3,7 +3,7 @@
 import { refresh } from 'next/cache'
 import { redirect } from 'next/navigation'
 import { z } from 'zod'
-import { getSession } from '../auth/session'
+import { groupSession } from '../auth/session'
 import { requestToday } from '../clock'
 import { getDb } from '../db/client'
 import { todaySeoul } from '../schedule/month'
@@ -11,7 +11,7 @@ import { reviewSubmission, saveOnboarding, type SaveResult } from './service'
 
 // Build Spec 2-11 R-ONB-1·6 — 초기 설정 단계가 남은 본인만
 export async function saveOnboardingAction(input: unknown): Promise<SaveResult> {
-  const s = await getSession()
+  const s = await groupSession('nurse')
   if (!s) redirect('/login')
   const step = s.pendingStep
   if (step !== 'onboarding' && step !== 'annual')
@@ -29,7 +29,7 @@ export async function saveOnboardingAction(input: unknown): Promise<SaveResult> 
 
 // 3-4: 내 설정에서 언제든 남은 연차를 고친다(바로 반영, 관리자 확인 대상)
 export async function saveAnnualAction(input: unknown): Promise<SaveResult> {
-  const s = await getSession()
+  const s = await groupSession('nurse')
   if (!s || s.pendingStep) return { ok: false, message: '다시 로그인해 주세요.' }
   const r = await saveOnboarding(getDb(), {
     userId: s.user.id,
@@ -43,7 +43,7 @@ export async function saveAnnualAction(input: unknown): Promise<SaveResult> {
 
 // 3-6: 내 설정에서 KTAS 취득일·갱신일을 고친다(바로 반영, 관리자 확인 대상)
 export async function saveKtasAction(input: unknown): Promise<SaveResult> {
-  const s = await getSession()
+  const s = await groupSession('nurse')
   if (!s || s.pendingStep) return { ok: false, message: '다시 로그인해 주세요.' }
   const r = await saveOnboarding(getDb(), {
     userId: s.user.id,
@@ -57,7 +57,7 @@ export async function saveKtasAction(input: unknown): Promise<SaveResult> {
 
 // R-ONB-7: 관리자 확인·되돌리기
 export async function reviewSubmissionAction(input: unknown) {
-  const s = await getSession()
+  const s = await groupSession('nurse')
   if (!s || s.pendingStep || s.user.role !== 'admin')
     return { ok: false as const, message: '권한이 없습니다.' }
   const p = z

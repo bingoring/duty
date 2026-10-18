@@ -2,7 +2,7 @@ import { spawn, type ChildProcess } from 'node:child_process'
 import path from 'node:path'
 
 // 통합 테스트·E2E 전용 솔버. 개발 서버(8100)와 겹치지 않게 따로 띄운다
-export const TEST_SOLVER_PORT = 8101
+export const TEST_SOLVER_PORT = Number(process.env.TEST_SOLVER_PORT ?? 8101)
 const solverDir = path.resolve(import.meta.dirname, '../../../../services/solver')
 
 async function healthy(url: string) {

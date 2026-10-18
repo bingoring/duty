@@ -1,7 +1,7 @@
 import { GuideSection, ShiftCards } from '@/components/rules-guide/GuideSection'
 import { GuideToc } from '@/components/rules-guide/GuideToc'
 import { WeekendPairToggle } from '@/components/rules-guide/WeekendPairToggle'
-import { requireUser } from '@/server/auth/guards'
+import { requireNurse } from '@/server/auth/guards'
 import { getCurrentRules } from '@/server/rules'
 import { buildRulesGuide } from '@/server/rules/guide'
 import { getDb } from '@/server/db/client'
@@ -9,7 +9,7 @@ import { weekendPairPreference } from '@/server/preferences/service'
 
 // S7 규칙 안내 (Build Spec 2-10). 모든 수치는 현재 규칙 버전에서 렌더링한다
 export default async function RulesGuidePage() {
-  const session = await requireUser()
+  const session = await requireNurse()
   const { version, ...rules } = await getCurrentRules()
   const pref = await weekendPairPreference(getDb(), session.user.id)
   const guide = buildRulesGuide(rules, version)
