@@ -89,7 +89,7 @@ describe('근무 신청 (R-REQ-SHIFT·DRAFT)', () => {
     expect([row!.options, row!.submittedAt]).toEqual([['D'], null])
   })
 
-  it('남의 줄·마감 뒤·대상 월 밖은 거부, 관리자는 남의 줄도 곧바로 제출 상태', async () => {
+  it('남의 줄·대상 월 밖은 거부(마감 뒤는 3-8부터 허용), 관리자는 남의 줄도 곧바로 제출 상태', async () => {
     const me = await actor('00103')
     const other = await actor('00104')
     expect(
@@ -103,12 +103,10 @@ describe('근무 신청 (R-REQ-SHIFT·DRAFT)', () => {
       ok: false,
       message: '다른 사람의 신청은 바꿀 수 없습니다.',
     })
+    // 3-8: 마감 뒤라도 확정 전이면 신청할 수 있다
     expect(
       await saveShiftRequest(db, me, { userId: me.id, date: '2026-11-13', options: ['OFF'] }, '2026-10-16'),
-    ).toEqual({
-      ok: false,
-      message: '신청 기간이 아닙니다.',
-    })
+    ).toEqual({ ok: true })
     expect(
       await saveShiftRequest(db, me, { userId: me.id, date: '2026-12-01', options: ['OFF'] }, '2026-10-05'),
     ).toEqual({

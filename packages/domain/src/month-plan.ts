@@ -2,7 +2,16 @@ import type { MonthPlanStatus } from './allowed-sets'
 import { daysInMonth, isoOf, monthDates, prevMonth, type IsoDate } from './dates'
 import type { RuleParams } from './rules-defaults'
 
-export const PLAN_EVENTS = ['CLOSE_REQUESTS', 'GENERATE', 'CONFIRM', 'ADJUST', 'CLOSE', 'REOPEN'] as const
+// REVOKE: 3-8 확정 철회 → 생성안 검토로
+export const PLAN_EVENTS = [
+  'CLOSE_REQUESTS',
+  'GENERATE',
+  'CONFIRM',
+  'ADJUST',
+  'CLOSE',
+  'REOPEN',
+  'REVOKE',
+] as const
 export type PlanEvent = (typeof PLAN_EVENTS)[number]
 
 export class PlanTransitionError extends Error {
@@ -25,7 +34,7 @@ const TRANSITIONS: Partial<Record<MonthPlanStatus, Partial<Record<PlanEvent, Mon
   REQUESTING: { CLOSE_REQUESTS: 'REQUEST_CLOSED' },
   REQUEST_CLOSED: { GENERATE: 'DRAFTING' },
   DRAFTING: { GENERATE: 'DRAFTING', CONFIRM: 'CONFIRMED' },
-  CONFIRMED: { ADJUST: 'CONFIRMED', CLOSE: 'CLOSED' },
+  CONFIRMED: { ADJUST: 'CONFIRMED', CLOSE: 'CLOSED', REVOKE: 'DRAFTING' },
   CLOSED: { REOPEN: 'CONFIRMED' },
 }
 
@@ -42,6 +51,7 @@ export function nextPlanStatus(
   return next
 }
 
-export function canNurseEditRequests(status: MonthPlanStatus, requestDeadline: IsoDate, today: IsoDate) {
-  return status === 'REQUESTING' && today <= requestDeadline
+// 3-8: 관리자가 확정하기 전까지는 신청할 수 있다(마감 뒤·생성안 검토 중에도). 마감일은 생성을 시작할 수 있는 날일 뿐
+export function canNurseEditRequests(status: MonthPlanStatus, _requestDeadline?: IsoDate, _today?: IsoDate) {
+  return status === 'REQUESTING' || status === 'REQUEST_CLOSED' || status === 'DRAFTING'
 }

@@ -269,6 +269,13 @@
               "weekendPair": {
                 "type": "boolean"
               },
+              "noNightDates": {
+                "type": "array",
+                "items": {
+                  "type": "string",
+                  "pattern": "^\\d{4}-\\d{2}-\\d{2}$"
+                }
+              },
               "shiftCountsBefore": {
                 "type": "object",
                 "properties": {
@@ -518,9 +525,14 @@
                   "WEEKEND_PAIR",
                   "JUNIOR_ONLY",
                   "REPEAT_PAIR",
-                  "EDU_LIMIT"
+                  "EDU_LIMIT",
+                  "NIGHT_RESTART",
+                  "OFF_EVE"
                 ]
               }
+            },
+            "avoidNightRestart": {
+              "type": "boolean"
             }
           },
           "required": [
@@ -734,7 +746,9 @@
                       "nightConsec",
                       "offConsec",
                       "sleepingOver",
-                      "nightMin"
+                      "nightMin",
+                      "nightRestart",
+                      "offEve"
                     ]
                   },
                   "additionalProperties": {
@@ -769,7 +783,9 @@
                     "nightConsec",
                     "offConsec",
                     "sleepingOver",
-                    "nightMin"
+                    "nightMin",
+                    "nightRestart",
+                    "offEve"
                   ]
                 }
               },
@@ -833,7 +849,9 @@
                       "WEEKEND_PAIR",
                       "JUNIOR_ONLY",
                       "REPEAT_PAIR",
-                      "NIGHT_MIN"
+                      "NIGHT_MIN",
+                      "NIGHT_RESTART",
+                      "OFF_EVE"
                     ]
                   },
                   "userId": {

@@ -4,6 +4,7 @@ import {
   CHECKUP_HALVES,
   FAMILY_LEAVE_DAYS,
   OFFICIAL_LEAVE_REASONS,
+  addDays,
   formatMD,
   leaveDays,
   leaveEnd,
@@ -89,7 +90,17 @@ export function RequestPopover({
       if (r.ok) onClose()
       else setError(r.message ?? '저장하지 못했습니다.')
     })
+  // 3-8: OFF만 신청하면 전날 N이 빠지므로, 전날 N이 가능한 사람은 전날 신청을 전부 고르도록 안내
+  const eve = formatMD(addDays(cell.date, -1))
+  const confirmOffEve = () =>
+    mode !== 'shift' ||
+    options.length !== 1 ||
+    options[0] !== 'OFF' ||
+    window.confirm(
+      `OFF를 신청한 날의 전날(${eve})에는 N 근무를 주지 않습니다.\n전날(${eve}) N 근무가 가능하다면 전날 근무 신청을 D·E·N·OFF 모두 선택해 주세요.\n\n확인을 누르면 OFF 신청을 저장합니다.`,
+    )
   const save = () =>
+    confirmOffEve() &&
     run(() =>
       mode === 'leave'
         ? saveLeaveAction({

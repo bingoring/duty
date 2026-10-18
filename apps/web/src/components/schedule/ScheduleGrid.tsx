@@ -33,6 +33,8 @@ const headFixed =
 // 2-7 근무 조정: 관리자 편집용 선택 props (근무표·생성안 미리보기에서는 쓰지 않음)
 export type GridInteraction = {
   onCell?: (userId: string, date: string, el: HTMLElement) => void
+  // 3-8 생성안: 관리자가 칸을 더블클릭해 그 간호사의 신청(관리자 입력)을 넣는다
+  onCellDouble?: (userId: string, date: string, el: HTMLElement) => void
   // 저장 전 편집 칸 (칸 보기를 덮어쓴다)
   pending?: ReadonlyMap<string, GridCellView>
   focusDate?: string | null
@@ -95,7 +97,7 @@ function Cell({
               ? 'bg-weekend-cell'
               : ''
   } ${selected ? 'z-10 outline-2 -outline-offset-2 outline-ink' : hovered ? 'z-10 outline-1 -outline-offset-1 outline-admin' : ''}`
-  if (ui?.onCell)
+  if (ui?.onCell || ui?.onCellDouble)
     return (
       <button
         type="button"
@@ -108,7 +110,8 @@ function Cell({
         className={`${cls} cursor-pointer`}
         onMouseEnter={() => ui.onHover?.({ userId, date: c.date })}
         onFocus={() => ui.onHover?.({ userId, date: c.date })}
-        onClick={(e) => ui.onCell!(userId, c.date, e.currentTarget)}
+        onClick={(e) => ui.onCell?.(userId, c.date, e.currentTarget)}
+        onDoubleClick={(e) => ui.onCellDouble?.(userId, c.date, e.currentTarget)}
       >
         {body}
       </button>

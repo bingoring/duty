@@ -23,12 +23,14 @@ describe('규칙 편집 항목 (Build Spec 2-4 domain-entities §4)', () => {
     expect(keys).toEqual(all)
   })
 
-  it('토글 5개(D·E·N 고르게 포함)', () => {
+  it('토글 7개(D·E·N 고르게, 3-8 N 재시작·신청 OFF 전날 포함)', () => {
     expect(RULE_TOGGLE_DEFS.map((t) => t.key)).toEqual([
       'weekendPairOffMonthly',
       'avoidJuniorOnly',
       'minimizeRepeatPairs',
       'nightDedicated',
+      'avoidNightRestart',
+      'offEveNoNight',
       'balanceShiftTypes',
     ])
   })

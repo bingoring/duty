@@ -4,6 +4,7 @@ import { refresh } from 'next/cache'
 import { z } from 'zod'
 import { groupSession } from '../auth/session'
 import { getDb } from '../db/client'
+import { revokeConfirmation, revokePreview } from './revoke'
 import { confirmCandidate, generate } from './service'
 import { requestToday } from '../clock'
 
@@ -45,6 +46,30 @@ export async function confirmCandidateAction(input: unknown) {
   const parsed = z.object({ candidateId: z.string().uuid() }).safeParse(input)
   if (!parsed.success) return BAD
   const r = await confirmCandidate(getDb(), admin, parsed.data.candidateId, await requestToday())
+  if (r.ok) refresh()
+  return r
+}
+
+// 3-8 확정 철회: 미리 보기(사라질 교환·관리자 수정 수) → 확인 → 철회
+const YmSchema = z.object({
+  year: z.number().int().min(2020).max(2100),
+  month: z.number().int().min(1).max(12),
+})
+
+export async function revokePreviewAction(input: unknown) {
+  const admin = await adminOnly()
+  if (!admin) return DENIED
+  const parsed = YmSchema.safeParse(input)
+  if (!parsed.success) return BAD
+  return revokePreview(getDb(), parsed.data)
+}
+
+export async function revokeConfirmationAction(input: unknown) {
+  const admin = await adminOnly()
+  if (!admin) return DENIED
+  const parsed = YmSchema.safeParse(input)
+  if (!parsed.success) return BAD
+  const r = await revokeConfirmation(getDb(), admin, parsed.data)
   if (r.ok) refresh()
   return r
 }

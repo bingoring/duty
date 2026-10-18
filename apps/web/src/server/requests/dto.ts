@@ -208,7 +208,8 @@ export function buildRequestsView(
   const isAdmin = viewer.role === 'admin'
   const days = monthDates(r.year, r.month)
   const status = r.plan?.status ?? null
-  const preGen = status === 'REQUESTING' || status === 'REQUEST_CLOSED'
+  // 3-8: 확정 전(생성안 검토 중 포함)까지 신청을 고칠 수 있다
+  const preGen = status === 'REQUESTING' || status === 'REQUEST_CLOSED' || status === 'DRAFTING'
   const editable: RequestsView['editable'] = !r.plan
     ? 'none'
     : isAdmin

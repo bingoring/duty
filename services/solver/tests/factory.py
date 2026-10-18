@@ -21,6 +21,7 @@ DEFAULT_HARD = (
     "KTAS",
     "TRAINING",
     "EDU_LIMIT",
+    "OFF_EVE",
 )
 
 

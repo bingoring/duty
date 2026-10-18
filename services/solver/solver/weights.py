@@ -14,6 +14,9 @@ WEIGHTS: dict[str, int] = {
     "nightTarget": 200,
     # 3-5 추가: 월 나이트 최소에 모자란 N 하나당
     "nightMin": 200,
+    # 3-8: N 재시작(권고 기본), 신청 OFF 전날 N(필수 기본 — 권고로 낮췄을 때)
+    "nightRestart": 150,
+    "offEve": 2000,
     "offAfterNight": 150,
     "sleepingShort": 120,
     "shiftBalance": 60,
@@ -40,3 +43,5 @@ REPEAT_PAIR_MIN = 4
 REQUEST_MISS_BEFORE_DIV = 3
 # 검사기 SHIFT_BALANCE_MIN_WORK와 같은 값: 이번 달 D·E·N 합이 이 수 이상일 때만 이번 달 분포를 본다
 SHIFT_BALANCE_MIN_WORK = 9
+# 검사기 NIGHT_RESTART_MAX_GAP과 같은 값: N 뒤 이 일수 이내로 쉬고 다시 N이면 재시작
+NIGHT_RESTART_MAX_GAP = 3

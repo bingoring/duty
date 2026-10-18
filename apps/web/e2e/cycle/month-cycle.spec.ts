@@ -51,6 +51,7 @@ test('11월 한 달: 신청·휴가 → 생성·확정 → 교환·관리자 조
     await expect(me.getByText('신청 중 · 마감 10/15 (2일 남음)')).toBeVisible()
     await me.getByRole('button', { name: `${A.name} ${REQ_DATE}` }).click()
     await me.getByRole('dialog').getByRole('button', { name: 'OFF', exact: true }).click()
+    me.once('dialog', (d) => void d.accept()) // 3-8 전날 N 안내 확인 창
     await me.getByRole('dialog').getByRole('button', { name: '임시 저장' }).click()
     await me.getByRole('button', { name: '신청 제출' }).click()
     await expect(me.getByRole('status')).toHaveText('1건을 제출했습니다.')
@@ -114,12 +115,12 @@ test('11월 한 달: 신청·휴가 → 생성·확정 → 교환·관리자 조
     const s = await as(browser, S.no, '2026-10-17', '/adjust?ym=2026-11')
     await waitHydrated(s)
     await expect(s.getByText('협의 기간 10/16 – 10/20 · 4일 남음')).toBeVisible()
-    await s.getByRole('button', { name: '근무 조정' }).click()
     await s.getByRole('checkbox', { name: `${T.name} 선택` }).click()
     await s.getByRole('button', { name: `${mdOf(pair.date)} 재배정` }).click()
     const pop = s.getByRole('dialog', { name: `${mdOf(pair.date)} 근무 재배정` })
-    await pop.getByRole('button', { name: `${S.name} 변경 후 ${pair.ca}` }).click()
-    await pop.getByRole('button', { name: `${T.name} 변경 후 ${pair.cb}` }).click()
+    // 3-8: 두 사람이면 맞바꾼 상태로 열린다
+    await expect(pop.getByRole('button', { name: `${S.name} 변경 후 ${pair.cb}` })).toBeVisible()
+    await expect(pop.getByRole('button', { name: `${T.name} 변경 후 ${pair.ca}` })).toBeVisible()
     await expect(pop.getByText('규칙 검사 통과')).toBeVisible()
     await pop.getByRole('button', { name: '요청 보내기' }).click()
     await expect(s.getByRole('status')).toContainText(`${T.name}에게 교환을 요청했습니다`)
@@ -162,7 +163,7 @@ test('11월 한 달: 신청·휴가 → 생성·확정 → 교환·관리자 조
   await test.step('10/21 협의 기간이 끝나면 교환 요청을 보낼 수 없다', async () => {
     const s = await as(browser, S.no, '2026-10-21', '/adjust?ym=2026-11')
     await waitHydrated(s)
-    await expect(s.getByRole('button', { name: '근무 조정' })).toBeDisabled()
+    await expect(s.getByRole('button', { name: '조정 신청' })).toBeDisabled()
   })
 
   await test.step('11/16 12월 생성·확정 (11월 말에 이어서)', async () => {

@@ -57,6 +57,9 @@ export const users = pgTable('users', {
   ktasCertifiedOn: day('ktas_certified_on'),
   // 3-6: 최근 갱신일. 유효기간은 취득일·갱신일 중 늦은 날 + 3년
   ktasRenewedOn: day('ktas_renewed_on'),
+  // 3-8: 갱신 안내 팝업(만료 6개월 전부터, 같은 만료일에 3회까지). 만료일이 바뀌면 다시 센다
+  ktasReminderCount: integer('ktas_reminder_count').notNull().default(0),
+  ktasRemindedUntil: day('ktas_reminded_until'),
   unionMember: boolean('union_member').notNull().default(false),
   // 3-6: 본인이 규칙 안내에서 끄면 주말 통 OFF를 요구하지 않는다(처음엔 자동 신청)
   weekendPairWanted: boolean('weekend_pair_wanted').notNull().default(true),
