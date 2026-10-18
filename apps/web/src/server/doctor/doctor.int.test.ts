@@ -11,7 +11,7 @@ import { loadMonthView } from '../schedule/load'
 import { seedDev } from '../seed/dev'
 import { importDoctorSchedule, importDoctors, parseDoctorCsv } from '../seed/doctors'
 import { listStaff } from '../staff/service'
-import { confirmedShifts, ensureDoctorPlan, findDoctorPlan, listDoctors } from './core'
+import { confirmedShifts, currentDoctorRules, ensureDoctorPlan, findDoctorPlan, listDoctors } from './core'
 import {
   confirmDoctorCandidate,
   doctorMonthInput,
@@ -20,7 +20,7 @@ import {
 } from './generate'
 import { loadDoctorRequests, saveDoctorPrefs, saveDoctorRequests, type DoctorActor } from './requests'
 import { loadDoctorSchedule } from './schedule'
-import { changeDoctorLoginId, createDoctor } from './staff'
+import { changeDoctorLoginId, createDoctor, saveDoctorRules } from './staff'
 import {
   adminEditDoctorShift,
   createDoctorSwap,
@@ -251,6 +251,21 @@ describe('3-7d 생성·확정', { timeout: 60_000 }, () => {
     expect((await generateDoctorCandidate(db, admin, NOV)).ok).toBe(false)
     // 확정되면 간호사 화면(의사 탭)에도 보인다
     expect((await loadDoctorSchedule(db, { ...NOV, viewerId: null, today: TODAY })).confirmed).toBe(true)
+  })
+
+  it('테스트 기간(공개 끔): 간호사 「의사」 탭에는 숨기고 의사 화면에는 표시, 관리자가 켜면 공개', async () => {
+    const admin = await doc('800101')
+    const { version, params } = await currentDoctorRules(db)
+    ok(await saveDoctorRules(db, admin, { params: { ...params, published: false }, baseVersion: version }))
+    const nurse = await loadDoctorSchedule(db, { ...OCT, viewerId: null, today: TODAY, forNurse: true })
+    expect(nurse).toMatchObject({ hidden: true, confirmed: false })
+    expect(nurse.calendar.tally.every((t) => t.total === 0)).toBe(true)
+    const mine = await loadDoctorSchedule(db, { ...OCT, viewerId: admin.id, today: TODAY })
+    expect(mine).toMatchObject({ hidden: false, confirmed: true, testPeriod: true })
+    ok(await saveDoctorRules(db, admin, { params: { ...params, published: true }, baseVersion: version + 1 }))
+    expect(
+      (await loadDoctorSchedule(db, { ...OCT, viewerId: null, today: TODAY, forNurse: true })).confirmed,
+    ).toBe(true)
   })
 
   it('의사(관리자 아님)는 생성할 수 없다, 확정 전 달은 근무표에 안 보인다', async () => {

@@ -47,7 +47,7 @@ export default async function SchedulePage({
     />
   )
   if (sp.view === 'doctor') {
-    const dv = await loadDoctorSchedule(db, { year, month, viewerId: null, today })
+    const dv = await loadDoctorSchedule(db, { year, month, viewerId: null, today, forNurse: true })
     const hl = typeof sp.hl === 'string' && dv.doctors.some((d) => d.id === sp.hl) ? sp.hl : null
     return (
       <DoctorScheduleSection

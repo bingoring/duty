@@ -62,6 +62,10 @@ describe('의사 개수 — 31일 달 ±1 대상', () => {
     expect([...feb.values()].reduce((s, t) => s + t.N, 0)).toBe(28)
   })
 
+  it('기본 규칙은 테스트 기간(간호사에게 공개 전)', () => {
+    expect(DEFAULT_DOCTOR_RULES.published).toBe(false)
+  })
+
   it('신청 마감·조정 마감은 전월 20·25일', () => {
     expect(doctorPlanDates(2026, 11, DEFAULT_DOCTOR_RULES)).toEqual({
       requestDeadline: '2026-10-20',

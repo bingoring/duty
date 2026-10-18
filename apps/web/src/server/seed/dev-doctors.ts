@@ -3,7 +3,8 @@
 import { readFileSync } from 'node:fs'
 import { fileURLToPath } from 'node:url'
 import { eq } from 'drizzle-orm'
-import { doctorPrefs, privacyConsents, users } from '../db/schema'
+import { DEFAULT_DOCTOR_RULES } from '@duty/domain'
+import { doctorPrefs, doctorRuleVersions, privacyConsents, users } from '../db/schema'
 import type { DbOrTx } from './core'
 import { importDoctorSchedule, importDoctors, type DoctorRow } from './doctors'
 
@@ -34,6 +35,11 @@ export async function seedDevDoctors(tx: DbOrTx, password: string, consentVersio
       .values({ userId: u!.id, version: consentVersion, requiredAt: now, sensitiveAt: now })
   }
   if (r.created.length === 0) return
+  // 개발·E2E는 간호사에게 공개된 상태(운영 기본은 테스트 기간 = 공개 전)
+  await tx
+    .update(doctorRuleVersions)
+    .set({ params: { ...DEFAULT_DOCTOR_RULES, published: true } })
+    .where(eq(doctorRuleVersions.version, 1))
   const id = async (no: string) =>
     (await tx.select({ id: users.id }).from(users).where(eq(users.employeeNo, no)))[0]!.id
   // 핸드오프 예시: 노준호 일요일 근무 금지, 진하람 토요일 Night 필수, 고은서 올데이 2~3

@@ -39,7 +39,10 @@ export async function ensureDoctorRuleV1(db: DbOrTx): Promise<void> {
 
 export async function currentDoctorRules(db: DbOrTx): Promise<{ version: number; params: DoctorRuleParams }> {
   const [r] = await db.select().from(doctorRuleVersions).orderBy(desc(doctorRuleVersions.version)).limit(1)
-  return r ? { version: r.version, params: r.params } : { version: 0, params: DEFAULT_DOCTOR_RULES }
+  // 예전 버전(공개 여부 없음)은 기본값으로 채운다
+  return r
+    ? { version: r.version, params: { ...DEFAULT_DOCTOR_RULES, ...r.params } }
+    : { version: 0, params: DEFAULT_DOCTOR_RULES }
 }
 
 export type DoctorPerson = {

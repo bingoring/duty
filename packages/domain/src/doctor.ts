@@ -24,6 +24,8 @@ export const DoctorRuleParamsSchema = z
     // 전월 며칠까지 신청, 며칠까지 조정
     requestDeadlineDay: z.number().int().min(1).max(31),
     negotiationEndDay: z.number().int().min(1).max(31),
+    // 테스트 기간(2026-10-19 결정: 12월분 전까지)에는 끈다 — 끄면 간호사 「의사」 탭에 보이지 않고 의사 화면에 「테스트 기간」
+    published: z.boolean(),
   })
   .refine((p) => p.requestDeadlineDay <= p.negotiationEndDay, {
     message: '조정 마감은 신청 마감과 같거나 뒤여야 합니다.',
@@ -35,6 +37,7 @@ export const DEFAULT_DOCTOR_RULES: DoctorRuleParams = {
   nPerMonth: 6,
   requestDeadlineDay: 20,
   negotiationEndDay: 25,
+  published: false,
 }
 
 // 전월 마감일·조정 마감일 (전월 말일을 넘으면 말일)

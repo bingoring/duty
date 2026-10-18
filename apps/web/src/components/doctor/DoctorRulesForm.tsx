@@ -6,7 +6,7 @@ import { useState, useTransition } from 'react'
 import { Field, btnPrimary, inputCls } from '@/components/admin/ui'
 import { saveDoctorRulesAction } from '@/server/doctor/actions'
 
-const FIELDS: { key: keyof DoctorRuleParams; label: string; hint: string }[] = [
+const FIELDS: { key: Exclude<keyof DoctorRuleParams, 'published'>; label: string; hint: string }[] = [
   {
     key: 'dPerMonth',
     label: '의사별 Day 개수 (30일 달)',
@@ -47,6 +47,21 @@ export function DoctorRulesForm({ params, version }: { params: DoctorRuleParams;
           <span className="text-xs font-normal text-ink-2">{f.hint}</span>
         </Field>
       ))}
+      <label className="flex items-start gap-2 font-semibold">
+        <input
+          type="checkbox"
+          className="mt-0.5 h-4 w-4 accent-primary"
+          checked={v.published}
+          onChange={(e) => setV({ ...v, published: e.target.checked })}
+        />
+        <span>
+          간호사에게 의사 근무표 공개
+          <span className="block text-xs font-normal text-ink-2">
+            끄면 테스트 기간 — 간호사 근무표의 「의사」 탭에 보이지 않습니다(의사 화면에는 「테스트 기간」
+            표시)
+          </span>
+        </span>
+      </label>
       <p className="text-xs text-ink-2">
         의사에게는 간호사의 금지 패턴·16시간 휴식·연속 휴무 제한·연차가 없습니다(N-O-D, 올데이-O-D 허용).
       </p>

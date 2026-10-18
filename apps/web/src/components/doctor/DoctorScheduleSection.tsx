@@ -74,6 +74,11 @@ export function DoctorScheduleSection({
             ›
           </Link>
         </div>
+        {view.testPeriod && !view.hidden && (
+          <span className="rounded-full bg-warn-bg px-2 py-[3px] text-xs font-semibold text-warn-ink">
+            테스트 기간 · 간호사에게 공개 전
+          </span>
+        )}
         {view.badge && (
           <span className="rounded-full bg-primary-soft px-2 py-[3px] text-xs font-semibold text-primary">
             {view.badge}
@@ -84,7 +89,11 @@ export function DoctorScheduleSection({
           <PrintButton />
         </div>
       </div>
-      {!view.confirmed ? (
+      {view.hidden ? (
+        <div className="rounded-card border border-line bg-surface px-6 py-16 text-center text-sm text-ink-2">
+          의사 근무표는 아직 공개 전입니다(테스트 기간).
+        </div>
+      ) : !view.confirmed ? (
         <div className="rounded-card border border-line bg-surface px-6 py-16 text-center text-sm text-ink-2">
           {view.month}월 의사 근무표는 아직 확정되지 않았습니다.
         </div>

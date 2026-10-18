@@ -26,6 +26,9 @@ export type DoctorScheduleView = {
   doctors: { id: string; name: string }[]
   viewerId: string | null
   times: typeof DOCTOR_TIMES
+  // 테스트 기간(관리자가 공개를 켜기 전): 간호사에게는 숨기고 의사 화면에는 표시
+  testPeriod: boolean
+  hidden: boolean
 }
 
 const ymStr = (y: number, m: number) => `${y}-${String(m).padStart(2, '0')}`
@@ -36,9 +39,12 @@ const shift = (ym: Ym, d: number) => {
 
 export async function loadDoctorSchedule(
   db: Db,
-  a: Ym & { viewerId: string | null; today: IsoDate },
+  a: Ym & { viewerId: string | null; today: IsoDate; forNurse?: boolean },
 ): Promise<DoctorScheduleView> {
-  const plan = await findDoctorPlan(db, a)
+  const { params } = await currentDoctorRules(db)
+  const hidden = !!a.forNurse && !params.published
+  const found = await findDoctorPlan(db, a)
+  const plan = hidden ? null : found
   const confirmed = plan?.status === 'CONFIRMED'
   const all = await listDoctors(db, { includeInactive: true })
   const shifts = confirmed ? await confirmedShifts(db, plan.id) : []
@@ -47,7 +53,6 @@ export async function loadDoctorSchedule(
   const doctors = all.filter((d) => d.active || inMonth.has(d.id)).map((d) => ({ id: d.id, name: d.name }))
   const days = monthDates(a.year, a.month)
   const hol = await redHolidays(db, days[0]!, days.at(-1)!)
-  const { params } = await currentDoctorRules(db)
   const targets = plan
     ? targetsFor(
         a,
@@ -81,5 +86,7 @@ export async function loadDoctorSchedule(
     doctors,
     viewerId: a.viewerId,
     times: DOCTOR_TIMES,
+    testPeriod: !params.published,
+    hidden,
   }
 }
