@@ -17,6 +17,11 @@ test('관리자가 OFF 신청을 휴가로 바꾸자고 하면 간호사가 수�
   const cellOf = (p: typeof me) => p.getByRole('button', { name: `${SORA.name} 2026-11-27` })
   await cellOf(me).click()
   await me.getByRole('dialog').getByRole('button', { name: 'OFF', exact: true }).click()
+  // 3-8: OFF만 신청하면 전날 N 안내 확인 창
+  me.once('dialog', (d) => {
+    expect(d.message()).toContain('전날(11/26)')
+    void d.accept()
+  })
   await me.getByRole('dialog').getByRole('button', { name: '임시 저장' }).click()
   await me.getByRole('button', { name: '신청 제출' }).click()
   await expect(me.getByRole('status')).toContainText('제출했습니다')
@@ -87,5 +92,22 @@ test('KTAS 수료일을 넣으면 유효기간이 보이고 만료 6개월 이�
   await dlg.getByRole('button', { name: '저장', exact: true }).click()
   await expect(row).toContainText('KTAS ~2026-12-31 · 갱신 필요')
   await expect(admin.getByText('응급실 연차')).toBeVisible()
+
+  // 3-8: 갱신 시기면 로그인 때 안내 팝업 → 확인하면 이 세션에서는 다시 안 보인다
+  const me = await browser.newPage()
+  await loginAndWait(me, NURSE.employeeNo)
+  const pop = me.getByRole('dialog', { name: 'KTAS 갱신 안내' })
+  await expect(pop).toContainText('2026-12-31에 만료됩니다')
+  await pop.getByRole('button', { name: '확인' }).click()
+  await me.reload()
+  await expect(me.getByRole('dialog', { name: 'KTAS 갱신 안내' })).toHaveCount(0)
+  await me.close()
+
+  // 다른 스펙에서 팝업이 화면을 가리지 않게 갱신 시기 밖으로 되돌린다
+  await row.getByRole('button', { name: `${NURSE.name} 메뉴` }).click()
+  await admin.getByRole('button', { name: '수정', exact: true }).click()
+  await admin.getByRole('dialog').getByLabel('KTAS 수료일').fill('2025-01-01')
+  await admin.getByRole('dialog').getByRole('button', { name: '저장', exact: true }).click()
+  await expect(row).toContainText('KTAS ~2027-12-31')
   await admin.close()
 })

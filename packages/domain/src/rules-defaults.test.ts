@@ -40,6 +40,8 @@ describe('DEFAULT_RULES', () => {
       minimizeRepeatPairs: true,
       nightDedicated: false,
       balanceShiftTypes: true,
+      avoidNightRestart: true,
+      offEveNoNight: true,
     })
     expect(DEFAULT_RULES.params.shiftBalanceTolerance).toBe(2)
     expect(DEFAULT_RULES.params.shiftBalanceWindowMonths).toBe(3)

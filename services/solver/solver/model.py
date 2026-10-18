@@ -19,7 +19,13 @@ from typing import Any
 
 from ortools.sat.python import cp_model
 
-from .weights import REPEAT_PAIR_MIN, REQUEST_MISS_BEFORE_DIV, SHIFT_BALANCE_MIN_WORK, WEIGHTS
+from .weights import (
+    NIGHT_RESTART_MAX_GAP,
+    REPEAT_PAIR_MIN,
+    REQUEST_MISS_BEFORE_DIV,
+    SHIFT_BALANCE_MIN_WORK,
+    WEIGHTS,
+)
 
 VERSION = "0.1.0"
 DUTIES = ("D", "E", "N")
@@ -418,6 +424,23 @@ class Builder:
                 self.at_most(
                     "NIGHT_TARGET", "nightTarget", nights, n["nightTarget"], f"NIGHT_TARGET:{nid}", ub=31
                 )
+            # H-OFF-EVE (3-8): OFF만 신청한 날의 전날 N 금지
+            for d in n.get("noNightDates") or []:
+                if d in self.month:
+                    self.no_all("OFF_EVE", "offEve", [self.is_(nid, d, "N")], f"OFF_EVE:{nid}")
+            # S-NIGHT-RESTART (3-8): N 뒤 1~3일 쉬고 다시 N
+            if r.get("avoidNightRestart"):
+                tl = self.timeline
+                for i, d in enumerate(tl):
+                    for g in range(1, NIGHT_RESTART_MAX_GAP + 1):
+                        if i + g + 1 >= len(tl):
+                            break
+                        if not any(x in self.month for x in tl[i : i + g + 2]):
+                            continue
+                        lits = [self.is_(nid, d, "N")]
+                        lits += [self.rest(nid, tl[i + q]) for q in range(1, g + 1)]
+                        lits.append(self.is_(nid, tl[i + g + 1], "N"))
+                        self.no_all("NIGHT_RESTART", "nightRestart", lits, f"NIGHT_RESTART:{nid}")
             # S-NIGHT-MIN (3-5 추가): 근무 가능한 날만큼 비례한 최소
             if n.get("nightMin"):
                 self.at_most("NIGHT_MIN", "nightMin", n["nightMin"] - nights, 0, f"NIGHT_MIN:{nid}", ub=31)

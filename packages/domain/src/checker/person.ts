@@ -1,6 +1,6 @@
 import { optionsSatisfied, specialSatisfied } from '../cell-source'
 import { addDays, dayOfWeek, isEmployed, isRedDay, type IsoDate } from '../dates'
-import { nightLimits, nightMinFor } from '../generation'
+import { nightLimits, nightMinFor, offEveNoNightDates } from '../generation'
 import { patternToken, type Grid } from '../grid'
 import { SHIFT_TIMES } from '../shift-times'
 import {
@@ -12,6 +12,9 @@ import {
   type ScheduleInput,
 } from '../types'
 import { violation, type Violation } from './rules'
+
+// 3-8: N 뒤 이 일수 이내로 쉬고 다시 N이면 재시작으로 본다(솔버와 같은 값)
+export const NIGHT_RESTART_MAX_GAP = 3
 
 // D·E·N이 이보다 적은 달(휴가가 긴 달 등)은 분포를 따지지 않는다
 export const SHIFT_BALANCE_MIN_WORK = 9
@@ -179,6 +182,27 @@ export function checkPerson(n: NurseProfile, ctx: PersonCtx): Violation[] {
     if (!nextCell || rest === 0 || rest >= p.offAfterNight || !touchesMonth([...dates, next])) continue
     out.push(violation('S-OFF-AFTER-N', [n.id], [...dates, next], { rest, next: nextCell.code }))
   }
+
+  // S-NIGHT-RESTART (3-8): N 연속을 마치고 1~3일 쉰 뒤 다시 N으로 시작
+  if (input.rules.toggles.avoidNightRestart)
+    for (const d of grid.timeline) {
+      if (code(d) !== 'N' || code(addDays(d, 1)) === 'N') continue
+      const dates = [d]
+      let next = addDays(d, 1)
+      while (next <= grid.headEnd && at(next) && isRestCode(at(next)!.code)) {
+        dates.push(next)
+        next = addDays(next, 1)
+      }
+      const rest = dates.length - 1
+      if (rest < 1 || rest > NIGHT_RESTART_MAX_GAP || code(next) !== 'N' || !touchesMonth([...dates, next]))
+        continue
+      out.push(violation('S-NIGHT-RESTART', [n.id], [...dates, next], { rest }))
+    }
+
+  // H-OFF-EVE (3-8): OFF만 신청한 날의 전날 N 금지
+  if (input.rules.toggles.offEveNoNight)
+    for (const eve of offEveNoNightDates(input.requests, n.id, grid.inMonth))
+      if (code(eve) === 'N') out.push(violation('H-OFF-EVE', [n.id], [eve, addDays(eve, 1)], {}))
 
   // H-SPECIAL-REQ · S-REQUEST
   for (const d of month) {

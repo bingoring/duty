@@ -76,12 +76,13 @@ export function NurseAdjust({ view, viewerId }: { view: AdjustView; viewerId: st
   const router = useRouter()
   const hydrated = useHydrated()
   const [collapsed, setCollapsed] = useCollapsed()
-  const [selecting, setSelecting] = useState(false)
   const [picked, setPicked] = useState<string[]>([viewerId])
   const [date, setDate] = useState<string | null>(null)
   const [msg, setMsg] = useState<{ kind: 'ok' | 'err'; text: string } | null>(null)
   const swap = view.swap
   const open = !!swap?.window.open
+  // 3-8: 「근무 조정」 버튼으로 모드를 켜지 않고 협의 기간이면 바로 사람·날짜를 고른다
+  const selecting = open
   // 2-11 R-SWAPH-1: 수간호사 행도 보이고 고를 수 있다
   const rows = view.grid.rows
   const nameOf = (id: string) => view.names[id]?.name ?? id
@@ -103,8 +104,11 @@ export function NurseAdjust({ view, viewerId }: { view: AdjustView; viewerId: st
     if (id === viewerId) return
     setPicked((p) => (p.includes(id) ? p.filter((x) => x !== id) : [...p, id]))
   }
+  // 3-8: 고른 날짜를 기억해 두었다가 사람을 체크한 뒤 「조정 신청」으로 열 수 있다
+  const [lastDate, setLastDate] = useState<string | null>(null)
   const openDate = (d: string) => {
     if (!selecting) return
+    setLastDate(d)
     if (picked.length < 2) return setMsg({ kind: 'err', text: '교환할 사람을 1명 이상 더 체크하세요.' })
     setMsg(null)
     setDate(d)
@@ -163,12 +167,15 @@ export function NurseAdjust({ view, viewerId }: { view: AdjustView; viewerId: st
           <button
             type="button"
             disabled={!open}
-            aria-pressed={selecting}
-            title={open ? '' : '협의 기간에만 교환 요청을 보낼 수 있습니다'}
-            onClick={() => (setSelecting(!selecting), setDate(null))}
+            title={open ? '' : '협의 기간에만 조정을 신청할 수 있습니다'}
+            onClick={() =>
+              lastDate
+                ? openDate(lastDate)
+                : setMsg({ kind: 'err', text: '사람을 체크하고 날짜(열 머리나 칸)를 고르세요.' })
+            }
             className="h-8 cursor-pointer rounded-lg bg-ink px-3.5 text-[13px] font-bold text-white disabled:cursor-default disabled:opacity-40"
           >
-            {selecting ? '조정 끝내기' : '근무 조정'}
+            조정 신청
           </button>
         </div>
         <div className="flex items-center gap-1.5 text-xs text-ink-2">
@@ -180,7 +187,11 @@ export function NurseAdjust({ view, viewerId }: { view: AdjustView; viewerId: st
             <span className="h-3.5 w-3.5 rounded shadow-[inset_0_0_0_1.5px_var(--color-danger)]" />
             신청 반영
           </span>
-          {selecting && <span className="ml-auto">사람을 체크하고 날짜(열 머리나 칸)를 누르세요</span>}
+          {selecting && (
+            <span className="ml-auto">
+              사람을 체크하고 날짜(열 머리나 칸)를 누르면 조정 신청 창이 열립니다
+            </span>
+          )}
         </div>
         {!swap && (
           <div className="rounded-lg bg-panel px-3 py-2 text-xs text-ink-2">
@@ -294,7 +305,7 @@ export function NurseAdjust({ view, viewerId }: { view: AdjustView; viewerId: st
             onClose={() => setDate(null)}
             onSent={(text) => {
               setDate(null)
-              setSelecting(false)
+              setLastDate(null)
               reset()
               setMsg({ kind: 'ok', text })
               router.refresh()
@@ -351,6 +362,19 @@ function Cell({
   )
 }
 
+// 두 칸의 근무를 맞바꾼다. 수간호사가 받은 OFF는 S, 교대 근무자가 받은 S는 OFF. 수간호사가 E·N을 받으면 null
+function swapCodes(
+  codes: SwapCode[],
+  a: number,
+  b: number,
+  isHead: (i: number) => boolean,
+): SwapCode[] | null {
+  const next = [...codes]
+  ;[next[a], next[b]] = [next[b]!, next[a]!]
+  const fixed = next.map((c, k) => (isHead(k) ? (c === 'OFF' ? 'S' : c) : c === 'S' ? 'OFF' : c))
+  return fixed.some((c, k) => isHead(k) && c !== 'S' && c !== 'D') ? null : fixed
+}
+
 function SwapPopup(props: {
   view: AdjustView
   date: string
@@ -370,9 +394,13 @@ function SwapPopup(props: {
   const heads = new Set(people.filter((id) => view.names[id]?.rotation === 'fixed_weekday'))
   const isHead = (i: number) => heads.has(people[i]!)
   const blocked = people.filter((id, i) => !swappable(cells[i], heads.has(id)))
-  const [after, setAfter] = useState<SwapCode[]>(() =>
-    cells.map((c, i) => (swappable(c, isHead(i)) ? (c!.code as SwapCode) : 'OFF')),
-  )
+  const [after, setAfter] = useState<SwapCode[]>(() => {
+    const now = cells.map((c, i) => (swappable(c, isHead(i)) ? (c!.code as SwapCode) : 'OFF'))
+    // 3-8: 두 사람이면 맞바꾼 상태로 연다(칩 두 개를 차례로 누른 것과 같은 규칙). 맞바꿀 수 없으면 그대로
+    if (now.length !== 2 || people.some((id, i) => !swappable(cells[i], heads.has(id)))) return now
+    const sw = swapCodes(now, 0, 1, isHead)
+    return sw ?? now
+  })
   const [pick, setPick] = useState<number | null>(null)
   const items: SwapItem[] = people.map((id, i) => ({
     userId: id,
@@ -397,13 +425,9 @@ function SwapPopup(props: {
   const clickChip = (i: number) => {
     if (pick === null) return setPick(i)
     if (pick === i) return setPick(null)
-    const next = [...after]
-    ;[next[pick], next[i]] = [next[i]!, next[pick]!]
-    // 수간호사가 받은 OFF는 S, 교대 근무자가 받은 S는 OFF. 수간호사는 E·N을 받을 수 없다
-    const fixed = next.map((c, k) => (isHead(k) ? (c === 'OFF' ? 'S' : c) : c === 'S' ? 'OFF' : c))
+    const fixed = swapCodes(after, pick, i, isHead)
     setPick(null)
-    if (fixed.some((c, k) => isHead(k) && c !== 'S' && c !== 'D'))
-      return setErr('수간호사는 S·D 근무만 맡을 수 있습니다.')
+    if (!fixed) return setErr('수간호사는 S·D 근무만 맡을 수 있습니다.')
     setErr('')
     setAfter(fixed)
   }

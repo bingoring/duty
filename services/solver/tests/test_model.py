@@ -296,3 +296,26 @@ def test_3_6_주말_통_OFF를_끈_사람은_필수여도_요구하지_않는다
     off["fixed"] = [{"date": d, "code": "D"} for d in sats]
     res = solve(req)
     assert res["status"] in ("OPTIMAL", "FEASIBLE")
+
+
+def test_3_8_신청_OFF_전날은_N을_주지_않고_N_재시작을_피한다():
+    req = request(seed=4, time_limit=6)
+    req["rules"]["avoidNightRestart"] = True
+    req["rules"]["hard"].append("NIGHT_RESTART")
+    eves = ["2026-11-06", "2026-11-13", "2026-11-20"]
+    # 모두에게 같은 날을 막으면 그날 N 인원을 못 채우므로 세 사람만
+    for n in req["nurses"][:3]:
+        n["noNightDates"] = eves
+    res = solve(req)
+    assert res["status"] in ("OPTIMAL", "FEASIBLE")
+    cell = {(c["userId"], c["date"]): c["code"] for c in res["cells"]}
+    assert all(cell.get((n["id"], d)) != "N" for n in req["nurses"][:3] for d in eves)
+    for n in req["nurses"]:
+        seq = [cell.get((n["id"], d)) for d in req["days"]]
+        for i in range(len(seq)):
+            if seq[i] != "N" or (i + 1 < len(seq) and seq[i + 1] == "N"):
+                continue
+            j = i + 1
+            while j < len(seq) and seq[j] in ("OFF", "AL", "LEAVE"):
+                j += 1
+            assert not (1 <= j - i - 1 <= 3 and j < len(seq) and seq[j] == "N")

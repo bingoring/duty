@@ -89,6 +89,10 @@ class NightMin(RootModel[int]):
     root: Annotated[int, Field(ge=0, le=9007199254740991)]
 
 
+class NoNightDate(RootModel[str]):
+    root: Annotated[str, Field(pattern='^\\d{4}-\\d{2}-\\d{2}$')]
+
+
 class ShiftCountsBefore(BaseModel):
     D: Annotated[int, Field(ge=-9007199254740991, le=9007199254740991)]
     E: Annotated[int, Field(ge=-9007199254740991, le=9007199254740991)]
@@ -111,6 +115,7 @@ class Nurse(BaseModel):
     weekendMissedStreak: Annotated[int, Field(ge=0, le=9007199254740991)]
     weekendCarryIn: bool
     weekendPair: bool | None = None
+    noNightDates: list[NoNightDate] | None = None
     shiftCountsBefore: ShiftCountsBefore
     balanceShiftTypes: bool
     requestMissBefore: Annotated[int, Field(ge=0, le=9007199254740991)]
@@ -159,6 +164,8 @@ class HardEnum(StrEnum):
     JUNIOR_ONLY = 'JUNIOR_ONLY'
     REPEAT_PAIR = 'REPEAT_PAIR'
     EDU_LIMIT = 'EDU_LIMIT'
+    NIGHT_RESTART = 'NIGHT_RESTART'
+    OFF_EVE = 'OFF_EVE'
 
 
 class Rules(BaseModel):
@@ -174,6 +181,7 @@ class Rules(BaseModel):
     shiftBalanceTolerance: Annotated[int, Field(ge=0, le=9007199254740991)]
     shiftBalanceWindowMonths: Annotated[int, Field(gt=0, le=9007199254740991)]
     hard: list[HardEnum]
+    avoidNightRestart: bool | None = None
 
 
 class Priorities(BaseModel):
@@ -265,6 +273,8 @@ class Objective(BaseModel):
             'offConsec',
             'sleepingOver',
             'nightMin',
+            'nightRestart',
+            'offEve',
         ],
         TermsAdditionalProperty,
     ]
@@ -302,6 +312,8 @@ class Group(StrEnum):
     JUNIOR_ONLY = 'JUNIOR_ONLY'
     REPEAT_PAIR = 'REPEAT_PAIR'
     NIGHT_MIN = 'NIGHT_MIN'
+    NIGHT_RESTART = 'NIGHT_RESTART'
+    OFF_EVE = 'OFF_EVE'
 
 
 class Shift(StrEnum):

@@ -2,7 +2,7 @@ import type { CellSource, LeaveType, RequestSpecial } from './allowed-sets'
 import { optionsSatisfied, specialSatisfied } from './cell-source'
 import type { CheckResult } from './checker'
 import { formatViolation, type FormatContext } from './checker/format'
-import { formatMD, isEmployed, isRedDay, monthDates, type IsoDate } from './dates'
+import { addDays, formatMD, isEmployed, isRedDay, monthDates, type IsoDate } from './dates'
 import { leaveDates } from './requests'
 import type { RuleSet } from './rules-defaults'
 import type { GridCell, NurseProfile, RequestEntry, ScheduleInput } from './types'
@@ -214,4 +214,22 @@ export function generationChecks(
     out.push({ ok: false, ...f })
   }
   return out
+}
+
+// 3-8 H-OFF-EVE: OFF만 신청한 날의 전날(대상 월 안)에는 N을 주지 않는다. 전날 신청에 N이 있으면 예외.
+// 검사기와 솔버 입력이 같은 날짜를 쓴다
+export function offEveNoNightDates(
+  requests: readonly RequestEntry[],
+  userId: string,
+  inMonth: (d: IsoDate) => boolean,
+): IsoDate[] {
+  const mine = new Map(requests.filter((r) => r.userId === userId).map((r) => [r.date, r]))
+  const out: IsoDate[] = []
+  for (const r of mine.values()) {
+    if (r.special || r.options.length !== 1 || r.options[0] !== 'OFF') continue
+    const eve = addDays(r.date, -1)
+    if (!inMonth(eve) || mine.get(eve)?.options.includes('N')) continue
+    out.push(eve)
+  }
+  return out.sort()
 }

@@ -3,6 +3,8 @@ import { requireUser } from '@/server/auth/guards'
 import { getDb } from '@/server/db/client'
 import { ensureYearStart } from '@/server/balances/year-start'
 import { projectedLeaveBalance } from '@/server/requests/balance'
+import { KtasReminder } from '@/components/shell/KtasReminder'
+import { ktasReminder } from '@/server/ktas/reminder'
 import { pendingProposalCount } from '@/server/requests/proposals'
 import { pendingReceivedCount } from '@/server/swaps/service'
 import { requestToday } from '@/server/clock'
@@ -17,6 +19,8 @@ export default async function AppLayout({ children }: { children: React.ReactNod
   const swapCount = await pendingReceivedCount(getDb(), session.user.id, today)
   // 3-5: 받은 휴가 변경 요청 수 → 근무 신청 메뉴 배지
   const proposalCount = await pendingProposalCount(getDb(), session.user.id)
+  // 3-8: KTAS 갱신 신청 시기 안내
+  const ktas = await ktasReminder(getDb(), session.user.id, today)
   return (
     <AppShell
       session={session}
@@ -24,6 +28,7 @@ export default async function AppLayout({ children }: { children: React.ReactNod
       swapCount={swapCount}
       proposalCount={proposalCount}
     >
+      {ktas && <KtasReminder until={ktas.until} />}
       {children}
     </AppShell>
   )
