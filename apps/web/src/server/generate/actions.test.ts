@@ -8,8 +8,13 @@ describe('듀티 생성 서버 액션 가드', () => {
   const chunks = src.split('export async function ').slice(1)
   const names = chunks.map((c) => c.slice(0, c.indexOf('(')))
 
-  it('액션이 2개 있다', () => {
-    expect(names).toEqual(['generateAction', 'confirmCandidateAction'])
+  it('액션이 4개 있다(3-8 확정 철회 미리보기·철회 포함)', () => {
+    expect(names).toEqual([
+      'generateAction',
+      'confirmCandidateAction',
+      'revokePreviewAction',
+      'revokeConfirmationAction',
+    ])
   })
 
   it('첫 await가 adminOnly이고, 아니면 바로 거부한다', () => {
