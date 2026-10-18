@@ -56,16 +56,8 @@ describe('generate (R-GEN-1~3·7·10)', { timeout: 60_000 }, () => {
     await saveShiftRequest(db, me, { userId: me.id, date: '2026-11-10', options: ['OFF'] }, BEFORE)
     await submitRequests(db, me, NOV, BEFORE)
 
-    // 4초(통합 테스트 기본)면 느린 CI에서 덜 다듬어진 안이 나와 하나뿐인 신청도 못 지킬 때가 있다(3-5 머지 뒤 main CI).
-    // 이 테스트는 신청 반영을 보므로 10초를 준다(운영은 20초)
-    const prevLimit = process.env.SOLVER_TIME_LIMIT_SEC
-    process.env.SOLVER_TIME_LIMIT_SEC = '10'
     const t0 = Date.now()
-    const r = ok(
-      await generate(db, admin, NOV, { priorities: PRIORITIES, seed: 11, today: AFTER }).finally(() => {
-        process.env.SOLVER_TIME_LIMIT_SEC = prevLimit
-      }),
-    )
+    const r = ok(await generate(db, admin, NOV, { priorities: PRIORITIES, seed: 11, today: AFTER }))
     expect(Date.now() - t0).toBeLessThan(30_000)
     expect(r.no).toBe(1)
     expect((await findPlan(db, NOV))!.status).toBe('DRAFTING')
@@ -131,14 +123,7 @@ describe('confirmCandidate (R-GEN-4~6)', { timeout: 90_000 }, () => {
       message: '신청·휴가·규칙이 바뀌었습니다. 다시 생성해 주세요.',
     })
 
-    // 신청(11/11 OFF)이 근무표에 반영됐는지 보므로 솔버 10초(4초면 느린 CI에서 못 지킨 안이 나옴 — 3-6 PR CI)
-    const prevLimit = process.env.SOLVER_TIME_LIMIT_SEC
-    process.env.SOLVER_TIME_LIMIT_SEC = '10'
-    const second = ok(
-      await generate(db, admin, NOV, { priorities: PRIORITIES, seed: 4, today: AFTER }).finally(() => {
-        process.env.SOLVER_TIME_LIMIT_SEC = prevLimit
-      }),
-    )
+    const second = ok(await generate(db, admin, NOV, { priorities: PRIORITIES, seed: 4, today: AFTER }))
     expect(await confirmCandidate(db, me, second.candidateId, AFTER)).toMatchObject({ ok: false })
     expect(await confirmCandidate(db, admin, second.candidateId, AFTER)).toEqual({ ok: true })
 
