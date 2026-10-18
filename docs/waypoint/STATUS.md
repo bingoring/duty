@@ -221,6 +221,7 @@
 | 3-5 운영 피드백 2 (KTAS·규칙 필수/권고·오프→휴가) | [05-feedback-2.md](03-operations/05-feedback-2.md) | IMPLEMENTED |
 | 3-6 운영 피드백 3 (대신 신청 표시·휴가 종류·검진 오전/오후·승인 취소·개인 주말 통 OFF·내 설정 KTAS) | [06-feedback-3.md](03-operations/06-feedback-3.md) | IMPLEMENTED |
 | 3-7 의사 근무표 (직군 추가) | [07-doctor-schedule.md](03-operations/07-doctor-schedule.md) | AI_PROPOSED |
+| 3-8 운영 피드백 4 (생성 중 신청·생성안 관리자 신청·확정 철회·조정 흐름·KTAS 팝업) | [08-feedback-4.md](03-operations/08-feedback-4.md) | IN_PROGRESS |
 
 ---
 
