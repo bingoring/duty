@@ -4,10 +4,12 @@
 **Requirements:** [inputs/requirements_v3.md](inputs/requirements_v3.md) (근무 지침 원문 + 근무자 명단)
 **Design handoff:** [inputs/design_handoff_nurse_duty_scheduler/](inputs/design_handoff_nurse_duty_scheduler/README.md) (최신, 의사 근무표 turn-6 포함, 가명본) · [v5](inputs/design-handoff_v5/README.md) (2026-09-30) · [v4](inputs/design-handoff_v4/README.md) · [v3](inputs/design-handoff_v3/README.md) · [v2](inputs/design-handoff_v2/README.md) · [v1](inputs/design-handoff_v1/README.md)
 **Decisions (audit):** [DECISIONS.md](DECISIONS.md)
-**Last updated:** 2026-10-18
+**Last updated:** 2026-10-19
 
 > 🔒 **개인정보:** 공개 저장소다. 간호사 이름·사번은 모두 가명이며, 실명 자료는 커밋하지 않는다([DECISIONS](DECISIONS.md) 2026-09-26).
 
+> 🏗️ **3-7 의사 근무표 구현 (2026-10-19, 브랜치 `feature/3-7-doctor-schedule`, 운영 미반영).** 3-7a~e 전부 — 직군·의사 계정(생년월일 ID·사번으로 변경), 주 단위 달력·간호사/의사 탭, 월 달력 신청·내 근무 조건, 의사 CP-SAT `/solve/doctor`·생성·조기 배포, 근무 조정·교환 요청, 명단·확정본 가져오기. 마이그레이션 0012. 단위·통합 196·E2E 56 그린. 12월 전까지 테스트 기간.
+>
 > 📝 **3-7 의사 근무표 제안 (2026-10-18).** 핸드오프 새 버전(turn-6)의 의사 직군 — 직군별 메뉴·규칙·관리자, 확정 근무표 상호 공개, 생년월일 로그인 ID, 하루 D1·N1·올데이, 별도 의사 솔버 모델. 3-7a~e로 나눔. Q1~Q5 답변 대기. 3-6은 main 머지, CI 테스트 수정 PR #5 대기 중(운영은 3-5).
 >
 > 🏗️ **3-6 운영 피드백 3 구현 (2026-10-18, 브랜치 `feature/3-6-feedback-3`, 운영 미반영).** 관리자 대신 신청 파란 표시(신청 화면·근무표), 휴가 칸 종류 이름, 검진 오전/오후, 휴가 승인 취소, 개인별 주말 통 OFF(본인 끔·관리자 목록), 내 설정 KTAS 취득일·갱신일. 마이그레이션 0010·0011.
@@ -220,7 +222,7 @@
 | 3-4 운영 피드백 1 (연차 직접 수정·행 순서·동료 현황 정렬·README) | [04-feedback-1.md](03-operations/04-feedback-1.md) | IMPLEMENTED |
 | 3-5 운영 피드백 2 (KTAS·규칙 필수/권고·오프→휴가) | [05-feedback-2.md](03-operations/05-feedback-2.md) | IMPLEMENTED |
 | 3-6 운영 피드백 3 (대신 신청 표시·휴가 종류·검진 오전/오후·승인 취소·개인 주말 통 OFF·내 설정 KTAS) | [06-feedback-3.md](03-operations/06-feedback-3.md) | IMPLEMENTED |
-| 3-7 의사 근무표 (직군 추가) | [07-doctor-schedule.md](03-operations/07-doctor-schedule.md) | AI_PROPOSED |
+| 3-7 의사 근무표 (직군 추가) | [07-doctor-schedule.md](03-operations/07-doctor-schedule.md) | IMPLEMENTED |
 | 3-8 운영 피드백 4 (생성 중 신청·생성안 관리자 신청·확정 철회·조정 흐름·KTAS 팝업) | [08-feedback-4.md](03-operations/08-feedback-4.md) | IMPLEMENTED |
 
 ---
