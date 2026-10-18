@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation'
 import { useState, useTransition } from 'react'
 import { ScheduleGrid } from '@/components/schedule/ScheduleGrid'
 import { confirmCandidateAction, generateAction } from '@/server/generate/actions'
+import { saveShiftRequestAction } from '@/server/requests/actions'
 import type { Priorities } from '@/server/generate/input'
 import type { GenerateView } from '@/server/generate/view'
 import { useHydrated } from '../admin/ui'
@@ -50,6 +51,8 @@ export function GenerateScreen({ view }: { view: GenerateView }) {
     : []
   const shownChecks = showAll ? allChecks : allChecks.slice(0, CHECKS_SHOWN)
   const go = (id: string) => router.replace(`/admin/generate?ym=${view.ym}&c=${id}`)
+  // 3-8: 생성안 칸 더블클릭 → 그 간호사의 신청(관리자 입력)으로 저장 → 리롤할지 묻는다
+  const [ask, setAsk] = useState<{ userId: string; date: string; name: string } | null>(null)
 
   const run = () =>
     start(async () => {
@@ -59,6 +62,23 @@ export function GenerateScreen({ view }: { view: GenerateView }) {
       if (r.ok) go(r.candidateId)
       else setFailure({ message: r.message, ...('causes' in r && r.causes ? { causes: r.causes } : {}) })
     })
+  const requestFromCell = (code: 'D' | 'E' | 'N' | 'OFF') => {
+    if (!ask) return
+    const { userId, date, name } = ask
+    start(async () => {
+      const r = await saveShiftRequestAction({ userId, date, options: [code], comment: '' })
+      setAsk(null)
+      if (!r.ok) return setFailure({ message: r.message ?? '신청을 저장하지 못했습니다.' })
+      const md = `${Number(date.slice(5, 7))}/${Number(date.slice(8))}`
+      if (
+        window.confirm(
+          `${name} ${md} ${code}을(를) 신청 근무로 저장했습니다(관리자 입력).\n이 신청을 반영해 지금 리롤하겠습니까?`,
+        )
+      )
+        run()
+      else setMessage(`${name} ${md} ${code} 신청을 저장했습니다. 다시 생성하면 반영됩니다.`)
+    })
+  }
   const confirm = () => {
     if (!cur) return
     if (
@@ -289,8 +309,57 @@ export function GenerateScreen({ view }: { view: GenerateView }) {
               빨간 외곽선 = 신청 반영 · 주황 점 = 권고 미충족 칸 · 누적 off·ⓝN은 이 안으로 정산했을 때
             </span>
           </div>
+          {!cur.confirmed && (
+            <span className="text-xs text-ink-2">
+              칸을 더블클릭하면 그 간호사의 신청(관리자 입력)으로 근무를 정하고 리롤할 수 있습니다.
+            </span>
+          )}
+          {ask && (
+            <div
+              role="dialog"
+              aria-label={`${ask.name} ${ask.date} 신청`}
+              className="flex items-center gap-2 rounded-lg border border-ink bg-surface px-3 py-2 text-[13px]"
+            >
+              <b>
+                {ask.name} · {Number(ask.date.slice(5, 7))}/{Number(ask.date.slice(8))}
+              </b>
+              <span className="text-ink-2">신청 근무로 정하기</span>
+              {(['D', 'E', 'N', 'OFF'] as const).map((c) => (
+                <button
+                  key={c}
+                  type="button"
+                  disabled={pending}
+                  onClick={() => requestFromCell(c)}
+                  className="h-8 min-w-10 cursor-pointer rounded-md border border-line bg-surface px-2 font-bold"
+                >
+                  {c}
+                </button>
+              ))}
+              <button
+                type="button"
+                onClick={() => setAsk(null)}
+                className="ml-auto h-8 cursor-pointer rounded-md border border-line px-2 text-xs"
+              >
+                닫기
+              </button>
+            </div>
+          )}
           <div className="overflow-x-auto">
-            <ScheduleGrid view={cur.grid} />
+            <ScheduleGrid
+              view={cur.grid}
+              ui={
+                cur.confirmed
+                  ? undefined
+                  : {
+                      onCellDouble: (userId, date) =>
+                        setAsk({
+                          userId,
+                          date,
+                          name: cur.grid.rows.find((r) => r.userId === userId)?.name ?? '',
+                        }),
+                    }
+              }
+            />
           </div>
         </div>
       )}
