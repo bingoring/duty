@@ -42,7 +42,8 @@ export function doctorPlanDates(year: number, month: number, p: DoctorRuleParams
   const py = month === 1 ? year - 1 : year
   const pm = month === 1 ? 12 : month - 1
   const last = daysInMonth(py, pm)
-  const at = (d: number) => `${py}-${String(pm).padStart(2, '0')}-${String(Math.min(d, last)).padStart(2, '0')}`
+  const at = (d: number) =>
+    `${py}-${String(pm).padStart(2, '0')}-${String(Math.min(d, last)).padStart(2, '0')}`
   return { requestDeadline: at(p.requestDeadlineDay), negotiationEnd: at(p.negotiationEndDay) }
 }
 
@@ -92,7 +93,12 @@ export function fixedRuleLabel(r: Pick<DoctorFixedRule, 'weekday' | 'shift' | 't
   return `${wd}요일 ${DOCTOR_SHIFT_LABEL[r.shift]} ${r.type === 'require' ? '필수' : '금지'}`
 }
 
-export type FixedOnDate = { date: IsoDate; shift: DoctorFixedShift; type: 'require' | 'forbid'; label: string }
+export type FixedOnDate = {
+  date: IsoDate
+  shift: DoctorFixedShift
+  type: 'require' | 'forbid'
+  label: string
+}
 
 // 켜진 고정 조건을 그 달 날짜로 펼친다. exceptions(그 날만 예외로 한 날)는 뺀다
 export function expandFixedRules(
@@ -113,7 +119,10 @@ export function expandFixedRules(
 // ── 하루 상태 ──────────────────────────────────────────────────────
 export type DoctorShiftRow = { date: IsoDate; day: string | null; night: string | null }
 
-export function dayState(row: Pick<DoctorShiftRow, 'day' | 'night'> | undefined, userId: string): DoctorDayState {
+export function dayState(
+  row: Pick<DoctorShiftRow, 'day' | 'night'> | undefined,
+  userId: string,
+): DoctorDayState {
   const d = row?.day === userId
   const n = row?.night === userId
   return d && n ? 'ALLDAY' : d ? 'D' : n ? 'N' : 'O'
@@ -242,7 +251,10 @@ export function checkDoctorMonth(input: DoctorCheckInput): DoctorCheckResult {
 
   for (const d of days) {
     const r = byDate.get(d)
-    const miss = [!r?.day || !known.has(r.day) ? 'Day' : null, !r?.night || !known.has(r.night) ? 'Night' : null]
+    const miss = [
+      !r?.day || !known.has(r.day) ? 'Day' : null,
+      !r?.night || !known.has(r.night) ? 'Night' : null,
+    ]
       .filter(Boolean)
       .join('·')
     if (miss) hard.push({ rule: 'DAILY', dates: [d], message: `${label(d)} ${miss} 근무자가 없습니다` })

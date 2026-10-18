@@ -49,7 +49,11 @@ export type DoctorRequestsView = {
   perMonth: number
 }
 
-export function canDoctorEdit(plan: Pick<DoctorPlan, 'status' | 'requestDeadline'>, actor: DoctorActor, today: IsoDate) {
+export function canDoctorEdit(
+  plan: Pick<DoctorPlan, 'status' | 'requestDeadline'>,
+  actor: DoctorActor,
+  today: IsoDate,
+) {
   if (plan.status === 'CONFIRMED') return false
   return actor.role === 'admin' || today <= plan.requestDeadline
 }
@@ -72,13 +76,22 @@ export async function loadDoctorRequests(
   const mine: Record<IsoDate, MyRequest> = {}
   const others: Record<IsoDate, OtherMark[]> = {}
   const name = new Map(doctors.map((d) => [d.id, d.name]))
-  const exceptionsOf = (uid: string) => new Set(rows.filter((r) => r.userId === uid && r.fixedException).map((r) => r.date))
+  const exceptionsOf = (uid: string) =>
+    new Set(rows.filter((r) => r.userId === uid && r.fixedException).map((r) => r.date))
   for (const r of rows) {
     if (r.options.length === 0 && !r.comment) continue
     if (r.userId === a.userId)
-      mine[r.date] = { options: r.options as DoctorOption[], comment: r.comment, fixedException: r.fixedException }
+      mine[r.date] = {
+        options: r.options as DoctorOption[],
+        comment: r.comment,
+        fixedException: r.fixedException,
+      }
     else if (name.has(r.userId) && r.options.length)
-      (others[r.date] ??= []).push({ name: name.get(r.userId)!, text: r.options.map(optText).join('/'), fixed: false })
+      (others[r.date] ??= []).push({
+        name: name.get(r.userId)!,
+        text: r.options.map(optText).join('/'),
+        fixed: false,
+      })
   }
   // 다른 의사의 고정 조건도 그 날 칸에 「진하람 N · 고정」으로 보인다
   for (const d of doctors) {
@@ -88,7 +101,10 @@ export async function loadDoctorRequests(
   }
   const { params } = await currentDoctorRules(db)
   const ids = doctors.map((d) => d.id)
-  const target = targetsFor(a, ids, params, plan.extras).get(a.userId) ?? { D: params.dPerMonth, N: params.nPerMonth }
+  const target = targetsFor(a, ids, params, plan.extras).get(a.userId) ?? {
+    D: params.dPerMonth,
+    N: params.nPerMonth,
+  }
   const myPrefs = prefs.get(a.userId) ?? (await prefsOf(db, [a.userId])).get(a.userId)!
   return {
     year: a.year,
@@ -110,13 +126,13 @@ export async function loadDoctorRequests(
 
 const optText = (o: string) => (o === 'ALLDAY' ? '올데이' : o)
 const fixedText = (f: FixedOnDate) =>
-  f.type === 'forbid' ? `${f.shift === 'ANY' ? '근무' : f.shift} 금지 · 고정` : `${f.shift === 'ANY' ? '근무' : f.shift} · 고정`
+  f.type === 'forbid'
+    ? `${f.shift === 'ANY' ? '근무' : f.shift} 금지 · 고정`
+    : `${f.shift === 'ANY' ? '근무' : f.shift} · 고정`
 
 export type SaveItem = { date: IsoDate; options: DoctorOption[]; comment: string | null }
 export type SaveResult =
-  | { ok: true; saved: number }
-  | { ok: false; conflicts: { date: IsoDate; labels: string[] }[] }
-  | Deny
+  { ok: true; saved: number } | { ok: false; conflicts: { date: IsoDate; labels: string[] }[] } | Deny
 
 export async function saveDoctorRequests(
   db: Db,
@@ -129,14 +145,23 @@ export async function saveDoctorRequests(
   if (!target || target.roleGroup !== 'doctor' || !target.active) return deny('의사를 찾을 수 없습니다.')
   const plan = await ensureDoctorPlan(db, input)
   if (!canDoctorEdit(plan, actor, today))
-    return deny(plan.status === 'CONFIRMED' ? '확정된 달은 신청을 바꿀 수 없습니다.' : '신청 마감일이 지났습니다.')
+    return deny(
+      plan.status === 'CONFIRMED' ? '확정된 달은 신청을 바꿀 수 없습니다.' : '신청 마감일이 지났습니다.',
+    )
   const month = new Set(monthDates(input.year, input.month))
-  if (input.items.some((i) => !isIsoDate(i.date) || !month.has(i.date))) return deny('그 달의 날짜가 아닙니다.')
+  if (input.items.some((i) => !isIsoDate(i.date) || !month.has(i.date)))
+    return deny('그 달의 날짜가 아닙니다.')
   const prefs = (await prefsOf(db, [input.userId])).get(input.userId)!
   const fixed = expandFixedRules(prefs.fixedRules, [...month])
   const exceptions = new Set(input.exceptions)
   const conflicts = input.items
-    .map((i) => ({ date: i.date, labels: requestConflicts(i.options, fixed.filter((f) => f.date === i.date)) }))
+    .map((i) => ({
+      date: i.date,
+      labels: requestConflicts(
+        i.options,
+        fixed.filter((f) => f.date === i.date),
+      ),
+    }))
     .filter((c) => c.labels.length > 0)
   const unconfirmed = conflicts.filter((c) => !exceptions.has(c.date))
   if (unconfirmed.length) return { ok: false, conflicts: unconfirmed }

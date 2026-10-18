@@ -103,7 +103,9 @@ export async function confirmDoctorAction(candidateId: unknown) {
 export async function setDoctorExtrasAction(input: unknown) {
   const a = await doctorAdmin()
   if (!a) return DENIED
-  const p = Ym.extend({ extras: z.object({ D: z.array(Uuid).max(10), N: z.array(Uuid).max(10) }) }).safeParse(input)
+  const p = Ym.extend({ extras: z.object({ D: z.array(Uuid).max(10), N: z.array(Uuid).max(10) }) }).safeParse(
+    input,
+  )
   if (!p.success) return BAD
   const r = await setDoctorExtras(getDb(), a, p.data, p.data.extras)
   if (r.ok) refresh()
@@ -141,7 +143,15 @@ export async function createDoctorSwapAction(input: unknown) {
   if (!a) return DENIED
   const p = SwapInput.safeParse(input)
   if (!p.success) return BAD
-  const r = await createDoctorSwap(getDb(), a, p.data, p.data.a, p.data.b, p.data.comment, await requestToday())
+  const r = await createDoctorSwap(
+    getDb(),
+    a,
+    p.data,
+    p.data.a,
+    p.data.b,
+    p.data.comment,
+    await requestToday(),
+  )
   if (r.ok) refresh()
   return r
 }
@@ -170,7 +180,9 @@ export async function cancelDoctorSwapAction(id: unknown) {
 export async function createDoctorAction(input: unknown) {
   const a = await doctorAdmin()
   if (!a) return DENIED
-  const p = z.object({ loginId: z.string().max(20), name: z.string().max(40), admin: z.boolean() }).safeParse(input)
+  const p = z
+    .object({ loginId: z.string().max(20), name: z.string().max(40), admin: z.boolean() })
+    .safeParse(input)
   if (!p.success) return BAD
   const r = await createDoctor(getDb(), a, p.data)
   if (r.ok) refresh()

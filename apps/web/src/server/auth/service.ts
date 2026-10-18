@@ -184,10 +184,10 @@ export async function validateSession(
         user.roleGroup === 'doctor'
         ? null
         : user.onboardedYear === null
-        ? 'onboarding'
-        : user.onboardedYear < year
-          ? 'annual'
-          : null
+          ? 'onboarding'
+          : user.onboardedYear < year
+            ? 'annual'
+            : null
   return {
     user: {
       id: user.id,

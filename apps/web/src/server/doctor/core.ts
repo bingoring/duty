@@ -16,7 +16,6 @@ import {
   type IsoDate,
 } from '@duty/domain'
 import { and, asc, desc, eq, gte, inArray, lte } from 'drizzle-orm'
-import type { Db } from '../db/client'
 import {
   doctorMonthPlans,
   doctorPrefs,
@@ -54,7 +53,10 @@ export type DoctorPerson = {
 }
 
 // 표 순서(seniority_rank) — 관리자가 맨 위인 순서는 가져오기 때 정한다
-export async function listDoctors(db: DbOrTx, opts: { includeInactive?: boolean } = {}): Promise<DoctorPerson[]> {
+export async function listDoctors(
+  db: DbOrTx,
+  opts: { includeInactive?: boolean } = {},
+): Promise<DoctorPerson[]> {
   const rows = await db
     .select()
     .from(users)
@@ -72,7 +74,12 @@ export async function listDoctors(db: DbOrTx, opts: { includeInactive?: boolean 
 }
 
 export async function prefsOf(db: DbOrTx, ids: readonly string[]): Promise<Map<string, DoctorPrefs>> {
-  const rows = ids.length ? await db.select().from(doctorPrefs).where(inArray(doctorPrefs.userId, [...ids])) : []
+  const rows = ids.length
+    ? await db
+        .select()
+        .from(doctorPrefs)
+        .where(inArray(doctorPrefs.userId, [...ids]))
+    : []
   const m = new Map(ids.map((id) => [id, EMPTY_DOCTOR_PREFS]))
   for (const r of rows)
     m.set(r.userId, { allDayMin: r.allDayMin, allDayMax: r.allDayMax, fixedRules: r.fixedRules })

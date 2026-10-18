@@ -8,7 +8,15 @@ const navBtn =
   'flex h-7 w-7 items-center justify-center rounded-[7px] border border-line bg-surface text-sm hover:bg-panel'
 
 // 우측 h30 세그먼트. 활성 bg #1B1F1E 글자 #fff
-export function GroupTabs({ active, nurseHref, doctorHref }: { active: 'nurse' | 'doctor'; nurseHref: string; doctorHref: string }) {
+export function GroupTabs({
+  active,
+  nurseHref,
+  doctorHref,
+}: {
+  active: 'nurse' | 'doctor'
+  nurseHref: string
+  doctorHref: string
+}) {
   const tab = (key: 'nurse' | 'doctor', label: string, href: string) => (
     <Link
       href={href}
@@ -87,7 +95,9 @@ export function DoctorScheduleSection({
             <span className="text-ink-2">{view.times.D}</span>
             <span className="rounded-[5px] bg-shift-n px-2 py-[3px] font-bold">Night</span>
             <span className="text-ink-2">{view.times.N}</span>
-            <span className="ml-2 rounded-full border border-line bg-surface px-1.5 text-[10px] font-bold">올데이</span>
+            <span className="ml-2 rounded-full border border-line bg-surface px-1.5 text-[10px] font-bold">
+              올데이
+            </span>
             <span className="text-ink-2">같은 날 Day·Night를 한 사람이</span>
             <span className="ml-auto flex flex-wrap items-center gap-1.5">
               <span className="text-ink-2">강조</span>

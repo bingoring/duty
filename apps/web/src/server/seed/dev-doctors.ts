@@ -29,7 +29,9 @@ export async function seedDevDoctors(tx: DbOrTx, password: string, consentVersio
   const now = new Date()
   for (const c of r.created) {
     const [u] = await tx.select({ id: users.id }).from(users).where(eq(users.employeeNo, c.loginId))
-    await tx.insert(privacyConsents).values({ userId: u!.id, version: consentVersion, requiredAt: now, sensitiveAt: now })
+    await tx
+      .insert(privacyConsents)
+      .values({ userId: u!.id, version: consentVersion, requiredAt: now, sensitiveAt: now })
   }
   if (r.created.length === 0) return
   const id = async (no: string) =>

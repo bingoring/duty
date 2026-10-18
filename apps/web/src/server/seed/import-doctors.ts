@@ -30,7 +30,8 @@ if (isMain(import.meta.url)) {
     const r = await importDoctors(db, parsed.rows)
     console.log(`의사 갱신 ${r.updated}명, 신규 ${r.created.length}명`)
     for (const c of r.created) console.log(`  ${c.loginId} ${c.name} — 임시 비밀번호 ${c.tempPassword}`)
-    if (r.created.length > 0) console.log('임시 비밀번호는 다시 표시되지 않습니다. 각자 첫 로그인 때 바꾸게 됩니다.')
+    if (r.created.length > 0)
+      console.log('임시 비밀번호는 다시 표시되지 않습니다. 각자 첫 로그인 때 바꾸게 됩니다.')
   } catch (e) {
     console.error(e instanceof Error ? e.message : e)
     process.exitCode = 1

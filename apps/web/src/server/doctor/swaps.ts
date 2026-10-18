@@ -23,11 +23,18 @@ type Fail = { ok: false; message: string }
 const fail = (message: string): Fail => ({ ok: false, message })
 export type Checked = { ok: false; violations: DoctorViolation[]; needNote: true }
 
-const chipLabel = (c: DoctorChip) => `${formatMD(c.date)}(${weekdayKo(c.date)}) ${c.slot === 'D' ? 'Day' : 'Night'}`
+const chipLabel = (c: DoctorChip) =>
+  `${formatMD(c.date)}(${weekdayKo(c.date)}) ${c.slot === 'D' ? 'Day' : 'Night'}`
 
 async function adjustCheck(db: DbOrTx, plan: DoctorPlan, shifts: DoctorShiftRow[], dates: IsoDate[]) {
   const input = await doctorMonthInput(db as Db, plan, plan.extras)
-  const r = checkDoctorMonth({ ...plan, doctors: input.check, shifts, mode: 'adjust', prevLastNight: input.prevNight })
+  const r = checkDoctorMonth({
+    ...plan,
+    doctors: input.check,
+    shifts,
+    mode: 'adjust',
+    prevLastNight: input.prevNight,
+  })
   const before = checkDoctorMonth({
     ...plan,
     doctors: input.check,
@@ -93,8 +100,7 @@ async function invalidateStale(tx: DbOrTx, planId: string, rows: DoctorShiftRow[
 
 // ── 관리자 ───────────────────────────────────────────────────────────
 export type AdminEdit =
-  | { kind: 'assign'; chip: DoctorChip; userId: string }
-  | { kind: 'swap'; a: DoctorChip; b: DoctorChip }
+  { kind: 'assign'; chip: DoctorChip; userId: string } | { kind: 'swap'; a: DoctorChip; b: DoctorChip }
 
 export async function adminEditDoctorShift(
   db: Db,
@@ -122,8 +128,13 @@ export async function adminEditDoctorShift(
     const dates = edit.kind === 'assign' ? [edit.chip.date] : [edit.a.date, edit.b.date]
     const c = await adjustCheck(tx, plan, after, dates)
     // 필수 규칙(매일 D1·N1·고정 조건)을 어기면 사유를 받아야 적용한다
-    if (c.hard.length && !note?.trim()) return { ok: false as const, violations: c.hard, needNote: true as const }
-    await applyRows(tx, plan, before, after, { actorId: actor.id, reason: 'admin', note: note?.trim() || null })
+    if (c.hard.length && !note?.trim())
+      return { ok: false as const, violations: c.hard, needNote: true as const }
+    await applyRows(tx, plan, before, after, {
+      actorId: actor.id,
+      reason: 'admin',
+      note: note?.trim() || null,
+    })
     return { ok: true as const }
   })
 }
@@ -131,7 +142,14 @@ export async function adminEditDoctorShift(
 // ── 의사 간 교환 ────────────────────────────────────────────────────
 export type SwapPreview = { ok: true; hard: DoctorViolation[]; soft: DoctorViolation[] } | Fail
 
-async function prepareSwap(db: DbOrTx, actor: DoctorActor, ym: Ym, a: DoctorChip, b: DoctorChip, today: IsoDate) {
+async function prepareSwap(
+  db: DbOrTx,
+  actor: DoctorActor,
+  ym: Ym,
+  a: DoctorChip,
+  b: DoctorChip,
+  today: IsoDate,
+) {
   const plan = await confirmedPlan(db, ym)
   if (!plan) return fail('확정된 근무표만 교환할 수 있습니다.')
   const before = await confirmedShifts(db, plan.id)
@@ -210,7 +228,11 @@ export async function respondDoctorSwap(
       return { ok: true as const, status }
     }
     if (!accept) return close('REJECTED', null)
-    const [plan] = await tx.select().from(doctorMonthPlans).where(eq(doctorMonthPlans.id, q.planId)).for('update')
+    const [plan] = await tx
+      .select()
+      .from(doctorMonthPlans)
+      .where(eq(doctorMonthPlans.id, q.planId))
+      .for('update')
     if (!plan || plan.status !== 'CONFIRMED') return close('INVALID', '근무표가 확정 상태가 아닙니다')
     if (q.chipA.date < today || q.chipB.date < today) return close('EXPIRED', '날짜가 지났습니다')
     const before = await confirmedShifts(tx, plan.id)
@@ -302,7 +324,9 @@ export async function loadDoctorAdjust(db: Db, ym: Ym, viewer: DoctorActor, toda
         .orderBy(desc(doctorSwapRequests.createdAt))
         .limit(40)
     : []
-  const names = new Map((await db.select({ id: users.id, name: users.name }).from(users)).map((u) => [u.id, u.name]))
+  const names = new Map(
+    (await db.select({ id: users.id, name: users.name }).from(users)).map((u) => [u.id, u.name]),
+  )
   const items: SwapItem[] = swaps.map((q) => ({
     id: q.id,
     requester: names.get(q.requesterId) ?? '?',

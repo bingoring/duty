@@ -20,7 +20,12 @@ import { loadDoctorSchedule } from '@/server/doctor/schedule'
 export default async function SchedulePage({
   searchParams,
 }: {
-  searchParams: Promise<{ ym?: string | string[]; focus?: string | string[]; view?: string | string[]; hl?: string | string[] }>
+  searchParams: Promise<{
+    ym?: string | string[]
+    focus?: string | string[]
+    view?: string | string[]
+    hl?: string | string[]
+  }>
 }) {
   const session = await requireNurse()
   const today = await requestToday()
@@ -35,7 +40,11 @@ export default async function SchedulePage({
   const db = getDb()
   // 3-7b: 「의사」 탭 — 의사 확정 근무표만 읽기 전용
   const tabs = (
-    <GroupTabs active={sp.view === 'doctor' ? 'doctor' : 'nurse'} nurseHref={`/?ym=${ym}`} doctorHref={`/?view=doctor&ym=${ym}`} />
+    <GroupTabs
+      active={sp.view === 'doctor' ? 'doctor' : 'nurse'}
+      nurseHref={`/?ym=${ym}`}
+      doctorHref={`/?view=doctor&ym=${ym}`}
+    />
   )
   if (sp.view === 'doctor') {
     const dv = await loadDoctorSchedule(db, { year, month, viewerId: null, today })

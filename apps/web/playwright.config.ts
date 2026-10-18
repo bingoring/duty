@@ -6,6 +6,8 @@ const E2E_DB = process.env.E2E_DATABASE_URL ?? 'postgres://duty:duty@localhost:5
 const PORT = Number(process.env.E2E_PORT ?? 3100)
 const SOLVER_PORT = Number(process.env.E2E_SOLVER_PORT ?? 8102)
 export const E2E_TODAY = '2026-10-13'
+// 로컬에 Playwright 브라우저가 없으면 설치된 Chrome으로(E2E_CHANNEL=chrome)
+const channel = process.env.E2E_CHANNEL ? { channel: process.env.E2E_CHANNEL } : {}
 
 export default defineConfig({
   testDir: './e2e',
@@ -18,7 +20,7 @@ export default defineConfig({
     {
       name: 'chromium',
       testIgnore: 'cycle/**',
-      use: { ...devices['Desktop Chrome'], viewport: { width: 1280, height: 720 } },
+      use: { ...devices['Desktop Chrome'], ...channel, viewport: { width: 1280, height: 720 } },
     },
     // 2-9 한 달 흐름: 다른 스펙이 모두 끝난 뒤 DB를 시드 상태로 되돌리고 돈다(11월을 확정·마감하므로)
     { name: 'cycle-reset', testMatch: 'cycle/reset.setup.ts', dependencies: ['chromium'] },
@@ -26,7 +28,7 @@ export default defineConfig({
       name: 'cycle',
       testMatch: 'cycle/**/*.spec.ts',
       dependencies: ['cycle-reset'],
-      use: { ...devices['Desktop Chrome'], viewport: { width: 1280, height: 720 } },
+      use: { ...devices['Desktop Chrome'], ...channel, viewport: { width: 1280, height: 720 } },
     },
   ],
   webServer: [

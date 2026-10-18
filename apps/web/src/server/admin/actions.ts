@@ -70,7 +70,8 @@ export async function createStaffAction(input: unknown): Promise<CreateResult | 
 
 export async function updateStaffAction(userId: string, input: unknown): Promise<Result> {
   const admin = await adminOnly()
-  if (!admin || !(await isNurse(userId))) return DENIED
+  if (!admin) return DENIED
+  if (!(await isNurse(userId))) return DENIED
   const parsed = StaffUpdateSchema.safeParse(input)
   if (!parsed.success) return { ok: false, errors: fieldErrors(parsed.error) }
   const r = await updateStaff(getDb(), z.string().uuid().parse(userId), parsed.data, await staffCtx(admin))
@@ -90,7 +91,8 @@ export async function reorderStaffAction(ids: unknown): Promise<Result> {
 
 export async function removeStaffAction(userId: string): Promise<Result> {
   const admin = await adminOnly()
-  if (!admin || !(await isNurse(userId))) return DENIED
+  if (!admin) return DENIED
+  if (!(await isNurse(userId))) return DENIED
   const r = await removeStaff(getDb(), z.string().uuid().parse(userId), await staffCtx(admin))
   if (r.ok) refresh()
   return r
@@ -100,7 +102,8 @@ export async function reissuePasswordAction(
   userId: string,
 ): Promise<{ ok: true; tempPassword: string } | { ok: false; message: string }> {
   const admin = await adminOnly()
-  if (!admin || !(await isNurse(userId))) return DENIED
+  if (!admin) return DENIED
+  if (!(await isNurse(userId))) return DENIED
   const id = z.string().uuid().safeParse(userId)
   if (!id.success) return { ok: false, message: '간호사를 찾을 수 없습니다.' }
   return reissuePassword(getDb(), id.data)

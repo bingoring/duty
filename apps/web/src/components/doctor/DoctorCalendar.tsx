@@ -3,7 +3,8 @@ import type { DoctorSlot } from '@duty/domain'
 import type { CalDay, CalPerson, CalWeek, DoctorCalendar as Cal } from '@/server/doctor/view'
 
 const WEEK = ['일', '월', '화', '수', '목', '금', '토']
-const dowColor = (dow: number, red = false) => (red || dow === 0 ? 'text-danger' : dow === 6 ? 'text-admin' : '')
+const dowColor = (dow: number, red = false) =>
+  red || dow === 0 ? 'text-danger' : dow === 6 ? 'text-admin' : ''
 
 export type ChipMark = 'admin' | 'swap' | 'pending'
 

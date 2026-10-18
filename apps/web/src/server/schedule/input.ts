@@ -93,9 +93,7 @@ export async function buildScheduleInput(
   // 행 순서는 입력 해시·솔버 결정성에 들어가므로 모든 조회에 정렬을 둔다 (2-7 CI에서 확정이 간헐적으로 막힘)
   const people = (
     await db.select().from(users).where(NURSES).orderBy(asc(users.seniorityRank), asc(users.id))
-  ).filter(
-    (u) => u.active || ids.has(u.id),
-  )
+  ).filter((u) => u.active || ids.has(u.id))
   const nurses: NurseProfile[] = people.map((u) => ({
     id: u.id,
     rotation: u.rotation as Rotation,

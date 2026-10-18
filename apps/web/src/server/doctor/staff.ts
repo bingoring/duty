@@ -12,7 +12,14 @@ import { and, eq, ne, sql } from 'drizzle-orm'
 import { hashPassword } from '../auth/password'
 import { generateTempPassword } from '../auth/tokens'
 import type { Db } from '../db/client'
-import { credentials, doctorMonthPlans, doctorRuleVersions, doctorSwapRequests, sessions, users } from '../db/schema'
+import {
+  credentials,
+  doctorMonthPlans,
+  doctorRuleVersions,
+  doctorSwapRequests,
+  sessions,
+  users,
+} from '../db/schema'
 import { DOCTORS } from '../role-group'
 import { ensureWard } from '../seed/core'
 import { loginIdKindOf } from '../seed/doctors'
@@ -40,7 +47,10 @@ export async function loadDoctorStaff(db: Db) {
 }
 
 async function doctorById(db: Db, id: string) {
-  const [u] = await db.select().from(users).where(and(eq(users.id, id), DOCTORS))
+  const [u] = await db
+    .select()
+    .from(users)
+    .where(and(eq(users.id, id), DOCTORS))
   return u?.active ? u : null
 }
 
@@ -181,7 +191,8 @@ export async function saveDoctorRules(
   return db.transaction(async (tx) => {
     await tx.execute(sql`lock table ${doctorRuleVersions} in share row exclusive mode`)
     const cur = await currentDoctorRules(tx)
-    if (cur.version !== input.baseVersion) return fail('그사이 규칙이 바뀌었습니다. 새로고침 뒤 다시 저장해 주세요.')
+    if (cur.version !== input.baseVersion)
+      return fail('그사이 규칙이 바뀌었습니다. 새로고침 뒤 다시 저장해 주세요.')
     const keys = Object.keys(parsed.data) as (keyof DoctorRuleParams)[]
     const diff = keys
       .filter((k) => cur.params[k] !== parsed.data[k])

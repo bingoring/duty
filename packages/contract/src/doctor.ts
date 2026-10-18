@@ -38,7 +38,13 @@ export const DoctorSolverRequest = z.object({
   prevLastNight: z.string().nullable(),
 })
 
-export const DOCTOR_TERM_KEYS = ['requestMiss', 'requestMissMax', 'allDayOut', 'nightToDay', 'tieBreak'] as const
+export const DOCTOR_TERM_KEYS = [
+  'requestMiss',
+  'requestMissMax',
+  'allDayOut',
+  'nightToDay',
+  'tieBreak',
+] as const
 
 export const DoctorSolverShift = z.object({ date: IsoDate, day: z.string(), night: z.string() })
 

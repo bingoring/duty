@@ -25,7 +25,9 @@ const unquote = (cell: string) => cell.trim().replace(/^"(.*)"$/, '$1')
 // 생년월일 6자리면 「생년월일」 ID, 아니면 사번으로 본다
 export const loginIdKindOf = (id: string) => (/^\d{6}$/.test(id) ? 'birthdate' : 'employee_no')
 
-export function parseDoctorCsv(text: string): { ok: true; rows: DoctorRow[] } | { ok: false; errors: string[] } {
+export function parseDoctorCsv(
+  text: string,
+): { ok: true; rows: DoctorRow[] } | { ok: false; errors: string[] } {
   const lines = text
     .replace(/^﻿/, '')
     .split(/\r?\n/)
@@ -135,7 +137,8 @@ export async function importDoctorSchedule(
   opts: { replace?: boolean; actorId?: string | null } = {},
 ): Promise<ScheduleImportResult> {
   const parsed = ScheduleFileSchema.safeParse(file)
-  if (!parsed.success) return { ok: false, errors: ['형식: { month: "YYYY-MM", shifts: [{ date, day, night }] }'] }
+  if (!parsed.success)
+    return { ok: false, errors: ['형식: { month: "YYYY-MM", shifts: [{ date, day, night }] }'] }
   const [year, month] = parsed.data.month.split('-').map(Number) as [number, number]
   const doctors = await listDoctors(db, { includeInactive: true })
   const idOf = (key: string) => {
@@ -163,7 +166,8 @@ export async function importDoctorSchedule(
   if (errors.length) return { ok: false, errors }
 
   const existing = await findDoctorPlan(db, { year, month })
-  if (existing && !opts.replace) return { ok: false, errors: [`${parsed.data.month} 계획이 이미 있습니다(--replace로 덮어쓰기)`] }
+  if (existing && !opts.replace)
+    return { ok: false, errors: [`${parsed.data.month} 계획이 이미 있습니다(--replace로 덮어쓰기)`] }
   const { version, params } = await currentDoctorRules(db)
   const counts = doctors.map((doc) => ({
     id: doc.id,
@@ -177,13 +181,15 @@ export async function importDoctorSchedule(
     N: counts.filter((c) => c.N > params.nPerMonth).map((c) => c.id),
   }
   const now = new Date()
+  // 담당 = 지정이 없으면 의사 관리자 (배지 「확정 · 담당 …」)
+  const confirmedBy = opts.actorId ?? doctors.find((d) => d.role === 'admin' && d.active)?.id ?? null
   const run = async (tx: DbOrTx) => {
     let planId = existing?.id
     if (planId) {
       await tx.delete(doctorShifts).where(eq(doctorShifts.planId, planId))
       await tx
         .update(doctorMonthPlans)
-        .set({ status: 'CONFIRMED', extras, ruleVersion: version, confirmedAt: now, confirmedBy: opts.actorId ?? null })
+        .set({ status: 'CONFIRMED', extras, ruleVersion: version, confirmedAt: now, confirmedBy })
         .where(eq(doctorMonthPlans.id, planId))
     } else {
       const [p] = await tx
@@ -197,13 +203,19 @@ export async function importDoctorSchedule(
           extras,
           ruleVersion: version,
           confirmedAt: now,
-          confirmedBy: opts.actorId ?? null,
+          confirmedBy,
         })
         .returning({ id: doctorMonthPlans.id })
       planId = p!.id
     }
     await tx.insert(doctorShifts).values(
-      rows.map((r) => ({ planId: planId!, date: r.date, dayUser: r.day!, nightUser: r.night!, source: 'imported' })),
+      rows.map((r) => ({
+        planId: planId!,
+        date: r.date,
+        dayUser: r.day!,
+        nightUser: r.night!,
+        source: 'imported',
+      })),
     )
   }
   await ('transaction' in db ? db.transaction(run) : run(db))

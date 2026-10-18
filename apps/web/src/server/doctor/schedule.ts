@@ -3,7 +3,15 @@ import { DOCTOR_TIMES, monthDates, type IsoDate } from '@duty/domain'
 import { eq } from 'drizzle-orm'
 import type { Db } from '../db/client'
 import { users } from '../db/schema'
-import { confirmedShifts, currentDoctorRules, findDoctorPlan, listDoctors, redHolidays, targetsFor, type Ym } from './core'
+import {
+  confirmedShifts,
+  currentDoctorRules,
+  findDoctorPlan,
+  listDoctors,
+  redHolidays,
+  targetsFor,
+  type Ym,
+} from './core'
 import { buildDoctorCalendar, type DoctorCalendar } from './view'
 
 export type DoctorScheduleView = {

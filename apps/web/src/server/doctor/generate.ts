@@ -1,9 +1,5 @@
 // 3-7d S-D3 의사 듀티 생성 — 솔버 /solve/doctor → 도메인 검사기 재검사 → 생성안 저장, 리롤·±1 대상·확정(= 공개)
-import {
-  DOCTOR_CONTRACT_VERSION,
-  DoctorSolverResponse,
-  type DoctorSolverRequest,
-} from '@duty/contract'
+import { DOCTOR_CONTRACT_VERSION, DoctorSolverResponse, type DoctorSolverRequest } from '@duty/contract'
 import {
   checkDoctorMonth,
   expandFixedRules,
@@ -134,7 +130,9 @@ export async function generateDoctorCandidate(
         : `±1 대상을 D ${Math.abs(need.D)}명·N ${Math.abs(need.N)}명 골라 주세요.`,
     )
   const seed = opts.seed ?? Math.floor(Math.random() * 2 ** 31)
-  const out = await callDoctorSolver(toDoctorSolverRequest(input, seed, opts.timeLimitSec ?? Math.min(10, solverTimeLimit())))
+  const out = await callDoctorSolver(
+    toDoctorSolverRequest(input, seed, opts.timeLimitSec ?? Math.min(10, solverTimeLimit())),
+  )
   if (out.kind === 'unreachable') return fail(`솔버에 연결할 수 없습니다 (${out.error}).`)
   const res = out.res
   if (res.status === 'UNKNOWN') return fail('시간 안에 근무표를 찾지 못했습니다. 다시 시도해 주세요.')
@@ -161,7 +159,9 @@ export async function generateDoctorCandidate(
   // 솔버의 하드 제약 = 검사기의 하드 규칙. 어긋나면 저장하지 않는다
   if (check.hard.length) return fail(`재검사에서 필수 규칙 위반이 나왔습니다: ${check.hard[0]!.message}`)
   return db.transaction(async (tx) => {
-    await tx.execute(sql`select 1 from ${doctorMonthPlans} where ${doctorMonthPlans.id} = ${plan.id} for update`)
+    await tx.execute(
+      sql`select 1 from ${doctorMonthPlans} where ${doctorMonthPlans.id} = ${plan.id} for update`,
+    )
     const [last] = await tx
       .select({ n: doctorCandidates.generationNo })
       .from(doctorCandidates)
@@ -217,7 +217,8 @@ export async function confirmDoctorCandidate(
       .where(eq(doctorMonthPlans.id, c.planId))
       .for('update')
     if (!plan || plan.status === 'CONFIRMED') return fail('이미 확정된 달입니다.')
-    if ((c.checkResult as DoctorCheckResult).hard.length) return fail('필수 규칙 위반이 있는 안은 확정할 수 없습니다.')
+    if ((c.checkResult as DoctorCheckResult).hard.length)
+      return fail('필수 규칙 위반이 있는 안은 확정할 수 없습니다.')
     const rows = await tx
       .select()
       .from(doctorCandidateShifts)
@@ -234,7 +235,12 @@ export async function confirmDoctorCandidate(
     )
     await tx
       .update(doctorMonthPlans)
-      .set({ status: 'CONFIRMED', confirmedCandidateId: c.id, confirmedBy: actor.id, confirmedAt: new Date() })
+      .set({
+        status: 'CONFIRMED',
+        confirmedCandidateId: c.id,
+        confirmedBy: actor.id,
+        confirmedAt: new Date(),
+      })
       .where(eq(doctorMonthPlans.id, plan.id))
     return { ok: true as const }
   })
@@ -278,7 +284,13 @@ export async function loadDoctorGenerate(db: Db, ym: Ym, candidateId?: string | 
   const shifts = picked ? await candidateShifts(db, picked.id) : []
   // 저장된 결과가 아니라 지금 조건으로 다시 검사한다(생성 뒤 조건이 바뀌었을 수 있다)
   const check = picked
-    ? checkDoctorMonth({ ...ym, doctors: input.check, shifts, mode: 'generate', prevLastNight: input.prevNight })
+    ? checkDoctorMonth({
+        ...ym,
+        doctors: input.check,
+        shifts,
+        mode: 'generate',
+        prevLastNight: input.prevNight,
+      })
     : null
   const need = extraNeeded(ym.year, ym.month, input.doctors.length, input.params)
   const requestCount = input.check.reduce((s, d) => s + (d.requests?.length ?? 0), 0)
