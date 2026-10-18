@@ -173,9 +173,12 @@ describe('buildRequestsView — 표시', () => {
     })
   })
 
-  it('편집 가능: 간호사는 신청 기간 안 자기 줄, 마감 뒤 불가, 관리자는 생성 전 언제나', () => {
+  it('편집 가능: 3-8 간호사·관리자 모두 확정 전까지(마감 뒤·생성안 검토 중 포함), 확정된 달은 휴가만', () => {
     expect(buildRequestsView(raw(), { id: 'me', role: 'nurse' }).editable).toBe('all')
-    expect(buildRequestsView(raw({ today: '2026-10-16' }), { id: 'me', role: 'nurse' }).editable).toBe('none')
+    expect(buildRequestsView(raw({ today: '2026-10-16' }), { id: 'me', role: 'nurse' }).editable).toBe('all')
+    const drafting = raw({ plan: { ...raw().plan!, status: 'DRAFTING' } })
+    expect(buildRequestsView(drafting, { id: 'me', role: 'nurse' }).editable).toBe('all')
+    expect(buildRequestsView(drafting, { id: 'h', role: 'admin' }).editable).toBe('all')
     expect(
       buildRequestsView(raw({ today: '2026-10-16', plan: { ...raw().plan!, status: 'REQUEST_CLOSED' } }), {
         id: 'h',

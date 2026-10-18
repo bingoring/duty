@@ -9,7 +9,7 @@ import {
   type MonthPlanStatus,
   type SeverityKey,
 } from '@duty/domain'
-import { and, asc, eq, gte, isNotNull, lte } from 'drizzle-orm'
+import { and, asc, eq, gt, gte, isNotNull, lte } from 'drizzle-orm'
 import type { Db } from '../db/client'
 import { leaveRequests, monthPlans, scheduleCandidates, shiftRequests, trainings, users } from '../db/schema'
 import { ensureRequestPlan, findPlan } from '../requests/plan'
@@ -34,6 +34,8 @@ export type CandidateView = {
   no: number
   createdAt: string
   stale: boolean
+  // 3-8: 이 안을 만든 뒤 들어온(제출·수정된) 근무 신청 수 — 확정 전까지 신청을 받으므로
+  newRequests: number
   confirmed: boolean
   hardCount: number
   softCount: number
@@ -255,9 +257,19 @@ export async function loadGenerateView(
       })
       .filter((x) => x.short > 0)
     const checks = generationChecks(check, g.input, { nameOf, month: ym.month })
+    const newRequests = await db.$count(
+      shiftRequests,
+      and(
+        eq(shiftRequests.year, ym.year),
+        eq(shiftRequests.month, ym.month),
+        isNotNull(shiftRequests.submittedAt),
+        gt(shiftRequests.updatedAt, pick.createdAt),
+      ),
+    )
     current = {
       id: pick.id,
       no: pick.generationNo,
+      newRequests: pick.id === confirmedId ? 0 : newRequests,
       createdAt: hhmm(pick.createdAt),
       stale: pick.id !== confirmedId && meta.inputHash !== g.inputHash,
       confirmed: pick.id === confirmedId,

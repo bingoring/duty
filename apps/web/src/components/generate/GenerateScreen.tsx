@@ -201,6 +201,11 @@ export function GenerateScreen({ view }: { view: GenerateView }) {
                 ›
               </button>
               <span className="text-ink-2">{cur.createdAt} 생성</span>
+              {cur.newRequests > 0 && (
+                <span className="rounded-full bg-warn-bg px-2 py-0.5 font-semibold text-warn-ink">
+                  신청 추가됨 {cur.newRequests}건
+                </span>
+              )}
               {cur.stale && <span className="font-semibold text-danger">입력이 바뀜 · 다시 생성 필요</span>}
               <span className="ml-auto rounded-full bg-primary-soft px-2.5 py-1 font-semibold text-primary">
                 필수 규칙 위반 {cur.hardCount}

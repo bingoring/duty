@@ -55,9 +55,11 @@ describe('nextPlanStatus (1-2 §3)', () => {
 })
 
 describe('canNurseEditRequests', () => {
-  it('신청 중이고 마감일 당일까지', () => {
+  it('3-8: 확정 전까지(신청 중·마감 뒤·생성안 검토 중) 신청할 수 있다', () => {
     expect(canNurseEditRequests('REQUESTING', '2026-10-15', '2026-10-15')).toBe(true)
-    expect(canNurseEditRequests('REQUESTING', '2026-10-15', '2026-10-16')).toBe(false)
-    expect(canNurseEditRequests('REQUEST_CLOSED', '2026-10-15', '2026-10-10')).toBe(false)
+    expect(canNurseEditRequests('REQUESTING', '2026-10-15', '2026-10-16')).toBe(true)
+    expect(canNurseEditRequests('REQUEST_CLOSED', '2026-10-15', '2026-10-20')).toBe(true)
+    expect(canNurseEditRequests('DRAFTING', '2026-10-15', '2026-10-20')).toBe(true)
+    expect(canNurseEditRequests('CONFIRMED', '2026-10-15', '2026-10-20')).toBe(false)
   })
 })
