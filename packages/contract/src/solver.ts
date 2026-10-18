@@ -18,6 +18,7 @@ export const SEVERITY_KEYS = [
   'WORK_CONSEC',
   'NIGHT_MAX',
   'NIGHT_TARGET',
+  'NIGHT_MIN',
   'NIGHT_CONSEC',
   'SLEEPING',
   'OFF_AFTER_N',
@@ -62,9 +63,13 @@ export const SolverNurse = z.object({
   nightMax: z.number().int().nonnegative(),
   // 권고 N 수. 전담이면 null
   nightTarget: z.number().int().nonnegative().nullable(),
+  // 3-5 추가: 월 나이트 최소(근무 가능한 날만큼 비례, 0·전담·트레이닝 중 신규는 null). 예전 요청과 호환되도록 선택
+  nightMin: z.number().int().nonnegative().nullable().optional(),
   weekendMissedStreak: z.number().int().nonnegative(),
   // 1일(일)이 전월 마지막 토요일과 이어지는 주말
   weekendCarryIn: z.boolean(),
+  // 3-6: 본인이 주말 통 OFF를 원하지 않으면 false. 예전 요청과 호환되도록 선택(없으면 받음)
+  weekendPair: z.boolean().optional(),
   shiftCountsBefore: z.object({ D: z.number().int(), E: z.number().int(), N: z.number().int() }),
   // D·E·N 분포 검사 대상 (전담·트레이닝 중 신규 제외)
   balanceShiftTypes: z.boolean(),
@@ -160,6 +165,8 @@ export const TERM_KEYS = [
   'nightConsec',
   'offConsec',
   'sleepingOver',
+  // 3-5 추가: 월 나이트 최소에 모자란 수
+  'nightMin',
 ] as const
 
 export const CAUSE_GROUPS = [
@@ -181,6 +188,7 @@ export const CAUSE_GROUPS = [
   'WEEKEND_PAIR',
   'JUNIOR_ONLY',
   'REPEAT_PAIR',
+  'NIGHT_MIN',
 ] as const
 
 export const SolverCause = z.object({

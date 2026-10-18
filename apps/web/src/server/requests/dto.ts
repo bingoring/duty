@@ -1,4 +1,5 @@
 import {
+  CHECKUP_HALVES,
   FAMILY_LEAVE_DAYS,
   OFFICIAL_LEAVE_REASONS,
   canNurseEditRequests,
@@ -17,6 +18,7 @@ import {
   type RequestOption,
   type RequestSpecial,
   type RuleSet,
+  LEAVE_TYPE_SHORT,
 } from '@duty/domain'
 
 // Build Spec 2-5 domain-entities §4 — 역할별 DTO. 코멘트·임시 신청은 서버에서 걸러 보낸다 (1-2 §8)
@@ -28,6 +30,8 @@ export type RawRequest = {
   special: string | null
   comment: string | null
   submittedAt: Date | null
+  // 3-6: 관리자가 대신 넣은 신청
+  byAdmin?: boolean
 }
 
 export type RawLeave = {
@@ -61,6 +65,8 @@ export type PendingLeave = {
 }
 
 export type LeaveHistory = {
+  // 3-6: 관리자가 처리 이력에서 승인을 취소한다
+  id: string
   name: string
   kindLabel: string
   status: 'APPROVED' | 'REJECTED'
@@ -116,6 +122,8 @@ export type RequestCellDTO = {
   hasComment: boolean
   comment?: string
   draft: boolean
+  // 3-6: 관리자가 대신 넣은 신청 → 파란 외곽선
+  byAdmin?: boolean
   leave?: LeaveCell
   scheduled?: string
 }
@@ -170,6 +178,9 @@ export function leaveKindLabel(type: LeaveType, reasonCode: string | null): stri
     return `${base} · ${FAMILY_REASON_LABEL[reasonCode] ?? reasonCode}`
   if (type === 'official' && reasonCode && reasonCode in OFFICIAL_LEAVE_REASONS)
     return `${base} · ${OFFICIAL_LEAVE_REASONS[reasonCode as keyof typeof OFFICIAL_LEAVE_REASONS]}`
+  // 3-6: 검진 오전·오후
+  if (type === 'checkup' && reasonCode && reasonCode in CHECKUP_HALVES)
+    return CHECKUP_HALVES[reasonCode as keyof typeof CHECKUP_HALVES]
   return base
 }
 
@@ -239,7 +250,8 @@ export function buildRequestsView(
         return {
           date,
           kind: 'leave',
-          label: '휴',
+          // 3-6: 종류 이름(검진은 오전/오후)
+          label: LEAVE_TYPE_SHORT[l.type] ?? '휴가',
           hasComment: !!l.comment,
           ...(l.comment && (mine || isAdmin) ? { comment: l.comment } : {}),
           draft: l.status === 'DRAFT',
@@ -281,6 +293,7 @@ export function buildRequestsView(
         hasComment: !!q.comment,
         ...(q.comment && (mine || isAdmin) ? { comment: q.comment } : {}),
         draft: !q.submittedAt,
+        ...(q.byAdmin ? { byAdmin: true } : {}),
         ...(scheduled ? { scheduled } : {}),
       }
     })

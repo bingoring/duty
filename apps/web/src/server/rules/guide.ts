@@ -133,6 +133,14 @@ export function buildRulesGuide(rules: RuleSet, version: number | null): RulesGu
           text: `나이트는 월 ${p.targetNightPerMonth}개 이하를 목표로, 최대 ${p.maxNightPerMonth}개로 제한합니다.`,
           tag: sev('NIGHT_MAX'),
         },
+        ...(p.minNightPerMonth > 0
+          ? [
+              {
+                text: `나이트는 월 ${p.minNightPerMonth}개 이상 배정합니다(연차·휴가 등으로 근무할 수 있는 날이 적으면 그만큼 줄입니다).`,
+                tag: sev('NIGHT_MIN'),
+              },
+            ]
+          : []),
         { text: `연속 나이트는 ${p.maxConsecutiveNight}일 이내로 제한합니다.`, tag: sev('NIGHT_CONSEC') },
         t.nightDedicated
           ? {

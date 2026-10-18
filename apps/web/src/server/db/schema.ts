@@ -43,7 +43,11 @@ export const users = pgTable('users', {
   kTass: boolean('k_tass').notNull().default(false),
   // 3-5: KTAS 수료일. 유효기간 = 수료일 + 3년 − 1일
   ktasCertifiedOn: day('ktas_certified_on'),
+  // 3-6: 최근 갱신일. 유효기간은 취득일·갱신일 중 늦은 날 + 3년
+  ktasRenewedOn: day('ktas_renewed_on'),
   unionMember: boolean('union_member').notNull().default(false),
+  // 3-6: 본인이 규칙 안내에서 끄면 주말 통 OFF를 요구하지 않는다(처음엔 자동 신청)
+  weekendPairWanted: boolean('weekend_pair_wanted').notNull().default(true),
   nightDedicatedFrom: day('night_dedicated_from'),
   nightDedicatedTo: day('night_dedicated_to'),
   active: boolean('active').notNull().default(true),
@@ -257,6 +261,8 @@ export const shiftRequests = pgTable(
     comment: text('comment'),
     // 2-5 Q2: null = 임시 저장(본인만), 시각 = 제출
     submittedAt: tstz('submitted_at'),
+    // 3-6: 관리자가 다른 간호사 대신 넣은 신청(신청 화면·근무표에 파란 외곽선)
+    byAdmin: boolean('by_admin').notNull().default(false),
     createdAt: createdAt(),
     updatedAt: tstz('updated_at').notNull().defaultNow(),
   },

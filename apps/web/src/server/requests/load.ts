@@ -21,12 +21,15 @@ import {
   type HolidayKind,
   type LeaveType,
   type MonthPlanStatus,
+  leaveCellLabel,
 } from '@duty/domain'
 import { leaveKindLabel, type RequestsRaw } from './dto'
 import { ensureRequestPlan } from './plan'
 import { leaveImpact, type Actor } from './service'
 
-const cellLabel = (code: string) => (code === 'OFF' ? 'off' : code === 'AL' || code === 'LEAVE' ? '휴' : code)
+// 3-6: 휴가 칸은 종류 이름
+const cellLabel = (c: { code: string; offKind: string | null; leaveKind: string | null }) =>
+  leaveCellLabel(c) ?? (c.code === 'OFF' ? 'off' : c.code)
 
 // Build Spec 2-5 business-logic-model §1 — 신청 화면 원자료(역할 필터 전)
 export async function loadRequestsRaw(
@@ -61,7 +64,7 @@ export async function loadRequestsRaw(
       ? (await db.select().from(scheduleCells).where(eq(scheduleCells.monthPlanId, plan.id))).map((c) => ({
           userId: c.userId,
           date: c.date,
-          label: cellLabel(c.code),
+          label: cellLabel(c),
         }))
       : []
 
@@ -139,6 +142,7 @@ export async function loadRequestsRaw(
       .orderBy(desc(leaveRequests.decidedAt))
       .limit(10)
     history = done.map((l) => ({
+      id: l.id,
       name: names.get(l.userId) ?? '',
       // 핸드오프 4a: '연차 · 11/6–7', 처리일 '09/24'
       kindLabel: `${leaveKindLabel(l.type as LeaveType, l.reasonCode).split(' · ')[0]} · ${

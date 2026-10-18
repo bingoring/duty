@@ -93,6 +93,20 @@ describe('나이트 개수·연속', () => {
     expect(only(solo(nights(8)), 'S-NIGHT-TARGET')).toEqual([])
   })
 
+  it('3-5 월 나이트 최소: 0이면 보지 않고, 모자라면 경고(필수로 두면 위반), 연차·휴가 날만큼 비례해 줄인다', () => {
+    expect(only(solo(nights(1)), 'S-NIGHT-MIN')).toEqual([])
+    const min3 = rules({ minNightPerMonth: 3 })
+    expect(only(solo(nights(2), { rules: min3 }), 'S-NIGHT-MIN')).toMatchObject([
+      { severity: 'soft', data: { count: 2, min: 3 } },
+    ])
+    expect(only(solo(nights(3), { rules: min3 }), 'S-NIGHT-MIN')).toEqual([])
+    const hard = rules({ minNightPerMonth: 3 }, {}, { NIGHT_MIN: 'hard' })
+    expect(only(solo(nights(2), { rules: hard }), 'S-NIGHT-MIN')).toMatchObject([{ severity: 'hard' }])
+    // 연차 11일 → 근무할 수 있는 날 20/31 → 최소 ⌊3 × 20 / 31⌋ = 1
+    const leave = `${Array(11).fill('A').join(' ')} ${nights(1)}`
+    expect(only(solo(leave, { rules: min3 }), 'S-NIGHT-MIN')).toEqual([])
+  })
+
   it('야간 전담(토글 + 기간)이면 31일 달 상한은 16', () => {
     const inp = solo(nights(8), {
       nurses: [nurse('a', { nightDedicated: { from: '2026-09-01', to: '2026-10-10' } })],
@@ -322,6 +336,10 @@ describe('S-WEEKEND-PAIR (토글)', () => {
   it('월 안에 토·일 둘 다 쉬는 주말이 없으면 경고', () => {
     expect(only(solo(month('3 11 17')), 'S-WEEKEND-PAIR')).toMatchObject([{ data: { missedStreak: 0 } }])
     expect(only(solo(month('17 18')), 'S-WEEKEND-PAIR')).toEqual([])
+    // 3-6: 본인이 끄면 요구하지 않는다
+    expect(
+      only(solo(month('3 11 17'), { nurses: [nurse('a', { weekendPairWanted: false })] }), 'S-WEEKEND-PAIR'),
+    ).toEqual([])
   })
 
   // 달을 걸친 주말은 토요일이 속한 달로 센다 (사용자 답변 2026-09-27)

@@ -270,7 +270,7 @@ function AddPanel({
           />
         </Field>
         {f.kTass && (
-          <Field label="KTAS 수료일 (3년 유효)" error={errors.ktasCertifiedOn}>
+          <Field label="KTAS 취득일 (3년 유효)" error={errors.ktasCertifiedOn}>
             <input
               type="date"
               aria-label="KTAS 수료일"
@@ -369,6 +369,7 @@ function EditDialog({
     hireDate: row.hireDate ?? '',
     kTass: row.kTass,
     ktasCertifiedOn: row.ktasCertifiedOn ?? '',
+    ktasRenewedOn: row.ktasRenewedOn ?? '',
     seniorityTier: row.seniorityTier,
     unionMember: row.unionMember,
     rotation: row.rotation,
@@ -489,15 +490,26 @@ function EditDialog({
         ))}
       </div>
       {f.kTass && (
-        <Field label="KTAS 수료일 (3년 유효)" error={errors.ktasCertifiedOn}>
-          <input
-            type="date"
-            aria-label="KTAS 수료일"
-            className={inputCls}
-            value={f.ktasCertifiedOn}
-            onChange={(e) => set('ktasCertifiedOn', e.target.value)}
-          />
-        </Field>
+        <div className="grid grid-cols-2 gap-2.5">
+          <Field label="KTAS 취득일" error={errors.ktasCertifiedOn}>
+            <input
+              type="date"
+              aria-label="KTAS 수료일"
+              className={inputCls}
+              value={f.ktasCertifiedOn}
+              onChange={(e) => set('ktasCertifiedOn', e.target.value)}
+            />
+          </Field>
+          <Field label="KTAS 갱신일 (있으면 여기부터 3년)" error={errors.ktasRenewedOn}>
+            <input
+              type="date"
+              aria-label="KTAS 갱신일"
+              className={inputCls}
+              value={f.ktasRenewedOn}
+              onChange={(e) => set('ktasRenewedOn', e.target.value)}
+            />
+          </Field>
+        </div>
       )}
       <TrainingFields
         t={t}

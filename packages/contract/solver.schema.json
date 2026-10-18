@@ -246,12 +246,27 @@
                   }
                 ]
               },
+              "nightMin": {
+                "anyOf": [
+                  {
+                    "type": "integer",
+                    "minimum": 0,
+                    "maximum": 9007199254740991
+                  },
+                  {
+                    "type": "null"
+                  }
+                ]
+              },
               "weekendMissedStreak": {
                 "type": "integer",
                 "minimum": 0,
                 "maximum": 9007199254740991
               },
               "weekendCarryIn": {
+                "type": "boolean"
+              },
+              "weekendPair": {
                 "type": "boolean"
               },
               "shiftCountsBefore": {
@@ -492,6 +507,7 @@
                   "WORK_CONSEC",
                   "NIGHT_MAX",
                   "NIGHT_TARGET",
+                  "NIGHT_MIN",
                   "NIGHT_CONSEC",
                   "SLEEPING",
                   "OFF_AFTER_N",
@@ -717,7 +733,8 @@
                       "nightMax",
                       "nightConsec",
                       "offConsec",
-                      "sleepingOver"
+                      "sleepingOver",
+                      "nightMin"
                     ]
                   },
                   "additionalProperties": {
@@ -751,7 +768,8 @@
                     "nightMax",
                     "nightConsec",
                     "offConsec",
-                    "sleepingOver"
+                    "sleepingOver",
+                    "nightMin"
                   ]
                 }
               },
@@ -814,7 +832,8 @@
                       "SHIFT_BALANCE",
                       "WEEKEND_PAIR",
                       "JUNIOR_ONLY",
-                      "REPEAT_PAIR"
+                      "REPEAT_PAIR",
+                      "NIGHT_MIN"
                     ]
                   },
                   "userId": {

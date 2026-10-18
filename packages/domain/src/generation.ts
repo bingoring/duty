@@ -129,18 +129,35 @@ export function nightLimits(
   return { max: p.maxNightPerMonth, target: p.targetNightPerMonth, dedicated }
 }
 
+// 3-5 추가: 월 나이트 최소(S-NIGHT-MIN). 근무할 수 있는 날(재직일 − 연차·휴가 칸)이 적으면 비례해 줄인다(내림).
+// 0이면·야간 전담이면 null. 트레이닝 중 신규 제외는 부르는 쪽(검사기·솔버 입력)이 정한다
+export function nightMinFor(
+  n: NurseProfile,
+  rules: RuleSet,
+  year: number,
+  month: number,
+  leaveDays: number,
+): number | null {
+  const min = rules.params.minNightPerMonth
+  if (!min || nightLimits(n, rules, year, month).dedicated) return null
+  const days = monthDates(year, month)
+  const available = Math.max(0, days.filter((d) => isEmployed(n, d)).length - leaveDays)
+  return Math.floor((min * available) / days.length)
+}
+
 // 후보 칸 출처: 고정 칸·충족한 신청 = requested (빨간 외곽선), 그 외 auto
 export function generatedCellSource(
   cell: GridCell,
   request: RequestEntry | undefined,
   isFixed: boolean,
 ): CellSource {
-  if (isFixed) return 'requested'
+  const requested = request?.byAdmin ? 'admin' : 'requested'
+  if (isFixed) return requested
   if (!request) return 'auto'
   const ok = request.special
     ? specialSatisfied(cell, request.special)
     : optionsSatisfied(cell, request.options)
-  return ok ? 'requested' : 'auto'
+  return ok ? requested : 'auto'
 }
 
 export type GenerationCheck = { ok: boolean; title: string; detail: string }

@@ -143,7 +143,7 @@ describe('buildRequestsView — 권한 (1-2 §8, R-REQ-VIEW)', () => {
 })
 
 describe('buildRequestsView — 표시', () => {
-  it('연차 순(내 행은 제자리), 휴가 칸은 기간 전체, 교육은 교', () => {
+  it('연차 순(내 행은 제자리), 휴가 칸은 기간 전체·종류 이름(3-6), 교육은 교', () => {
     const v = buildRequestsView(raw(), { id: 'me', role: 'nurse' })
     expect(v.rows.map((r) => [r.userId, r.me])).toEqual([
       ['a', false],
@@ -152,7 +152,7 @@ describe('buildRequestsView — 표시', () => {
     ])
     expect(cellOf(v, 'a', '2026-11-22')).toMatchObject({
       kind: 'leave',
-      label: '휴',
+      label: '경조',
       leave: { status: 'SUBMITTED' },
     })
     expect(cellOf(v, 'c', '2026-11-20').label).toBe('교')

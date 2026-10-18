@@ -126,6 +126,16 @@ describe('근무 신청 (R-REQ-SHIFT·DRAFT)', () => {
     ).toEqual({ ok: true })
     const [row] = await db.select().from(shiftRequests).where(eq(shiftRequests.userId, other.id))
     expect(row!.submittedAt).not.toBeNull()
+    // 3-6: 관리자가 대신 넣은 신청 → 파란 표시, 관리자 본인 신청은 아님
+    expect(row!.byAdmin).toBe(true)
+    await saveShiftRequest(
+      db,
+      admin,
+      { userId: admin.id, date: '2026-11-14', options: ['OFF'] },
+      '2026-10-20',
+    )
+    const [own] = await db.select().from(shiftRequests).where(eq(shiftRequests.userId, admin.id))
+    expect(own!.byAdmin).toBe(false)
   })
 
   it('입력 검증: 옵션과 교육을 함께·빈 신청은 거부', async () => {

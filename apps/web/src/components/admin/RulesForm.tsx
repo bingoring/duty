@@ -95,7 +95,14 @@ function NumberInput({
   )
 }
 
-export function RulesForm({ editor }: { editor: RuleEditor }) {
+export function RulesForm({
+  editor,
+  weekendOptOuts = [],
+}: {
+  editor: RuleEditor
+  // 3-6: 규칙 안내에서 주말 통 OFF를 끈 사람
+  weekendOptOuts?: string[]
+}) {
   const [rules, setRules] = useState<RuleSet>(editor.rules)
   const [newPattern, setNewPattern] = useState<string | null>(null)
   const [patternError, setPatternError] = useState('')
@@ -243,6 +250,16 @@ export function RulesForm({ editor }: { editor: RuleEditor }) {
                   <b>{t.label}</b>
                   <br />
                   <span className="text-xs text-ink-2">{t.desc}</span>
+                  {t.key === 'weekendPairOffMonthly' && (
+                    <>
+                      <br />
+                      <span className="text-xs text-ink-2" aria-label="주말 통 OFF를 끈 사람">
+                        {weekendOptOuts.length
+                          ? `본인이 끈 사람 ${weekendOptOuts.length}명: ${weekendOptOuts.join(', ')}`
+                          : '본인이 끈 사람 없음'}
+                      </span>
+                    </>
+                  )}
                 </span>
               </label>
               {t.severityKey && severityButton(t.severityKey, t.label)}

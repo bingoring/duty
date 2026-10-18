@@ -15,6 +15,7 @@ import {
   type SeniorityTier,
   type ShiftCode,
   type TraineeKind,
+  ktasBaseDate,
   ktasValidUntil,
 } from '@duty/domain'
 import { and, asc, eq, gte, inArray, isNotNull, lte } from 'drizzle-orm'
@@ -97,7 +98,7 @@ export async function buildScheduleInput(
     rotation: u.rotation as Rotation,
     seniorityTier: u.seniorityTier as SeniorityTier,
     kTass: u.kTass,
-    kTassUntil: u.ktasCertifiedOn ? ktasValidUntil(u.ktasCertifiedOn) : null,
+    kTassUntil: ktasUntilOf(u),
     unionMember: u.unionMember,
     employedFrom: u.hireDate,
     employedUntil: u.deactivatedAt ? addDays(todaySeoul(u.deactivatedAt), -1) : null,
@@ -108,6 +109,7 @@ export async function buildScheduleInput(
     offCarryBefore: 0,
     nightBankBefore: 0,
     weekendPairMissedStreak: 0,
+    weekendPairWanted: u.weekendPairWanted,
     weekendPairCarryIn: false,
     shiftCountsBefore: { D: 0, E: 0, N: 0 },
     eduUsedThisYear: { cont: 0, union: 0 },
@@ -157,9 +159,26 @@ export async function buildScheduleInput(
       .filter((r) => personIds.has(r.userId))
       .map((r) =>
         r.special
-          ? { userId: r.userId, date: r.date, options: [], special: r.special as RequestSpecial }
-          : { userId: r.userId, date: r.date, options: r.options as RequestOption[] },
+          ? {
+              userId: r.userId,
+              date: r.date,
+              options: [],
+              special: r.special as RequestSpecial,
+              ...(r.byAdmin ? { byAdmin: true } : {}),
+            }
+          : {
+              userId: r.userId,
+              date: r.date,
+              options: r.options as RequestOption[],
+              ...(r.byAdmin ? { byAdmin: true } : {}),
+            },
       ),
   }
   return { input, cells }
+}
+
+// 3-6: 취득일·갱신일 중 늦은 날 + 3년 − 1일
+function ktasUntilOf(u: { ktasCertifiedOn: string | null; ktasRenewedOn: string | null }) {
+  const base = ktasBaseDate(u.ktasCertifiedOn, u.ktasRenewedOn)
+  return base ? ktasValidUntil(base) : null
 }

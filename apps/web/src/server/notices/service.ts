@@ -1,4 +1,4 @@
-import { formatMD, weekdayKo } from '@duty/domain'
+import { formatMD, weekdayKo, leaveCellLabel } from '@duty/domain'
 import { and, desc, eq, gt, isNull, lt, ne, or } from 'drizzle-orm'
 import { alias } from 'drizzle-orm/pg-core'
 import type { Db } from '../db/client'
@@ -14,13 +14,7 @@ type Snap = { code?: string; offKind?: string | null }
 const label = (c: Snap | null) =>
   !c?.code
     ? '—'
-    : c.code === 'OFF'
-      ? c.offKind === 'sleeping'
-        ? '슬리핑 off'
-        : 'off'
-      : c.code === 'AL' || c.code === 'LEAVE'
-        ? '휴'
-        : c.code
+    : (leaveCellLabel(c) ?? (c.code === 'OFF' ? (c.offKind === 'sleeping' ? '슬리핑 off' : 'off') : c.code))
 const at = (d: Date) =>
   new Intl.DateTimeFormat('ko-KR', {
     timeZone: 'Asia/Seoul',

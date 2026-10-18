@@ -124,8 +124,8 @@ describe('칸 (R-VIEW-5~7)', () => {
       ['', null],
       ['', null],
       ['', null],
-      ['휴', 'leave'],
-      ['휴', 'leave'],
+      ['연차', 'leave'],
+      ['병가', 'leave'],
       ['S', 's'],
     ])
     expect(c).toHaveLength(31)
@@ -153,8 +153,9 @@ describe('칸 (R-VIEW-5~7)', () => {
       cell('me', '2026-10-15', 'D', { checkupHalf: true, source: 'admin' }),
     ])
     expect(c[12]!.title).toBe('10/13 (화) · off · 슬리핑오프\n신청 반영')
-    expect(c[13]!.title).toBe('10/14 (수) · 휴 · 병가')
-    expect(c[14]!.title).toBe('10/15 (목) · D · 검진 반차\n관리자 수정')
+    expect(c[13]!.title).toBe('10/14 (수) · 병가')
+    expect(c[14]!.label).toBe('D검')
+    expect(c[14]!.title).toBe('10/15 (목) · D검 · 검진 반차\n관리자 수정')
     expect(c[14]!.checkupHalf).toBe(true)
   })
 

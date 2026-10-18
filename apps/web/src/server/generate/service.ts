@@ -114,6 +114,8 @@ export function causeText(
       return `${who} · 최대 연속 근무(${rules.maxWork}일)와 충돌합니다`
     case 'NIGHT_TARGET':
       return `${who} · 월 나이트 목표(필수)와 충돌합니다`
+    case 'NIGHT_MIN':
+      return `${who} · 월 나이트 최소(필수)를 채울 수 없습니다`
     case 'OFF_AFTER_N':
       return `${who} · N 후 OFF(필수)와 충돌합니다`
     case 'SHIFT_BALANCE':

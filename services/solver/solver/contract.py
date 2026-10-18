@@ -85,6 +85,10 @@ class NightTarget(RootModel[int]):
     root: Annotated[int, Field(ge=0, le=9007199254740991)]
 
 
+class NightMin(RootModel[int]):
+    root: Annotated[int, Field(ge=0, le=9007199254740991)]
+
+
 class ShiftCountsBefore(BaseModel):
     D: Annotated[int, Field(ge=-9007199254740991, le=9007199254740991)]
     E: Annotated[int, Field(ge=-9007199254740991, le=9007199254740991)]
@@ -103,8 +107,10 @@ class Nurse(BaseModel):
     nightBankBefore: Annotated[int, Field(ge=-9007199254740991, le=9007199254740991)]
     nightMax: Annotated[int, Field(ge=0, le=9007199254740991)]
     nightTarget: NightTarget | None
+    nightMin: NightMin | None = None
     weekendMissedStreak: Annotated[int, Field(ge=0, le=9007199254740991)]
     weekendCarryIn: bool
+    weekendPair: bool | None = None
     shiftCountsBefore: ShiftCountsBefore
     balanceShiftTypes: bool
     requestMissBefore: Annotated[int, Field(ge=0, le=9007199254740991)]
@@ -141,6 +147,7 @@ class HardEnum(StrEnum):
     WORK_CONSEC = 'WORK_CONSEC'
     NIGHT_MAX = 'NIGHT_MAX'
     NIGHT_TARGET = 'NIGHT_TARGET'
+    NIGHT_MIN = 'NIGHT_MIN'
     NIGHT_CONSEC = 'NIGHT_CONSEC'
     SLEEPING = 'SLEEPING'
     OFF_AFTER_N = 'OFF_AFTER_N'
@@ -257,6 +264,7 @@ class Objective(BaseModel):
             'nightConsec',
             'offConsec',
             'sleepingOver',
+            'nightMin',
         ],
         TermsAdditionalProperty,
     ]
@@ -293,6 +301,7 @@ class Group(StrEnum):
     WEEKEND_PAIR = 'WEEKEND_PAIR'
     JUNIOR_ONLY = 'JUNIOR_ONLY'
     REPEAT_PAIR = 'REPEAT_PAIR'
+    NIGHT_MIN = 'NIGHT_MIN'
 
 
 class Shift(StrEnum):

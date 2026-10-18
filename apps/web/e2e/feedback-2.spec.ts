@@ -41,7 +41,7 @@ test('관리자가 OFF 신청을 휴가로 바꾸자고 하면 간호사가 수�
   const inbox = me.getByRole('region', { name: '받은 휴가 변경 요청' })
   await inbox.getByRole('button', { name: '수락' }).click()
   await expect(inbox.getByRole('status')).toHaveText('수락했습니다. 휴가로 바뀌었습니다.')
-  await expect(cellOf(me)).toHaveText('휴')
+  await expect(cellOf(me)).toHaveText('병가')
   await expect(me.getByLabel('받은 휴가 변경 요청 1건')).toHaveCount(0)
   await Promise.all([me.close(), admin.close()])
 })

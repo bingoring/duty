@@ -38,6 +38,24 @@ beforeEach(async () => {
   await ensureRequestPlan(db, { year: 2026, month: 11 }, TODAY, DEFAULT_RULES)
 })
 
+describe('검진 오전·오후 (3-6)', () => {
+  it('검진은 오전·오후를 골라야 하고, 고른 값이 종류 이름에 붙는다', async () => {
+    const me = await actor('00103')
+    expect(
+      await saveLeave(db, me, { userId: me.id, type: 'checkup', startDate: '2026-11-24' }, TODAY),
+    ).toMatchObject({ ok: false, message: '오전 검진인지 오후 검진인지 골라 주세요.' })
+    const id = idOf(
+      await saveLeave(
+        db,
+        me,
+        { userId: me.id, type: 'checkup', startDate: '2026-11-24', reasonCode: 'pm' },
+        TODAY,
+      ),
+    )
+    expect(await leaveOf(id)).toMatchObject({ reasonCode: 'pm', days: '0.5' })
+  })
+})
+
 describe('saveLeave (R-LEAVE-1~5·8)', () => {
   it('개원기념 OFF는 하루짜리 휴가로 신청하고 개원오프 잔여를 넘지 못한다 (R-1)', async () => {
     const me = await actor('00103')
@@ -67,7 +85,12 @@ describe('saveLeave (R-LEAVE-1~5·8)', () => {
     await ensureRequestPlan(db, { year: 2027, month: 1 }, DEC, DEFAULT_RULES)
     const special = await saveLeave(db, me, { userId: me.id, type: 'special', startDate: '2027-01-12' }, DEC)
     expect(special).toMatchObject({ ok: true })
-    const checkup = await saveLeave(db, me, { userId: me.id, type: 'checkup', startDate: '2027-01-13' }, DEC)
+    const checkup = await saveLeave(
+      db,
+      me,
+      { userId: me.id, type: 'checkup', startDate: '2027-01-13', reasonCode: 'am' },
+      DEC,
+    )
     expect(checkup).toMatchObject({ ok: true })
     // 다음 해 연차는 연초에 관리자가 넣으므로 막지 않는다
     expect(
@@ -166,9 +189,21 @@ describe('saveLeave (R-LEAVE-1~5·8)', () => {
       message: '연차 잔여를 넘습니다 (신청 6일 / 잔여 5일).',
     })
     expect((await projectedLeaveBalance(db, me.id, TODAY)).annual).toBe(5)
-    idOf(await saveLeave(db, me, { userId: me.id, type: 'checkup', startDate: '2026-11-24' }, TODAY))
+    idOf(
+      await saveLeave(
+        db,
+        me,
+        { userId: me.id, type: 'checkup', startDate: '2026-11-24', reasonCode: 'am' },
+        TODAY,
+      ),
+    )
     expect(
-      await saveLeave(db, me, { userId: me.id, type: 'checkup', startDate: '2026-11-25' }, TODAY),
+      await saveLeave(
+        db,
+        me,
+        { userId: me.id, type: 'checkup', startDate: '2026-11-25', reasonCode: 'am' },
+        TODAY,
+      ),
     ).toEqual({
       ok: false,
       message: '검진 반차 잔여를 넘습니다 (신청 0.5일 / 잔여 0일).',
@@ -233,7 +268,12 @@ describe('제출·승인·반려·취소 (R-LEAVE-6, R-APPROVE-1·2·4)', () => 
       ),
     )
     const check = idOf(
-      await saveLeave(db, me, { userId: me.id, type: 'checkup', startDate: '2026-10-16' }, TODAY),
+      await saveLeave(
+        db,
+        me,
+        { userId: me.id, type: 'checkup', startDate: '2026-10-16', reasonCode: 'am' },
+        TODAY,
+      ),
     )
     await submitRequests(db, me, { year: 2026, month: 10 }, TODAY)
     const before = (await cell(me.id, '2026-10-16'))!.code

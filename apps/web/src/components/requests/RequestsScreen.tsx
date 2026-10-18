@@ -1,5 +1,6 @@
 'use client'
 
+import { cancelApprovedLeaveAction } from '@/server/adjust/actions'
 import type { ProposalDTO } from '@/server/requests/proposals'
 import { ProposalPanel } from './ProposalPanel'
 import { formatMD } from '@duty/domain'
@@ -50,7 +51,9 @@ function Chip({ c, compact = false }: { c: RequestCellDTO; compact?: boolean }) 
     ? approved
       ? ''
       : 'border border-dashed border-[#8fa874]'
-    : 'shadow-[inset_0_0_0_1.5px_var(--color-danger)]'
+    : c.byAdmin
+      ? 'shadow-[inset_0_0_0_1.5px_var(--color-admin)]'
+      : 'shadow-[inset_0_0_0_1.5px_var(--color-danger)]'
   return (
     <span
       className={`flex items-center justify-center rounded-md font-bold text-ink ${box} ${size} ${bg} ${outline} ${
@@ -181,6 +184,45 @@ function ApprovalCard({ p }: { p: PendingLeave }) {
   )
 }
 
+// 3-6: 승인한 휴가를 처리 이력에서 취소한다. 확정된 달은 승인 전 칸으로 되돌린다(근무 조정의 휴가 취소와 같음)
+function CancelApproved({ id, label }: { id: string; label: string }) {
+  const [busy, start] = useTransition()
+  const [msg, setMsg] = useState('')
+  return (
+    <>
+      <button
+        type="button"
+        disabled={busy}
+        aria-label={`${label} 승인 취소`}
+        className="cursor-pointer rounded-md border border-line px-1.5 text-[11px] whitespace-nowrap text-danger disabled:opacity-50"
+        onClick={() => {
+          if (
+            !window.confirm(`${label} 승인을 취소할까요? 확정된 달이면 근무표 칸도 승인 전으로 돌아갑니다.`)
+          )
+            return
+          start(async () => {
+            const r = await cancelApprovedLeaveAction({ leaveId: id })
+            setMsg(
+              !r.ok
+                ? (r.message ?? '취소하지 못했습니다.')
+                : 'skipped' in r && r.skipped.length
+                  ? `취소했습니다. ${r.skipped.map((x) => x.date.slice(5).replace('-', '/')).join(', ')}은 그사이 바뀌어 되돌리지 않았습니다.`
+                  : '승인을 취소했습니다.',
+            )
+          })
+        }}
+      >
+        승인 취소
+      </button>
+      {msg && (
+        <span role="status" className="basis-full text-[11px] text-ink-2">
+          {msg}
+        </span>
+      )}
+    </>
+  )
+}
+
 function ApprovalPanel({
   view,
   collapsed,
@@ -227,7 +269,7 @@ function ApprovalPanel({
         {view.history.map((h, i) => (
           <div
             key={i}
-            className="flex items-center gap-2 border-b border-line-soft py-[7px] text-xs last:border-b-0"
+            className="flex flex-wrap items-center gap-2 border-b border-line-soft py-[7px] text-xs last:border-b-0"
           >
             <span className="font-semibold whitespace-nowrap">{h.name}</span>
             <span className="min-w-0 truncate text-ink-2">{h.kindLabel}</span>
@@ -237,6 +279,7 @@ function ApprovalPanel({
               {h.status === 'APPROVED' ? '승인' : `반려${h.reason ? ` · ${h.reason}` : ''}`}
             </span>
             <span className="ml-auto whitespace-nowrap text-ink-3">{h.when}</span>
+            {h.status === 'APPROVED' && <CancelApproved id={h.id} label={`${h.name} ${h.kindLabel}`} />}
           </div>
         ))}
       </div>
@@ -255,8 +298,12 @@ function Legend({ admin = false }: { admin?: boolean }) {
         O/D
       </span>
       신청
-      <span className="ml-1.5 rounded-[5px] bg-shift-leave px-2 py-[3px] font-bold text-ink">휴</span>
-      휴가{admin ? '' : ' (연차·경조·병가·공가·특휴)'}
+      <span className="ml-1.5 rounded-[5px] bg-shift-off px-2 py-[3px] font-bold text-ink shadow-[inset_0_0_0_1.5px_var(--color-admin)]">
+        O
+      </span>
+      관리자 입력
+      <span className="ml-1.5 rounded-[5px] bg-shift-leave px-2 py-[3px] font-bold text-ink">연차</span>
+      휴가{admin ? '' : ' (연차·검진·개원·병가·경조·공가·특휴)'}
       <span className="ml-1.5 underline decoration-dotted underline-offset-[3px]">밑줄</span>
       코멘트{admin ? ' — 관리자는 셀에 마우스를 올리면 코멘트 전문이 보입니다' : ''}
     </div>

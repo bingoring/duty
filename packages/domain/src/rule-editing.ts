@@ -45,6 +45,7 @@ const PARAM_SEVERITY_KEY: Partial<Record<keyof RuleParams, SeverityKey>> = {
   maxConsecutiveWork: 'WORK_CONSEC',
   maxNightPerMonth: 'NIGHT_MAX',
   targetNightPerMonth: 'NIGHT_TARGET',
+  minNightPerMonth: 'NIGHT_MIN',
   maxConsecutiveNight: 'NIGHT_CONSEC',
   offAfterNight: 'OFF_AFTER_N',
   sleepingOffPerN: 'SLEEPING',
@@ -88,6 +89,16 @@ export const RULE_PARAM_LIMITS: RuleParamLimit[] = [
   p('maxConsecutiveWork', '최대 연속 근무', '필수', '일', 3, 14, '근무·휴식', 'D·E·N·S 연속'),
   p('maxNightPerMonth', '월 나이트 상한', '필수', '개', 1, 31, '나이트', '최대값'),
   p('targetNightPerMonth', '월 나이트 목표', '권고', '개', 1, 31, '나이트', '이 수를 넘으면 경고'),
+  p(
+    'minNightPerMonth',
+    '월 나이트 최소',
+    '권고',
+    '개',
+    0,
+    31,
+    '나이트',
+    '0이면 사용 안 함 · 휴가·입사로 근무할 수 있는 날이 적으면 그만큼 줄임',
+  ),
   p('maxConsecutiveNight', '연속 나이트 상한', '필수', '일', 1, 7, '나이트'),
   p('offAfterNight', 'N 후 OFF', '권고', '개', 0, 4, '나이트', '불가피 시 N-OFF-E 허용'),
   p('sleepingOffPerN', '슬리핑오프 기준 N', '필수', '개', 1, 12, '나이트', '누적 N마다 OFF 1'),
@@ -193,6 +204,8 @@ export function validateRuleSet(rules: RuleSet): RuleError[] {
   }
   if (v.targetNightPerMonth > v.maxNightPerMonth)
     add('targetNightPerMonth', '월 나이트 목표는 상한 이하여야 합니다.')
+  if (v.minNightPerMonth > v.targetNightPerMonth)
+    add('minNightPerMonth', '월 나이트 최소는 목표 이하여야 합니다.')
   if (v.minKTass > v.minStaffPerShift) add('minKTass', 'KTAS 권한자는 듀티당 최소 인원 이하여야 합니다.')
   if (v.negotiationStartDay <= v.requestDeadlineDay || v.negotiationStartDay > v.negotiationEndDay)
     add('negotiationStartDay', '협의 수정 기간은 신청 마감 다음 날 이후이고 시작 ≤ 끝이어야 합니다.')
