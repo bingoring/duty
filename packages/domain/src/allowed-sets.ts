@@ -1,5 +1,9 @@
 // 코드 측 allowed-set (FRAMEWORK allowed-set 방침). DB는 text 컬럼으로 두고 값은 여기서 검증한다. 확장 시 추가만.
 export const ROLES = ['nurse', 'admin'] as const
+// 3-7a: 직군. role은 직군 안에서 일반('nurse')·관리자('admin')를 뜻한다(의사 일반도 'nurse')
+export const ROLE_GROUPS = ['nurse', 'doctor'] as const
+export const LOGIN_ID_KINDS = ['employee_no', 'birthdate'] as const
+export const DOCTOR_SHIFT_SOURCES = ['generated', 'imported', 'admin', 'swap'] as const
 export const ROTATIONS = ['rotating', 'fixed_weekday'] as const
 export const SENIORITY_TIERS = ['senior', 'mid', 'junior'] as const
 export const SHIFT_CODES = ['D', 'E', 'N', 'S', 'OFF', 'AL', 'LEAVE'] as const
@@ -65,6 +69,8 @@ export const TRAINEE_KINDS = ['new_grad', 'experienced'] as const
 export const EDIT_REASONS = ['manual', 'swap', 'leave_approved', 'leave_cancelled'] as const
 
 export type Role = (typeof ROLES)[number]
+export type RoleGroup = (typeof ROLE_GROUPS)[number]
+export type DoctorShiftSource = (typeof DOCTOR_SHIFT_SOURCES)[number]
 export type LeaveProposalStatus = (typeof LEAVE_PROPOSAL_STATUSES)[number]
 export type Rotation = (typeof ROTATIONS)[number]
 export type SeniorityTier = (typeof SENIORITY_TIERS)[number]

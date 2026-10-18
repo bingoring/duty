@@ -1,11 +1,12 @@
 // 운영 최초 부팅 (R-BOOT-1·2). 임시 비밀번호는 표준 출력에 한 번만 보여 주고 저장하지 않는다.
 import { EmployeeNoSchema } from '@duty/domain'
-import { eq } from 'drizzle-orm'
+import { and, eq } from 'drizzle-orm'
 import { hashPassword } from '../auth/password'
 import { generateTempPassword } from '../auth/tokens'
 import { createDb, type Db } from '../db/client'
 import { credentials, users } from '../db/schema'
 import { ensureBase, isMain } from './core'
+import { NURSES } from '../role-group'
 
 export type BootstrapResult = { created: true; tempPassword: string } | { created: false }
 
@@ -18,7 +19,11 @@ export async function bootstrap(
   const passwordHash = await hashPassword(tempPassword)
   return db.transaction(async (tx) => {
     const wardId = await ensureBase(tx)
-    const existing = await tx.select({ id: users.id }).from(users).where(eq(users.role, 'admin')).limit(1)
+    const existing = await tx
+      .select({ id: users.id })
+      .from(users)
+      .where(and(NURSES, eq(users.role, 'admin')))
+      .limit(1)
     if (existing.length > 0) return { created: false } as const
     const [user] = await tx
       .insert(users)

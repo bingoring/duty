@@ -3,8 +3,11 @@ import { defineConfig, devices } from '@playwright/test'
 
 if (existsSync('.env')) process.loadEnvFile('.env')
 const E2E_DB = process.env.E2E_DATABASE_URL ?? 'postgres://duty:duty@localhost:5433/duty_e2e'
-const PORT = 3100
+const PORT = Number(process.env.E2E_PORT ?? 3100)
+const SOLVER_PORT = Number(process.env.E2E_SOLVER_PORT ?? 8102)
 export const E2E_TODAY = '2026-10-13'
+// 로컬에 Playwright 브라우저가 없으면 설치된 Chrome으로(E2E_CHANNEL=chrome)
+const channel = process.env.E2E_CHANNEL ? { channel: process.env.E2E_CHANNEL } : {}
 
 export default defineConfig({
   testDir: './e2e',
@@ -17,7 +20,7 @@ export default defineConfig({
     {
       name: 'chromium',
       testIgnore: 'cycle/**',
-      use: { ...devices['Desktop Chrome'], viewport: { width: 1280, height: 720 } },
+      use: { ...devices['Desktop Chrome'], ...channel, viewport: { width: 1280, height: 720 } },
     },
     // 2-9 한 달 흐름: 다른 스펙이 모두 끝난 뒤 DB를 시드 상태로 되돌리고 돈다(11월을 확정·마감하므로)
     { name: 'cycle-reset', testMatch: 'cycle/reset.setup.ts', dependencies: ['chromium'] },
@@ -25,15 +28,15 @@ export default defineConfig({
       name: 'cycle',
       testMatch: 'cycle/**/*.spec.ts',
       dependencies: ['cycle-reset'],
-      use: { ...devices['Desktop Chrome'], viewport: { width: 1280, height: 720 } },
+      use: { ...devices['Desktop Chrome'], ...channel, viewport: { width: 1280, height: 720 } },
     },
   ],
   webServer: [
     {
       // E2E 전용 솔버 (개발 8100·통합 테스트 8101과 따로)
-      command: 'uv run uvicorn solver.app:app --host 127.0.0.1 --port 8102',
+      command: `uv run uvicorn solver.app:app --host 127.0.0.1 --port ${SOLVER_PORT}`,
       cwd: '../../services/solver',
-      url: 'http://127.0.0.1:8102/health',
+      url: `http://127.0.0.1:${SOLVER_PORT}/health`,
       reuseExistingServer: !process.env.CI,
       timeout: 120_000,
     },
@@ -46,7 +49,7 @@ export default defineConfig({
       env: {
         DATABASE_URL: E2E_DB,
         DUTY_FAKE_TODAY: E2E_TODAY,
-        SOLVER_URL: 'http://127.0.0.1:8102',
+        SOLVER_URL: `http://127.0.0.1:${SOLVER_PORT}`,
         // 운영은 20초. 전체 E2E가 CPU를 나눠 쓰는 동안에도 R-1에서 커진 모델을 풀 만큼(4초면 가끔 신청을 못 지킴)
         SOLVER_TIME_LIMIT_SEC: '8',
       },

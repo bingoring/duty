@@ -21,6 +21,7 @@ export function AppShell({
 }) {
   const { user } = session
   const isAdmin = user.role === 'admin'
+  const doctor = user.roleGroup === 'doctor'
   return (
     <div className="grid min-h-screen min-w-[1280px] grid-cols-[184px_1fr] bg-app">
       {session.persistent && <SessionKeeper />}
@@ -31,9 +32,11 @@ export function AppShell({
         </div>
         <NavList
           isAdmin={isAdmin}
+          group={doctor ? 'doctor' : 'nurse'}
           badges={{
             '/adjust': { count: swapCount, label: '받은 교환 요청' },
             '/requests': { count: proposalCount, label: '받은 휴가 변경 요청' },
+            '/doctor/adjust': { count: swapCount, label: '받은 교환 요청' },
           }}
         />
         <div className="mt-auto flex flex-col gap-2">
@@ -41,10 +44,11 @@ export function AppShell({
           <div className="flex flex-col gap-0.5 border-t border-line-nav px-2.5 pt-2.5">
             <div className="flex items-center gap-1.5 text-[13px] font-semibold">
               {user.name}
+              {doctor && <span className="text-[11px] font-semibold text-ink-2">의사</span>}
               {isAdmin && <span className="text-[11px] font-semibold text-admin">관리자</span>}
             </div>
             <div className="text-xs text-ink-2">
-              {user.wardName} · 사번 {user.employeeNo}
+              {user.wardName} · {doctor ? 'ID' : '사번'} {user.employeeNo}
             </div>
             <form action={logoutAction}>
               <button type="submit" className="mt-1 cursor-pointer text-xs text-ink-3 hover:text-ink">

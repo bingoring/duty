@@ -5,6 +5,7 @@ import type { Db } from '../db/client'
 import { balanceEntries, onboardingSubmissions, trainings, users } from '../db/schema'
 import { round1 } from '../schedule/balances'
 import { loadLeaveBalance } from '../schedule/load'
+import { NURSES } from '../role-group'
 
 // Build Spec 2-11 business-rules §6 (R-ONB-1~10) — 최초 로그인 초기 설정(S2)과 관리자 확인·되돌리기
 
@@ -189,7 +190,7 @@ export async function loadOnboarding(
   const preceptors = await db
     .select({ id: users.id, name: users.name, rotation: users.rotation })
     .from(users)
-    .where(eq(users.active, true))
+    .where(and(NURSES, eq(users.active, true)))
     .orderBy(asc(users.seniorityRank))
   return {
     name: u!.name,

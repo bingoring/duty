@@ -16,7 +16,7 @@ export function LoginForm({ next }: { next: string }) {
         {state.error && <ErrorBox>{state.error}</ErrorBox>}
         <input type="hidden" name="next" value={next} />
         <TextField
-          label="사번"
+          label="사번 (의사: 생년월일 6자리)"
           name="employeeNo"
           inputMode="numeric"
           autoComplete="username"

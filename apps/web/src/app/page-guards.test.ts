@@ -4,6 +4,7 @@ import { describe, expect, it } from 'vitest'
 
 // R-1: 레이아웃 가드는 부분 렌더(RSC 탐색)에서 다시 돌지 않는다 → 로그인 뒤 페이지는 모두 스스로 가드를 부른다
 const root = path.join(import.meta.dirname, '(app)')
+const doctorRoot = path.join(import.meta.dirname, '(doctor)')
 const pages = (dir: string): string[] =>
   readdirSync(dir).flatMap((f) => {
     const p = path.join(dir, f)
@@ -13,9 +14,15 @@ const pages = (dir: string): string[] =>
 describe('페이지 가드', () => {
   it.each(pages(root).map((p) => [path.relative(root, p), p]))('%s', (rel, p) => {
     const src = readFileSync(p, 'utf8')
-    const guard = rel.startsWith('admin/') ? 'await requireAdmin()' : /await require(User|Admin)\(/
+    // 3-7a: 간호사 화면은 간호사 직군만
+    const guard = rel.startsWith('admin/') ? 'await requireAdmin()' : /await require(Nurse|Admin)\(/
     if (typeof guard === 'string') expect(src).toContain(guard)
     else expect(src).toMatch(guard)
+  })
+  it.each(pages(doctorRoot).map((p) => [path.relative(doctorRoot, p), p]))('의사 %s', (rel, p) => {
+    const src = readFileSync(p, 'utf8')
+    if (rel.startsWith('doctor/admin/')) expect(src).toContain('await requireDoctorAdmin()')
+    else expect(src).toMatch(/await requireDoctor(Admin)?\(/)
   })
 })
 
@@ -28,7 +35,7 @@ describe('서버 액션 가드', () => {
   it.each(actions)('%s', (rel) => {
     const src = readFileSync(path.join(server, rel), 'utf8')
     expect(src).not.toMatch(/if \(!s \|\| s\.mustChangePassword\)|!s\.mustChangePassword/)
-    if (/getSession\(\)/.test(src) && !rel.startsWith('auth') && !rel.startsWith('privacy'))
+    if (/getSession\(\)|groupSession\(/.test(src) && !rel.startsWith('auth') && !rel.startsWith('privacy'))
       expect(src).toMatch(/s\.pendingStep/)
   })
 })

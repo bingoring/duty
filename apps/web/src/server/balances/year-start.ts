@@ -5,6 +5,7 @@ import { balanceEntries, monthPlans, users } from '../db/schema'
 import { reconcileFoundingOff } from '../holidays/founding'
 import { lockMonthClosing } from '../plans/lock'
 import { ledgerSums } from '../schedule/balances'
+import { NURSES } from '../role-group'
 
 // Build Spec 2-4 business-rules §1.4 — 연초 잔여치 자동 처리. 인증된 요청마다 호출되므로 빠르게 끝나야 한다
 export type YearStartResult = 'done' | 'deferred' | 'first-year' | 'started'
@@ -57,7 +58,10 @@ export async function ensureYearStart(db: Db, today: string): Promise<YearStartR
     // R-1: 12월 마감 취소와 겹치지 않게 마감 순서 잠금 안에서 12월 상태를 다시 본다
     await lockMonthClosing(tx)
     if (await decConfirmed(tdb)) return 'deferred' as const
-    const people = await tx.select().from(users).where(eq(users.active, true))
+    const people = await tx
+      .select()
+      .from(users)
+      .where(and(NURSES, eq(users.active, true)))
     const ids = people.map((u) => u.id)
     const sums = await ledgerSums(tdb, ids)
     // R-1: 올해 몫으로 미리 들어간 항목(12월에 등록한 올해 개원기념일의 개원오프 등)은 리셋하지 않는다

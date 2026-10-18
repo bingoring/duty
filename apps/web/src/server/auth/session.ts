@@ -14,6 +14,12 @@ export const getSession = cache(async (): Promise<ValidSession | null> => {
   return validateSession(getDb(), token, new Date(), { renew: false })
 })
 
+// 3-7a: 서버 액션용 — 단계를 마친 그 직군 사용자만. 다른 직군의 액션은 권한이 없다
+export async function groupSession(group: 'nurse' | 'doctor'): Promise<ValidSession | null> {
+  const s = await getSession()
+  return s && s.user.roleGroup === group ? s : null
+}
+
 export async function getSessionToken(): Promise<string | undefined> {
   return (await cookies()).get(SESSION_COOKIE)?.value
 }

@@ -73,6 +73,19 @@ shred -u /tmp/roster.csv
 
 명단 가져오기가 출력한 간호사별 임시 비밀번호는 각자에게 직접 전달하고 어디에도 저장하지 않는다(첫 로그인 때 변경이 강제된다).
 
+의사 명단·확정 근무표(3-7) — 실명·생년월일 파일은 PC의 duty `.local/`에만 둔다. CSV 형식은 `login_id,name,role`(role = `admin` | `doctor`, 줄 순서 = 표 순서), 근무표 JSON은 `{ "month": "YYYY-MM", "shifts": [{ "date", "day", "night" }] }`(day·night = 성명 또는 로그인 ID, 형식 예: `fixtures/doctor-2026-10.json`). 명단을 먼저 가져온다.
+
+```bash
+# PC에서
+gcloud compute scp .local/doctors.csv .local/doctor-schedule-2026-10.json duty-vm:/tmp/ --tunnel-through-iap --zone asia-northeast3-a --project <PROJECT_ID>
+# 서버에서
+docker compose -f compose.prod.yaml --env-file .env.prod run --rm -v /tmp/doctors.csv:/data/doctors.csv:ro migrate pnpm db:import-doctors /data/doctors.csv
+docker compose -f compose.prod.yaml --env-file .env.prod run --rm -v /tmp/doctor-schedule-2026-10.json:/data/doctor-schedule.json:ro migrate pnpm db:import-doctor-schedule /data/doctor-schedule.json
+shred -u /tmp/doctors.csv /tmp/doctor-schedule-2026-10.json
+```
+
+의사 임시 비밀번호도 각자에게 직접 전달한다. 의사 관리자는 로그인 뒤 「의사 관리」에서 사번으로 변경·추가하고, 「듀티 생성」에서 다음 달(신청 마감 전월 20일, 조정 ~25일)을 만든다. 이미 있는 달을 다시 가져오려면 `--replace`.
+
 **운영 확인:** 관리자 로그인 → 비밀번호 변경 → 간호사 관리에 명단 → 간호사 한 명 로그인 → 백업 1회(아래 4) → 버킷에 파일 → 복구 리허설(아래 6).
 
 ## 4. 백업 확인

@@ -1,7 +1,7 @@
 import { AdjustScreen } from '@/components/adjust/AdjustScreen'
 import { NurseAdjust } from '@/components/adjust/NurseAdjust'
 import { defaultAdjustYm, loadAdjustView } from '@/server/adjust/view'
-import { requireUser } from '@/server/auth/guards'
+import { requireNurse } from '@/server/auth/guards'
 import { getDb } from '@/server/db/client'
 import { parseYm } from '@/server/schedule/month'
 import { requestToday } from '@/server/clock'
@@ -12,7 +12,7 @@ export default async function AdjustPage({
 }: {
   searchParams: Promise<{ ym?: string | string[]; focus?: string | string[]; shift?: string | string[] }>
 }) {
-  const session = await requireUser()
+  const session = await requireNurse()
   const today = await requestToday()
   const sp = await searchParams
   const one = (v: string | string[] | undefined) => (typeof v === 'string' ? v : undefined)

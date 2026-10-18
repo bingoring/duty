@@ -2,7 +2,7 @@
 
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
-import { ADMIN_NAV, MAIN_NAV, SETTINGS_NAV, isActive, type NavItemDef } from './nav-items'
+import { NAV_OF, isActive, type NavItemDef } from './nav-items'
 
 type Badge = { count: number; label: string }
 
@@ -31,8 +31,17 @@ function NavItem({ item, pathname, badge }: { item: NavItemDef; pathname: string
 }
 
 // badges: 2-8 받은 교환 요청 수, 3-5 받은 휴가 변경 요청 수 등 메뉴별 배지 (href → 수·이름)
-export function NavList({ isAdmin, badges = {} }: { isAdmin: boolean; badges?: Record<string, Badge> }) {
+export function NavList({
+  isAdmin,
+  group = 'nurse',
+  badges = {},
+}: {
+  isAdmin: boolean
+  group?: keyof typeof NAV_OF
+  badges?: Record<string, Badge>
+}) {
   const pathname = usePathname()
+  const { main: MAIN_NAV, admin: ADMIN_NAV, settings: SETTINGS_NAV } = NAV_OF[group]
   return (
     <>
       {MAIN_NAV.map((item) => (

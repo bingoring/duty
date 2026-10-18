@@ -4,6 +4,7 @@ import { eq } from 'drizzle-orm'
 import { pathToFileURL } from 'node:url'
 import type { Db } from '../db/client'
 import { holidays, ruleVersions, wards } from '../db/schema'
+import { ensureDoctorRuleV1 } from '../doctor/core'
 import { SEED_HOLIDAYS } from './holidays'
 
 export { WARD } from '../ward'
@@ -36,6 +37,8 @@ export async function ensureBase(db: DbOrTx): Promise<string> {
   const wardId = await ensureWard(db)
   await ensureRuleV1(db, wardId)
   await ensureHolidays(db)
+  // 3-7a: 의사 규칙 v1
+  await ensureDoctorRuleV1(db)
   return wardId
 }
 

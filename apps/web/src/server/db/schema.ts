@@ -1,5 +1,12 @@
 // Build Spec 2-1 domain-entities §2. allowed-set 컬럼은 text로 두고 값 검증은 @duty/domain이 한다.
-import type { RuleParams, RuleSeverity, RuleToggles } from '@duty/domain'
+import type {
+  DoctorCheckResult,
+  DoctorFixedRule,
+  DoctorRuleParams,
+  RuleParams,
+  RuleSeverity,
+  RuleToggles,
+} from '@duty/domain'
 import { sql } from 'drizzle-orm'
 import {
   bigserial,
@@ -33,7 +40,12 @@ export const users = pgTable('users', {
   wardId: uuid('ward_id')
     .notNull()
     .references(() => wards.id),
+  // 로그인 ID. 간호사 = 사번. 3-7a: 의사는 처음에 생년월일 6자리, 관리자가 「사번으로 변경」(ID만 교체)
   employeeNo: text('employee_no').notNull().unique(),
+  // 3-7a: LOGIN_ID_KINDS — 생년월일이면 의사 관리에 「생년월일」 태그
+  loginIdKind: text('login_id_kind').notNull().default('employee_no'),
+  // 3-7a: 직군 ROLE_GROUPS. 메뉴·규칙·관리자가 직군마다 따로다
+  roleGroup: text('role_group').notNull().default('nurse'),
   name: text('name').notNull(),
   role: text('role').notNull().default('nurse'),
   rotation: text('rotation').notNull().default('rotating'),
@@ -452,4 +464,194 @@ export const onboardingSubmissions = pgTable(
     reviewNote: text('review_note'),
   },
   (t) => [index('onboarding_submissions_user_idx').on(t.userId, t.reviewedAt)],
+)
+
+// ── 3-7 의사 근무표 ─────────────────────────────────────────────────
+// 간호사 계획·칸·신청 테이블과 섞지 않는다(간호사 쿼리가 의사 행을 보지 않게)
+
+// 3-7c: 의사 개인 조건 (매달 자동 적용). 올데이 범위 = 권고, 고정 조건 = 필수
+export const doctorPrefs = pgTable('doctor_prefs', {
+  userId: uuid('user_id')
+    .primaryKey()
+    .references(() => users.id, { onDelete: 'cascade' }),
+  allDayMin: integer('all_day_min'),
+  allDayMax: integer('all_day_max'),
+  fixedRules: jsonb('fixed_rules')
+    .$type<DoctorFixedRule[]>()
+    .notNull()
+    .default(sql`'[]'::jsonb`),
+  updatedAt: tstz('updated_at').notNull().defaultNow(),
+})
+
+// 3-7a: 의사 규칙 버전 (간호사 rule_versions와 따로)
+export const doctorRuleVersions = pgTable('doctor_rule_versions', {
+  id: id(),
+  version: integer('version').notNull().unique(),
+  params: jsonb('params').$type<DoctorRuleParams>().notNull(),
+  diff: jsonb('diff')
+    .$type<{ key: string; before: unknown; after: unknown }[]>()
+    .notNull()
+    .default(sql`'[]'::jsonb`),
+  changedBy: uuid('changed_by').references(() => users.id),
+  changedAt: tstz('changed_at').notNull().defaultNow(),
+})
+
+// 3-7b: 의사 월 계획. REQUESTING → DRAFTING(생성안) → CONFIRMED(확정 = 공개)
+export const doctorMonthPlans = pgTable(
+  'doctor_month_plans',
+  {
+    id: id(),
+    year: integer('year').notNull(),
+    month: integer('month').notNull(),
+    status: text('status').notNull(),
+    requestDeadline: day('request_deadline').notNull(),
+    negotiationEnd: day('negotiation_end').notNull(),
+    // 날짜 수와 기준 개수의 차이를 채우는 ±1 대상 (31일 달: D 한 명·N 한 명)
+    extras: jsonb('extras')
+      .$type<{ D: string[]; N: string[] }>()
+      .notNull()
+      .default(sql`'{"D":[],"N":[]}'::jsonb`),
+    ruleVersion: integer('rule_version'),
+    confirmedCandidateId: uuid('confirmed_candidate_id'),
+    confirmedBy: uuid('confirmed_by').references(() => users.id),
+    confirmedAt: tstz('confirmed_at'),
+    createdAt: createdAt(),
+  },
+  (t) => [unique('doctor_month_plans_ym_uq').on(t.year, t.month)],
+)
+
+// 3-7b: 확정 근무표. 하루 한 행 — 올데이 = day_user = night_user
+export const doctorShifts = pgTable(
+  'doctor_shifts',
+  {
+    planId: uuid('plan_id')
+      .notNull()
+      .references(() => doctorMonthPlans.id),
+    date: day('date').notNull(),
+    dayUser: uuid('day_user')
+      .notNull()
+      .references(() => users.id),
+    nightUser: uuid('night_user')
+      .notNull()
+      .references(() => users.id),
+    // DOCTOR_SHIFT_SOURCES: generated · imported · admin · swap
+    source: text('source').notNull(),
+    editedBy: uuid('edited_by').references(() => users.id),
+    editedAt: tstz('edited_at'),
+  },
+  (t) => [primaryKey({ columns: [t.planId, t.date] })],
+)
+
+// 3-7c: 의사 신청 (D/N/O/올데이 복수 = or). fixed_exception = 그 날만 고정 조건 예외
+export const doctorRequests = pgTable(
+  'doctor_requests',
+  {
+    id: id(),
+    userId: uuid('user_id')
+      .notNull()
+      .references(() => users.id),
+    year: integer('year').notNull(),
+    month: integer('month').notNull(),
+    date: day('date').notNull(),
+    options: text('options')
+      .array()
+      .notNull()
+      .default(sql`'{}'::text[]`),
+    comment: text('comment'),
+    fixedException: boolean('fixed_exception').notNull().default(false),
+    byAdmin: boolean('by_admin').notNull().default(false),
+    submittedAt: tstz('submitted_at'),
+    createdAt: createdAt(),
+    updatedAt: tstz('updated_at').notNull().defaultNow(),
+  },
+  (t) => [
+    unique('doctor_requests_user_date_uq').on(t.userId, t.date),
+    index('doctor_requests_ym_idx').on(t.year, t.month),
+  ],
+)
+
+// 3-7d: 생성안
+export const doctorCandidates = pgTable(
+  'doctor_candidates',
+  {
+    id: id(),
+    planId: uuid('plan_id')
+      .notNull()
+      .references(() => doctorMonthPlans.id),
+    generationNo: integer('generation_no').notNull(),
+    seed: integer('seed').notNull(),
+    ruleVersion: integer('rule_version').notNull(),
+    checkResult: jsonb('check_result').$type<DoctorCheckResult>().notNull(),
+    solverMeta: jsonb('solver_meta').$type<Record<string, unknown>>(),
+    createdBy: uuid('created_by')
+      .notNull()
+      .references(() => users.id),
+    createdAt: createdAt(),
+  },
+  (t) => [unique('doctor_candidates_plan_gen_uq').on(t.planId, t.generationNo)],
+)
+
+export const doctorCandidateShifts = pgTable(
+  'doctor_candidate_shifts',
+  {
+    candidateId: uuid('candidate_id')
+      .notNull()
+      .references(() => doctorCandidates.id, { onDelete: 'cascade' }),
+    date: day('date').notNull(),
+    dayUser: uuid('day_user')
+      .notNull()
+      .references(() => users.id),
+    nightUser: uuid('night_user')
+      .notNull()
+      .references(() => users.id),
+  },
+  (t) => [primaryKey({ columns: [t.candidateId, t.date] })],
+)
+
+// 3-7e: 확정 근무표 변경 기록 (관리자 칸 편집·교환 수락)
+export const doctorShiftLogs = pgTable('doctor_shift_logs', {
+  id: id(),
+  planId: uuid('plan_id')
+    .notNull()
+    .references(() => doctorMonthPlans.id),
+  date: day('date').notNull(),
+  before: jsonb('before').$type<{ day: string; night: string }>().notNull(),
+  after: jsonb('after').$type<{ day: string; night: string }>().notNull(),
+  editedBy: uuid('edited_by')
+    .notNull()
+    .references(() => users.id),
+  editedAt: tstz('edited_at').notNull().defaultNow(),
+  // admin · swap
+  reason: text('reason').notNull(),
+  note: text('note'),
+})
+
+// 3-7e: 의사 간 교환 요청 — 두 칩(날짜·D|N)의 주인을 맞바꾼다. 받는 사람이 수락하면 재검사 뒤 반영
+export const doctorSwapRequests = pgTable(
+  'doctor_swap_requests',
+  {
+    id: id(),
+    planId: uuid('plan_id')
+      .notNull()
+      .references(() => doctorMonthPlans.id),
+    requesterId: uuid('requester_id')
+      .notNull()
+      .references(() => users.id),
+    targetId: uuid('target_id')
+      .notNull()
+      .references(() => users.id),
+    // { date, slot } × 2: a = 요청자 칩, b = 받는 사람 칩
+    chipA: jsonb('chip_a').$type<{ date: string; slot: 'D' | 'N' }>().notNull(),
+    chipB: jsonb('chip_b').$type<{ date: string; slot: 'D' | 'N' }>().notNull(),
+    comment: text('comment'),
+    // SWAP_STATUSES (간호사와 같은 값)
+    status: text('status').notNull(),
+    closedReason: text('closed_reason'),
+    createdAt: createdAt(),
+    closedAt: tstz('closed_at'),
+  },
+  (t) => [
+    index('doctor_swaps_plan_idx').on(t.planId, t.status),
+    index('doctor_swaps_target_idx').on(t.targetId, t.status),
+  ],
 )

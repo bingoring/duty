@@ -14,15 +14,24 @@ const navBtn =
   'flex h-7 w-7 items-center justify-center rounded-[7px] border border-line bg-surface text-sm hover:bg-panel'
 
 // 1c 헤더: ‹ 제목 › · 배지 · 범례 · 인쇄 (Build Spec 2-3 frontend-components §2)
-export function ScheduleHeader({ view }: { view: ScheduleView }) {
+// 3-7b: 의사 화면의 간호사 탭에서도 쓴다 — hrefOf로 달 이동 주소, tabs로 「간호사 / 의사」
+export function ScheduleHeader({
+  view,
+  hrefOf = (ym) => `/?ym=${ym}`,
+  tabs,
+}: {
+  view: ScheduleView
+  hrefOf?: (ym: string) => string
+  tabs?: React.ReactNode
+}) {
   return (
     <div className="flex items-center gap-3" data-print="hide">
       <div className="flex items-center gap-1.5">
-        <Link href={`/?ym=${view.prev}`} aria-label="이전 달" className={navBtn}>
+        <Link href={hrefOf(view.prev)} aria-label="이전 달" className={navBtn}>
           ‹
         </Link>
         <h1 className="text-xl font-bold tracking-[-0.02em]">{view.title}</h1>
-        <Link href={`/?ym=${view.next}`} aria-label="다음 달" className={navBtn}>
+        <Link href={hrefOf(view.next)} aria-label="다음 달" className={navBtn}>
           ›
         </Link>
       </div>
@@ -36,7 +45,7 @@ export function ScheduleHeader({ view }: { view: ScheduleView }) {
         </span>
       )}
       {view.nextMonthLink && (
-        <Link href={`/?ym=${view.nextMonthLink.ym}`} className="text-xs text-primary underline">
+        <Link href={hrefOf(view.nextMonthLink.ym)} className="text-xs text-primary underline">
           {view.nextMonthLink.text} →
         </Link>
       )}
@@ -61,6 +70,7 @@ export function ScheduleHeader({ view }: { view: ScheduleView }) {
           </span>
         </span>
       </div>
+      {tabs}
       <PrintButton />
     </div>
   )

@@ -7,6 +7,7 @@ import { todaySeoul } from '../schedule/month'
 import { hashPassword } from '../auth/password'
 import { createDb, type Db } from '../db/client'
 import { ensureBase, isMain } from './core'
+import { seedDevDoctors } from './dev-doctors'
 import { seedPaperSchedule } from './dev-schedule'
 import type { RosterRow } from './roster'
 
@@ -70,6 +71,7 @@ export async function seedDev(db: Db): Promise<void> {
       }
     }
     await seedPaperSchedule(tx, wardId)
+    await seedDevDoctors(tx, DEV_PASSWORD, PRIVACY_NOTICE_VERSION)
   })
 }
 
@@ -83,5 +85,5 @@ if (isMain(import.meta.url)) {
   const { db, close } = createDb(url)
   await seedDev(db)
   await close()
-  console.log(`개발 시드 완료 — 가명 ${DEV_ROSTER.length}명, 비밀번호 ${DEV_PASSWORD}`)
+  console.log(`개발 시드 완료 — 가명 간호사 ${DEV_ROSTER.length}명·의사 5명, 비밀번호 ${DEV_PASSWORD}`)
 }

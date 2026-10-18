@@ -1,6 +1,7 @@
 import { and, asc, eq } from 'drizzle-orm'
 import type { Db } from '../db/client'
 import { users } from '../db/schema'
+import { NURSES } from '../role-group'
 
 // 3-6: 주말 통 OFF 개인 설정
 export async function weekendPairPreference(db: Db, userId: string) {
@@ -16,7 +17,9 @@ export async function weekendPairOptOuts(db: Db): Promise<string[]> {
   const rows = await db
     .select({ name: users.name })
     .from(users)
-    .where(and(eq(users.active, true), eq(users.rotation, 'rotating'), eq(users.weekendPairWanted, false)))
+    .where(
+      and(NURSES, eq(users.active, true), eq(users.rotation, 'rotating'), eq(users.weekendPairWanted, false)),
+    )
     .orderBy(asc(users.seniorityRank))
   return rows.map((r) => r.name)
 }

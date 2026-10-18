@@ -20,7 +20,9 @@
     "db:seed": "pnpm --filter web db:seed",
     "db:bootstrap": "pnpm --filter web db:bootstrap",
     "db:import-roster": "pnpm --filter web db:import-roster",
-    "db:import-history": "pnpm --filter web db:import-history"
+    "db:import-history": "pnpm --filter web db:import-history",
+    "db:import-doctors": "pnpm --filter web db:import-doctors",
+    "db:import-doctor-schedule": "pnpm --filter web db:import-doctor-schedule"
   },
   "devDependencies": {
     "@types/node": "^24.19.0",

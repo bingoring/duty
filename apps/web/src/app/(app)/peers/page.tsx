@@ -1,5 +1,5 @@
 import { PeersHeader, PeersTable } from '@/components/peers/PeersTable'
-import { requireUser } from '@/server/auth/guards'
+import { requireNurse } from '@/server/auth/guards'
 import { requestToday } from '@/server/clock'
 import { getDb } from '@/server/db/client'
 import { buildPeersView } from '@/server/peers/view'
@@ -12,7 +12,7 @@ export default async function PeersPage({
 }: {
   searchParams: Promise<{ ym?: string | string[] }>
 }) {
-  const session = await requireUser()
+  const session = await requireNurse()
   const today = await requestToday()
   const { year, month } = parseYm((await searchParams).ym, today)
   const data = await loadMonthView(getDb(), { year, month, viewerId: session.user.id, today })

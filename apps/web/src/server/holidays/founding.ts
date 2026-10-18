@@ -3,6 +3,7 @@ import { and, eq, gte, lte, sql } from 'drizzle-orm'
 import type { DbOrTx } from '../seed/core'
 import { balanceEntries, holidays, users } from '../db/schema'
 import { todaySeoul } from '../schedule/month'
+import { NURSES } from '../role-group'
 
 // R-HOL-FOUND-1: 그해 개원오프 부여를 목표(개원기념일 재직 = 1, 아니면 0)에 맞춘다. 멱등
 export async function reconcileFoundingOff(
@@ -20,7 +21,10 @@ export async function reconcileFoundingOff(
         lte(holidays.date, `${year}-12-31`),
       ),
     )
-  const people = await db.select().from(users).where(eq(users.active, true))
+  const people = await db
+    .select()
+    .from(users)
+    .where(and(NURSES, eq(users.active, true)))
   for (const u of people) {
     if (opts.userIds && !opts.userIds.includes(u.id)) continue
     const employment = {

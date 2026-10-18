@@ -1,5 +1,5 @@
 import { AppShell } from '@/components/shell/AppShell'
-import { requireUser } from '@/server/auth/guards'
+import { requireNurse } from '@/server/auth/guards'
 import { getDb } from '@/server/db/client'
 import { ensureYearStart } from '@/server/balances/year-start'
 import { projectedLeaveBalance } from '@/server/requests/balance'
@@ -10,7 +10,7 @@ import { pendingReceivedCount } from '@/server/swaps/service'
 import { requestToday } from '@/server/clock'
 
 export default async function AppLayout({ children }: { children: React.ReactNode }) {
-  const session = await requireUser()
+  const session = await requireNurse()
   const today = await requestToday()
   // 연초 잔여치 자동 처리(2-4 R-YEAR-1). 실패해도 화면은 계속 보여 준다
   await ensureYearStart(getDb(), today).catch((e) => console.error('연초 처리 실패', e))
