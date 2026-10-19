@@ -428,7 +428,7 @@ export async function saveLeave(
           endDate,
           days: String(days),
           status: approved ? 'APPROVED' : 'DRAFT',
-        byAdmin: actor.role === 'admin' && actor.id !== input.userId,
+          byAdmin: actor.role === 'admin' && actor.id !== input.userId,
           ...(approved ? { decidedBy: actor.id, decidedAt: now } : {}),
           comment: input.comment?.trim() || null,
         })
@@ -436,12 +436,12 @@ export async function saveLeave(
       if (approved) {
         if (locked.some((p) => p.status === 'CLOSED')) throw new Rejected('마감된 달이 포함된 휴가입니다.')
         await applyApprovedLeaveToCells(
-        tx,
-        locked,
-        { ...input, endDate, byAdmin: actor.role === 'admin' && actor.id !== input.userId },
-        actor.id,
-        now,
-      )
+          tx,
+          locked,
+          { ...input, endDate, byAdmin: actor.role === 'admin' && actor.id !== input.userId },
+          actor.id,
+          now,
+        )
         return { ok: true, id: row!.id, approved: true }
       }
       return { ok: true, id: row!.id }

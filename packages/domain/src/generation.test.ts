@@ -152,7 +152,9 @@ describe('generationChecks (1i 검사 결과 리스트)', () => {
       [false, '수간호사로 인원 충족 · 1건', '11/2 D', 'soft'],
       [false, '신청 불충족 · 1명', '가나', 'soft'],
     ])
-    expect(items[2]!.items).toEqual([{ title: '11/2 (월) D 수간호사로 인원 충족', detail: expect.any(String) }])
+    expect(items[2]!.items).toEqual([
+      { title: '11/2 (월) D 수간호사로 인원 충족', detail: expect.any(String) },
+    ])
   })
 
   it('신청을 모두 반영하면 통과 항목', () => {

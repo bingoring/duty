@@ -53,7 +53,7 @@ function Chip({ c, compact = false }: { c: RequestCellDTO; compact?: boolean }) 
       ? 'shadow-[inset_0_0_0_1.5px_var(--color-admin)]'
       : approved
         ? ''
-      : 'border border-dashed border-[#8fa874]'
+        : 'border border-dashed border-[#8fa874]'
     : c.byAdmin
       ? 'shadow-[inset_0_0_0_1.5px_var(--color-admin)]'
       : 'shadow-[inset_0_0_0_1.5px_var(--color-danger)]'
