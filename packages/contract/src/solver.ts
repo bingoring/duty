@@ -32,6 +32,9 @@ export const SEVERITY_KEYS = [
   'EDU_LIMIT',
   'NIGHT_RESTART',
   'OFF_EVE',
+  // 3-9
+  'STAFF_MAX',
+  'OFF_CARRY',
 ] as const
 
 export const SolverCell = z.object({
@@ -130,6 +133,11 @@ export const SolverRequest = z.object({
     hard: z.array(z.enum(SEVERITY_KEYS)),
     // 3-8 S-NIGHT-RESTART: N 연속 뒤 1~3일 쉬고 다시 N 피하기(토글). 없으면 끔
     avoidNightRestart: z.boolean().optional(),
+    // 3-9 10: 듀티당 최대 인원(최소 인원과 같은 셈법). 없으면 제한 없음
+    maxStaff: z.number().int().positive().optional(),
+    // 3-9 13: 월말 누적 OFF 범위. 월말 누적 = 월초 + 실제 OFF − 기준 OFF = 실제 OFF − offTarget. 없으면 제한 없음
+    offCarryMin: z.number().int().optional(),
+    offCarryMax: z.number().int().optional(),
   }),
   // 앞 근무 종료 ~ 다음 날 근무 시작 시간 (TS SHIFT_TIMES에서 계산해 넘긴다)
   restHours: z.record(WorkCode, z.record(WorkCode, z.number())),
@@ -176,6 +184,9 @@ export const TERM_KEYS = [
   // 3-8
   'nightRestart',
   'offEve',
+  // 3-9: 필수를 권고로 낮췄을 때
+  'staffOver',
+  'offCarry',
 ] as const
 
 export const CAUSE_GROUPS = [
@@ -200,6 +211,9 @@ export const CAUSE_GROUPS = [
   'NIGHT_MIN',
   'NIGHT_RESTART',
   'OFF_EVE',
+  // 3-9
+  'STAFF_MAX',
+  'OFF_CARRY',
 ] as const
 
 export const SolverCause = z.object({

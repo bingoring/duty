@@ -11,7 +11,8 @@ import type { GridCell, NurseProfile, RequestEntry, ScheduleInput } from './type
 
 export type FixedCell = Pick<GridCell, 'code' | 'offKind' | 'leaveKind'>
 
-// 승인 휴가 → 칸 (2-5 확정된 달 승인과 같은 변환). 검진 반차는 코드를 고정하지 않는다
+// 승인 휴가 → 칸 (2-5 확정된 달 승인과 같은 변환).
+// 3-9 1·7: 검진 반차 날은 S로 고정(그날 D·E·N 듀티를 하지 않는다). 반차 표시(checkupHalf)는 checkupDates로 따로 붙인다
 export function leaveToCell(type: LeaveType): FixedCell | null {
   switch (type) {
     case 'annual':
@@ -21,7 +22,7 @@ export function leaveToCell(type: LeaveType): FixedCell | null {
     case 'founding':
       return { code: 'OFF', offKind: 'founding' }
     case 'checkup':
-      return null
+      return { code: 'S' }
     default:
       return { code: 'LEAVE', leaveKind: type }
   }
@@ -65,7 +66,7 @@ export function fixedCells(a: {
       if (!ok(l.userId, d)) continue
       const c = leaveToCell(l.type)
       if (c) put(l.userId, d, c)
-      else {
+      if (l.type === 'checkup') {
         if (!checkupDates.has(l.userId)) checkupDates.set(l.userId, new Set())
         checkupDates.get(l.userId)!.add(d)
       }

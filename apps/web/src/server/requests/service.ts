@@ -401,9 +401,9 @@ type LeaveRow = typeof leaveRequests.$inferSelect
 
 // R-APPROVE-2: 휴가 종류 → 칸
 function applyLeave(cell: GridCell, type: LeaveType): GridCell {
-  const f = leaveToCell(type)
-  if (!f) return { ...cell, checkupHalf: true }
-  return { userId: cell.userId, date: cell.date, checkupHalf: cell.checkupHalf, ...f }
+  const f = leaveToCell(type)!
+  // 3-9 1·7: 검진 날은 S + 반차 표시
+  return { userId: cell.userId, date: cell.date, checkupHalf: type === 'checkup' || cell.checkupHalf, ...f }
 }
 
 export async function decideLeave(

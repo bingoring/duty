@@ -126,6 +126,10 @@ export function causeText(
       return `${who} · D·E·N 고르게(필수)와 충돌합니다`
     case 'WEEKEND_PAIR':
       return `${who} · 월 1회 주말 이틀 통 OFF(필수)와 충돌합니다`
+    case 'STAFF_MAX':
+      return `${day} ${c.shift} 인원이 듀티당 최대 인원을 넘습니다 (OFF로 돌릴 사람이 없습니다)`
+    case 'OFF_CARRY':
+      return `${who} · 월말 누적 OFF 범위(필수)를 지킬 수 없습니다`
     case 'JUNIOR_ONLY':
       return `${day} ${c.shift} 저연차끼리만 서게 됩니다 (동일듀티 저연차끼리 배정 방지 · 필수)`
     case 'REPEAT_PAIR':

@@ -168,6 +168,23 @@ export function checkPerson(n: NurseProfile, ctx: PersonCtx): Violation[] {
       }),
     )
 
+  // H-OFF-CARRY (3-9 13): 월말 누적 OFF = 월초 + 실제 OFF − 기준 OFF(정산과 같은 셈). 칸이 다 채워진 달만
+  if (!missing.length) {
+    const counted = monthCells.filter(
+      (c) => c.code === 'OFF' && ['regular', 'edu_cont', 'edu_union'].includes(c.offKind ?? 'regular'),
+    ).length
+    const baseline = month.filter((d) => isEmployed(n, d) && isRedDay(d, ctx.redDays)).length
+    const after = Math.round((n.offCarryBefore + counted - baseline) * 10) / 10
+    if (after < p.offCarryMin || after > p.offCarryMax)
+      out.push(
+        violation('H-OFF-CARRY', [n.id], [month.at(-1)!], {
+          after,
+          min: p.offCarryMin,
+          max: p.offCarryMax,
+        }),
+      )
+  }
+
   // S-OFF-AFTER-N: 전월 꼬리에서 끝난 N 구간과 다음 달 앞쪽 칸까지 본다. 다음 근무 칸을 모르면 판단하지 않는다
   for (const d of grid.timeline) {
     if (code(d) !== 'N' || code(addDays(d, 1)) === 'N') continue

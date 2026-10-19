@@ -345,7 +345,7 @@ export function GenerateScreen({ view }: { view: GenerateView }) {
           <div className="flex items-center gap-3 text-[13px]">
             <span className="font-bold">생성안 격자</span>
             <span className="text-xs text-ink-2">
-              빨간 외곽선 = 신청 반영 · 주황 점 = 권고 미충족 칸 · 누적 off·ⓝN은 이 안으로 정산했을 때
+              빨간 글자·테두리 = 신청 반영 · 파란 테두리 = 관리자 입력 · 누적 off·ⓝN은 이 안으로 정산했을 때
             </span>
           </div>
           {!cur.confirmed && (

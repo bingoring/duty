@@ -271,6 +271,11 @@ class Builder:
                 fxk = self.true * 0 + sum(v for hd, v in flex if _ktas(hd, d))
                 self.at_most("STAFF", "staffShort", r["minStaff"] - (cnt + fx + h), 0, f"STAFF:{d}:{s}")
                 self.at_most("KTAS", "ktasShort", r["minKTass"] - (kts + fxk + hk), 0, f"KTASS:{d}:{s}")
+                # 3-9 10: 듀티당 최대 인원(최소 인원과 같은 셈법). 넘는 사람은 OFF
+                if r.get("maxStaff"):
+                    self.at_most(
+                        "STAFF_MAX", "staffOver", cnt + fx + h, r["maxStaff"], f"STAFF_MAX:{d}:{s}", ub=20
+                    )
                 # S-JUNIOR-ONLY: 그날 고연차 수간호사가 그 근무면 면제
                 if self.req["priorities"]["avoidJuniorOnly"]:
                     head_senior = any(not hd["junior"] and head_at.get((hd["id"], d)) == s for hd in heads)
@@ -418,6 +423,7 @@ class Builder:
                 continue
             if not self.diagnose:
                 self.objective_terms(n, off_short, miss_max)
+            self.carry_range(n)
             nights = sum(self.is_(nid, d, "N") for d in self.days)
             # S-NIGHT-TARGET
             if n["nightTarget"] is not None:
@@ -513,12 +519,9 @@ class Builder:
                 if coef:
                     self.terms["tieBreak"].append(coef * self.x[key])
 
-    def objective_terms(self, n: dict, off_short: list, miss_max: list) -> None:
-        """규칙이 아닌 목표: 공정성·신청·슬리핑오프 부여·순환 역방향."""
-        r = self.req["rules"]
-        p = self.req["priorities"]
+    def counted_off(self, n: dict) -> tuple[list, int]:
+        """정산 actualOff와 같은 OFF 수(일반·교육, 슬리핑 제외) — (변수 항, 고정 OFF 수)."""
         nid = n["id"]
-        # 공정성: 목표 OFF와 실제 OFF(정산 actualOff) 차이, 0.5 단위라 ×2
         actual = []
         fixed_off = 0
         for d in n["workDays"]:
@@ -529,6 +532,29 @@ class Builder:
             else:
                 actual.append(self.x[(nid, d, "OFF")])
                 actual.append(-self.sleeping[(nid, d)])
+        return actual, fixed_off
+
+    def carry_range(self, n: dict) -> None:
+        """3-9 13: 월말 누적 OFF = 실제 OFF − offTarget 이 [최소, 최대] 안 (0.5 단위라 ×2)."""
+        r = self.req["rules"]
+        lo, hi = r.get("offCarryMin"), r.get("offCarryMax")
+        if lo is None and hi is None:
+            return
+        actual, fixed_off = self.counted_off(n)
+        diff2 = 2 * (sum(actual) + fixed_off) - round(n["offTarget"] * 2)
+        g = f"OFF_CARRY:{n['id']}"
+        if hi is not None:
+            self.at_most("OFF_CARRY", "offCarry", diff2, 2 * hi, g)
+        if lo is not None:
+            self.at_most("OFF_CARRY", "offCarry", -diff2, -2 * lo, g)
+
+    def objective_terms(self, n: dict, off_short: list, miss_max: list) -> None:
+        """규칙이 아닌 목표: 공정성·신청·슬리핑오프 부여·순환 역방향."""
+        r = self.req["rules"]
+        p = self.req["priorities"]
+        nid = n["id"]
+        # 공정성: 목표 OFF와 실제 OFF(정산 actualOff) 차이, 0.5 단위라 ×2
+        actual, fixed_off = self.counted_off(n)
         target2 = round(n["offTarget"] * 2)
         short = self.m.new_int_var(0, 200, f"short:{nid}")
         over = self.m.new_int_var(0, 200, f"over:{nid}")
@@ -755,7 +781,7 @@ def diagnose(req: dict) -> list[dict]:
             continue
         group, *rest = key.split(":")
         c: dict = {"group": group}
-        if group in ("STAFF", "KTASS", "JUNIOR_ONLY"):
+        if group in ("STAFF", "KTASS", "JUNIOR_ONLY", "STAFF_MAX"):
             c["date"], c["shift"] = rest
         elif group == "TRAINING":
             c["userId"] = req["trainings"][int(rest[0])]["traineeId"]

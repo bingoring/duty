@@ -362,6 +362,10 @@ export async function buildGenerationInput(db: Db, plan: PlanRow): Promise<Gener
       shiftBalanceWindowMonths: rules.params.shiftBalanceWindowMonths,
       hard: SEVERITY_KEYS.filter((k) => rules.severity[k] === 'hard'),
       avoidNightRestart: rules.toggles.avoidNightRestart,
+      // 3-9 10·13
+      maxStaff: rules.params.maxStaffPerShift,
+      offCarryMin: rules.params.offCarryMin,
+      offCarryMax: rules.params.offCarryMax,
     },
     restHours,
   }

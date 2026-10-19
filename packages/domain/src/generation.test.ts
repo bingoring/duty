@@ -24,8 +24,8 @@ describe('leaveToCell · specialToCell (2-5 applyLeave와 같은 칸)', () => {
     expect(leaveToCell('sick')).toEqual({ code: 'LEAVE', leaveKind: 'sick' })
     expect(leaveToCell('family')).toEqual({ code: 'LEAVE', leaveKind: 'family' })
     expect(leaveToCell('official')).toEqual({ code: 'LEAVE', leaveKind: 'official' })
-    // 검진 반차는 코드를 고정하지 않고 표시만 한다
-    expect(leaveToCell('checkup')).toBeNull()
+    // 3-9: 검진 반차 날은 S로 고정(D·E·N 듀티를 하지 않는다)
+    expect(leaveToCell('checkup')).toEqual({ code: 'S' })
   })
   it('특수 신청 칸', () => {
     expect(specialToCell('AL')).toEqual({ code: 'AL' })
@@ -74,7 +74,8 @@ describe('fixedCells (고정 칸 우선순위)', () => {
       ],
     })
     const m = out.fixed.get('a')!
-    expect([...m.keys()].sort()).toEqual(['2026-11-01', '2026-11-02', '2026-11-05'])
+    expect([...m.keys()].sort()).toEqual(['2026-11-01', '2026-11-02', '2026-11-05', '2026-11-10'])
+    expect(m.get('2026-11-10')).toEqual({ code: 'S' })
     expect(m.get('2026-11-02')).toEqual({ code: 'LEAVE', leaveKind: 'sick' })
     expect(m.get('2026-11-05')).toEqual({ code: 'OFF', offKind: 'edu_union' })
     expect(out.checkupDates.get('a')).toEqual(new Set(['2026-11-10']))

@@ -166,6 +166,8 @@ class HardEnum(StrEnum):
     EDU_LIMIT = 'EDU_LIMIT'
     NIGHT_RESTART = 'NIGHT_RESTART'
     OFF_EVE = 'OFF_EVE'
+    STAFF_MAX = 'STAFF_MAX'
+    OFF_CARRY = 'OFF_CARRY'
 
 
 class Rules(BaseModel):
@@ -182,6 +184,13 @@ class Rules(BaseModel):
     shiftBalanceWindowMonths: Annotated[int, Field(gt=0, le=9007199254740991)]
     hard: list[HardEnum]
     avoidNightRestart: bool | None = None
+    maxStaff: Annotated[int | None, Field(gt=0, le=9007199254740991)] = None
+    offCarryMin: Annotated[
+        int | None, Field(ge=-9007199254740991, le=9007199254740991)
+    ] = None
+    offCarryMax: Annotated[
+        int | None, Field(ge=-9007199254740991, le=9007199254740991)
+    ] = None
 
 
 class Priorities(BaseModel):
@@ -275,6 +284,8 @@ class Objective(BaseModel):
             'nightMin',
             'nightRestart',
             'offEve',
+            'staffOver',
+            'offCarry',
         ],
         TermsAdditionalProperty,
     ]
@@ -314,6 +325,8 @@ class Group(StrEnum):
     NIGHT_MIN = 'NIGHT_MIN'
     NIGHT_RESTART = 'NIGHT_RESTART'
     OFF_EVE = 'OFF_EVE'
+    STAFF_MAX = 'STAFF_MAX'
+    OFF_CARRY = 'OFF_CARRY'
 
 
 class Shift(StrEnum):

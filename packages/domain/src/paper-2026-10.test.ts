@@ -4,7 +4,16 @@ import { loadPaper } from './test-utils'
 
 // Build Spec 2-2 §5 종이 fixture 통합 테스트 · business-rules §6
 describe('종이 근무표 2026-10 검사', () => {
-  const { input, names } = loadPaper()
+  const { input: paper, names } = loadPaper()
+  // 3-9의 최대 인원(기본 2)·누적 OFF 범위(기본 ±3)는 종이 근무표 뒤에 생긴 규칙이라 여기서는 끈다
+  // (종이 10월은 3인 듀티 19번, 범위 밖 1명 — 아래 따로 확인)
+  const input = {
+    ...paper,
+    rules: {
+      ...paper.rules,
+      params: { ...paper.rules.params, maxStaffPerShift: 10, offCarryMin: -31, offCarryMax: 31 },
+    },
+  }
   const r = checkSchedule(input)
   const count = (id: RuleId) => r.softWarnings.filter((v) => v.ruleId === id).length
   const titles = (id: RuleId) =>
@@ -14,6 +23,12 @@ describe('종이 근무표 2026-10 검사', () => {
 
   it('하드 위반이 없다', () => {
     expect(r.hardViolations).toEqual([])
+  })
+
+  it('3-9 기본 규칙이면 3인 듀티 19번이 최대 인원 위반, 누적 OFF 범위 밖 1명', () => {
+    const d = checkSchedule(paper).hardViolations
+    expect(d.filter((v) => v.ruleId === 'H-STAFF-MAX')).toHaveLength(19)
+    expect(d.filter((v) => v.ruleId === 'H-OFF-CARRY')).toHaveLength(1)
   })
 
   it('10/2 D는 수간호사 보충(최후의 수단)이다', () => {
