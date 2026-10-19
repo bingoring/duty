@@ -1,7 +1,7 @@
 ---
 phase: 03-operations
 stage: 08-feedback-4
-status: IMPLEMENTED
+status: HUMAN_APPROVED
 updated: 2026-10-19
 ---
 
@@ -40,3 +40,5 @@ updated: 2026-10-19
 10. 변경 없음 — 관리자 칸 편집은 원래 협의 기간과 무관(확정된 달이면 언제든), 근무 조정 화면엔 휴가 입력이 없음.
 - 검증: 단위 domain 289 · web 137, 통합 178, 솔버 새 테스트, typecheck·lint. E2E는 새 흐름에 맞춰 스펙 갱신(조정 신청·맞바꾼 상태·OFF 확인 창·KTAS 팝업) — CI에서 확인.
 - 다른 흐림 정리: 통합 테스트는 솔버 품질 대신 보장 성질만 검사(PR #5), 도메인 성능 테스트 기준은 요구사항 50ms(PR #5).
+
+- [x] 승인 (2026-10-19 사용자 승인 — 운영 `3bdbf7d`에 반영, main CI·E2E 그린)

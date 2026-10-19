@@ -1,8 +1,8 @@
 ---
 phase: 03-operations
 stage: 05-feedback-2
-status: IMPLEMENTED
-updated: 2026-10-18
+status: HUMAN_APPROVED
+updated: 2026-10-19
 ---
 
 # [Stage 3-5] 운영 피드백 2 — KTAS 표기·자격 유효기간 · 규칙 필수/권고 · 오프→휴가 변경
@@ -94,8 +94,8 @@ updated: 2026-10-18
 
 - [x] Q1~Q5 답변
 - [x] 변경안 승인 → 구현 착수
-- [ ] E2E 실행(Playwright 브라우저 설치 또는 CI) 그린
-- [ ] 운영 반영 후 확인: 규칙 설정 필수/권고 전환, KTAS 수료일 입력·갱신 필요 표시, 휴가 변경 요청 → 간호사 수락·거절
+- [x] E2E 실행(Playwright 브라우저 설치 또는 CI) 그린 (2026-10-19 사용자 승인 — 운영 `3bdbf7d`에 반영, main CI·E2E 그린)
+- [x] 운영 반영 후 확인: 규칙 설정 필수/권고 전환, KTAS 수료일 입력·갱신 필요 표시, 휴가 변경 요청 → 간호사 수락·거절
 
 ### 승인 결과 (사용자 2026-10-17)
 

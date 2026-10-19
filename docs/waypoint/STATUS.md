@@ -8,6 +8,8 @@
 
 > 🔒 **개인정보:** 공개 저장소다. 간호사 이름·사번은 모두 가명이며, 실명 자료는 커밋하지 않는다([DECISIONS](DECISIONS.md) 2026-09-26).
 
+> ✅ **3-3 ~ 3-6 · 3-8 승인 (2026-10-19).** 운영 `3bdbf7d`에 반영된 자동 배포·운영 피드백 1~4를 사용자가 승인. 3-7 의사 근무표는 코드만 배포되고 의사 명단·10월 확정본 가져오기 전이라 IMPLEMENTED 유지. 머지된 원격 브랜치 7개 삭제.
+>
 > 📍 **현황 점검 (2026-10-19).** 운영 offplz.com = main `3bdbf7d`(3-5~3-8, 3-7 의사 근무표 포함) 자동 배포 완료, 마이그레이션 14개, 서비스 정상. 의사 계정·10월 의사 확정본은 아직 운영에 없음(가져오기 전), 간호사에게 의사 근무표 공개 스위치는 기본 끔.
 > 간호사 운영 사용 중: 재직 11명 중 8명 동의·초기 설정 완료(3명 미로그인), 동의서 v1 동의 8명은 v2라 다음 로그인 때 다시 동의, 11월 신청 29건·생성안 12개(DRAFTING), 관리자 확인 대기 본인 입력 3건.
 > 핸드오프 새 버전 예시 코멘트의 실명 이름 조각 1곳을 가명으로 바꿈(실명 검사 0건).
@@ -222,12 +224,12 @@
 |---------|------|------|
 | 3-1 Deployment ⚠️ | [01-deployment.md](03-operations/01-deployment.md) · [Build Spec](03-operations/deployment/build-spec-index.md) (IMPLEMENTED) | HUMAN_APPROVED |
 | 3-2 Monitoring | [02-monitoring.md](03-operations/02-monitoring.md) · [Build Spec](03-operations/monitoring/build-spec-index.md) (IMPLEMENTED) | HUMAN_APPROVED |
-| 3-3 자동 배포 | [03-continuous-deployment.md](03-operations/03-continuous-deployment.md) · [Build Spec](03-operations/cd/build-spec-index.md) (IMPLEMENTED) | IMPLEMENTED |
-| 3-4 운영 피드백 1 (연차 직접 수정·행 순서·동료 현황 정렬·README) | [04-feedback-1.md](03-operations/04-feedback-1.md) | IMPLEMENTED |
-| 3-5 운영 피드백 2 (KTAS·규칙 필수/권고·오프→휴가) | [05-feedback-2.md](03-operations/05-feedback-2.md) | IMPLEMENTED |
-| 3-6 운영 피드백 3 (대신 신청 표시·휴가 종류·검진 오전/오후·승인 취소·개인 주말 통 OFF·내 설정 KTAS) | [06-feedback-3.md](03-operations/06-feedback-3.md) | IMPLEMENTED |
+| 3-3 자동 배포 | [03-continuous-deployment.md](03-operations/03-continuous-deployment.md) · [Build Spec](03-operations/cd/build-spec-index.md) (IMPLEMENTED) | HUMAN_APPROVED |
+| 3-4 운영 피드백 1 (연차 직접 수정·행 순서·동료 현황 정렬·README) | [04-feedback-1.md](03-operations/04-feedback-1.md) | HUMAN_APPROVED |
+| 3-5 운영 피드백 2 (KTAS·규칙 필수/권고·오프→휴가) | [05-feedback-2.md](03-operations/05-feedback-2.md) | HUMAN_APPROVED |
+| 3-6 운영 피드백 3 (대신 신청 표시·휴가 종류·검진 오전/오후·승인 취소·개인 주말 통 OFF·내 설정 KTAS) | [06-feedback-3.md](03-operations/06-feedback-3.md) | HUMAN_APPROVED |
 | 3-7 의사 근무표 (직군 추가) | [07-doctor-schedule.md](03-operations/07-doctor-schedule.md) | IMPLEMENTED |
-| 3-8 운영 피드백 4 (생성 중 신청·생성안 관리자 신청·확정 철회·조정 흐름·KTAS 팝업) | [08-feedback-4.md](03-operations/08-feedback-4.md) | IMPLEMENTED |
+| 3-8 운영 피드백 4 (생성 중 신청·생성안 관리자 신청·확정 철회·조정 흐름·KTAS 팝업) | [08-feedback-4.md](03-operations/08-feedback-4.md) | HUMAN_APPROVED |
 
 ---
 
