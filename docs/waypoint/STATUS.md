@@ -4,9 +4,11 @@
 **Requirements:** [inputs/requirements_v3.md](inputs/requirements_v3.md) (근무 지침 원문 + 근무자 명단)
 **Design handoff:** [inputs/design_handoff_nurse_duty_scheduler/](inputs/design_handoff_nurse_duty_scheduler/README.md) (최신, 의사 근무표 turn-6 포함, 가명본) · [v5](inputs/design-handoff_v5/README.md) (2026-09-30) · [v4](inputs/design-handoff_v4/README.md) · [v3](inputs/design-handoff_v3/README.md) · [v2](inputs/design-handoff_v2/README.md) · [v1](inputs/design-handoff_v1/README.md)
 **Decisions (audit):** [DECISIONS.md](DECISIONS.md)
-**Last updated:** 2026-10-19
+**Last updated:** 2026-10-20
 
 > 🔒 **개인정보:** 공개 저장소다. 간호사 이름·사번은 모두 가명이며, 실명 자료는 커밋하지 않는다([DECISIONS](DECISIONS.md) 2026-09-26).
+
+> 📝 **3-10 운영 피드백 6 제안 (2026-10-20).** 간호사 쪽 13건. 운영 11월 생성 불가능 원인은 「D·E·N 고르게」 필수(하나만 권고로 풀면 생성됨). Q1~Q4 답변 대기.
 
 > 🩺 **3-7 의사 데이터 운영 반영 (2026-10-19).** 백업(`duty-20261019-2335`) 뒤 의사 5명(관리자 1) 명단과 10월 확정본(31일)을 가져오고, 11월 시험 생성 1회(의사별 D 6·N 6, 후보만 있고 확정 전 DRAFTING). 12월 전까지 시험 기간이고, 실제 11월 근무표는 받으면 `--replace`로 덮는다. 의사 초기 비밀번호는 간호사와 같이 이름 두벌식 영타로 다시 설정했다(DECISIONS ④, 첫 로그인 때 변경 강제). 1~9월 사진은 `.local/doctor-schedule-2026-01-09.json`에 옮겨 적었다. 퇴사·대진 의사와 빈 칸이 있어 지금 가져오기 도구로는 넣지 않았고, 생성에는 직전 달만 쓰인다. 의사 관리자 첫 로그인과 사용자 확인 대기.
 
@@ -235,6 +237,7 @@
 | 3-7 의사 근무표 (직군 추가) | [07-doctor-schedule.md](03-operations/07-doctor-schedule.md) | IMPLEMENTED |
 | 3-8 운영 피드백 4 (생성 중 신청·생성안 관리자 신청·확정 철회·조정 흐름·KTAS 팝업) | [08-feedback-4.md](03-operations/08-feedback-4.md) | HUMAN_APPROVED |
 | 3-9 운영 피드백 5 (검진 S 고정·연차 승인 생략·확정 달 휴가 부분 리롤·생성 결과 묶음·최대 인원·누적 OFF 범위·표시 정리) | [09-feedback-5.md](03-operations/09-feedback-5.md) | IMPLEMENTED |
+| 3-10 운영 피드백 6 (신청 권한·휴가 합계·조정 사유·누적 OFF 휴가 제외·리롤 수동 변경 유지·저장 전 비공개·권고 패턴·나이트 상하한·불가능 원인) | [10-feedback-6.md](03-operations/10-feedback-6.md) | AI_PROPOSED |
 
 ---
 
