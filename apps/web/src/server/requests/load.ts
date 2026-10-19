@@ -196,6 +196,7 @@ export async function loadRequestsRaw(
       comment: l.comment,
       rejectReason: l.rejectReason,
       decidedAt: l.decidedAt,
+      byAdmin: l.byAdmin,
     })),
     scheduled,
     rules,

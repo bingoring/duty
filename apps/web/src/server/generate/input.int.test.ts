@@ -117,8 +117,8 @@ describe('buildGenerationInput (business-logic-model §2)', () => {
       TODAY,
     )
     if (!saved.ok) throw new Error(saved.message)
-    await submitRequests(db, me, { year: 2026, month: 11 }, TODAY)
-    expect(await decideLeave(db, admin, saved.id, { decision: 'approve' })).toEqual({ ok: true })
+    // 3-9 3: 연차는 저장하면 바로 승인
+    expect(saved).toMatchObject({ approved: true })
     const g = await buildGenerationInput(db, plan)
     expect(g.fixedViolations.map((v) => v.ruleId)).toContain('H-OFF-CONSEC')
   })
@@ -146,7 +146,7 @@ describe('buildGenerationInput (business-logic-model §2)', () => {
       { userId: me.id, date: '2026-11-12', options: [], special: 'EDU_CONT' },
       TODAY,
     )
-    const saved = await saveLeave(db, me, { userId: me.id, type: 'annual', startDate: '2026-11-20' }, TODAY)
+    const saved = await saveLeave(db, me, { userId: me.id, type: 'special', startDate: '2026-11-20' }, TODAY)
     if (!saved.ok) throw new Error(saved.message)
     // 임시 상태는 입력에 없다
     expect((await buildGenerationInput(db, plan)).inputHash).toBe(before)
@@ -161,7 +161,7 @@ describe('buildGenerationInput (business-logic-model §2)', () => {
     expect(n.requests).toEqual([{ date: '2026-11-10', options: ['OFF', 'D'] }])
     expect(n.fixed).toEqual([
       { date: '2026-11-12', code: 'OFF', offKind: 'edu_cont' },
-      { date: '2026-11-20', code: 'AL' },
+      { date: '2026-11-20', code: 'OFF', offKind: 'special' },
     ])
   })
 

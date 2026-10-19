@@ -1,0 +1,1 @@
+ALTER TABLE "leave_requests" ADD COLUMN "by_admin" boolean DEFAULT false NOT NULL;

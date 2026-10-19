@@ -9,6 +9,7 @@ import { getDb } from '../db/client'
 import { monthPlans } from '../db/schema'
 import { cancelApprovedLeave } from '../requests/service'
 import { closeMonth, previewClose, reopenMonth } from './close'
+import { rerollFrom, rerollPreview } from './reroll'
 import { saveEdits, updateNegotiation } from './service'
 import { requestToday } from '../clock'
 
@@ -99,4 +100,21 @@ export async function cancelApprovedLeaveAction(input: unknown) {
   const r = await cancelApprovedLeave(getDb(), admin, parsed.data.leaveId)
   if (r.ok) refresh()
   return r
+}
+
+// 3-9 4: 확정된 달 부분 리롤 — 결과는 저장하지 않고 「저장 전 편집」으로 돌려준다
+export async function rerollPreviewAction(input: unknown) {
+  const admin = await adminOnly()
+  if (!admin) return DENIED
+  const parsed = z.object({ planId: uuid, from: date }).safeParse(input)
+  if (!parsed.success) return BAD
+  return rerollPreview(getDb(), admin, parsed.data)
+}
+
+export async function rerollFromAction(input: unknown) {
+  const admin = await adminOnly()
+  if (!admin) return DENIED
+  const parsed = z.object({ planId: uuid, from: date }).safeParse(input)
+  if (!parsed.success) return BAD
+  return rerollFrom(getDb(), admin, parsed.data)
 }

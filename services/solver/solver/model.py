@@ -387,11 +387,24 @@ class Builder:
             # H-SLEEPING: 슬리핑오프 수 × 기준 ≤ max(0, 잔여 N + 이번 달 N)
             # (잔여 N이 음수일 때 "N을 그만큼 서라"는 숨은 제약이 되지 않게 0 아래를 자른다, R-1)
             sl = [v for (u, _), v in self.sleeping.items() if u == nid]
-            if sl:
+            # 3-9 4: 부분 리롤은 시작일 전 칸(슬리핑오프 포함)을 고정으로 넘긴다
+            fsl = self.fixed_sleeping(nid)
+            if sl or fsl:
                 avail = self.night_avail(nid, n["nightBankBefore"], sum(nights))
                 self.at_most(
-                    "SLEEPING", "sleepingOver", r["sleepingOffPerN"] * sum(sl) - avail, 0, f"SLEEPING:{nid}"
+                    "SLEEPING",
+                    "sleepingOver",
+                    r["sleepingOffPerN"] * (sum(sl) + fsl) - avail,
+                    0,
+                    f"SLEEPING:{nid}",
                 )
+
+    def fixed_sleeping(self, nid: str) -> int:
+        return sum(
+            1
+            for (u, _), f in self.fixed.items()
+            if u == nid and f["code"] == "OFF" and f.get("offKind") == "sleeping"
+        )
 
     def night_avail(self, nid: str, bank: int, nights: Any) -> Any:
         """max(0, 잔여 N + 이번 달 N 합계식) — 사람마다 한 번만 만든다."""
@@ -584,7 +597,7 @@ class Builder:
         avail = self.night_avail(nid, n["nightBankBefore"], nights)
         self.m.add(per * allowed <= avail)
         self.m.add(avail <= per * allowed + per - 1)
-        self.terms["sleepingShort"].append(allowed - sum(sl))
+        self.terms["sleepingShort"].append(allowed - sum(sl) - self.fixed_sleeping(nid))
 
         # S-ROTATION: D→E→N 순환의 역방향(D→N·E→D·N→E)을 쉬는 칸 0~2개 사이로 이어질 때 벌한다.
         # 실제 근무표에도 역방향이 있어 금지하지 않는다(DECISIONS 2026-10-08)

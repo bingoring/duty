@@ -23,6 +23,7 @@ const SHORT: Record<RequestOption, string> = { OFF: 'O', D: 'D', E: 'E', N: 'N' 
 export function requestLabel(options: readonly RequestOption[], special?: RequestSpecial): string {
   if (special === 'EDU_CONT' || special === 'EDU_UNION') return '교'
   if (special === 'AL') return '연'
+  if (special === 'S') return 'S'
   return OPTION_ORDER.filter((o) => options.includes(o))
     .map((o) => SHORT[o])
     .join('/')

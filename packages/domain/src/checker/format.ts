@@ -3,7 +3,7 @@ import type { Violation } from './rules'
 
 export type FormatContext = { nameOf: (userId: string) => string; month: number }
 
-const SPECIAL_LABEL: Record<string, string> = { AL: '연차', EDU_CONT: '보수교육', EDU_UNION: '노조교육' }
+const SPECIAL_LABEL: Record<string, string> = { AL: '연차', EDU_CONT: '보수교육', EDU_UNION: '노조교육', S: 'S 근무' }
 const BALANCE_LABEL: Record<string, string> = {
   annual_leave: '연차',
   special_leave: '특휴',

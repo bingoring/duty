@@ -42,7 +42,7 @@ export type AdjustView = {
   blockedReason: string | null
   grid: ScheduleView
   checkInput: ScheduleInput | null
-  requests: Record<string, { label: string; comment: string | null }>
+  requests: Record<string, { label: string; comment: string | null; offLock?: true }>
   leaveCells: Record<string, { leaveId: string; kindLabel: string; range: string }>
   names: Record<string, { name: string; kTass: boolean; rotation: Rotation }>
   close: { can: boolean; reason: string | null; canReopen: boolean; reopenReason: string | null } | null
@@ -125,6 +125,10 @@ export async function loadAdjustView(
           (r.special ?? undefined) as RequestSpecial | undefined,
         ).replaceAll('/', ' or '),
         comment: r.comment,
+        // 3-9 9: 간호사가 신청한 OFF → 관리자도 D·E·N으로 못 바꾼다
+        ...(!r.byAdmin && !r.special && r.options.length === 1 && r.options[0] === 'OFF'
+          ? { offLock: true as const }
+          : {}),
       }
     const leaves = await db
       .select()

@@ -52,6 +52,7 @@ export function RequestPopover({
   mode: allowed,
   isAdmin,
   proposal = false,
+  own = true,
   onClose,
 }: {
   userId: string
@@ -64,6 +65,8 @@ export function RequestPopover({
   isAdmin: boolean
   // 3-5: 관리자가 다른 간호사의 OFF를 휴가로 바꾸면 간호사가 수락해야 한다
   proposal?: boolean
+  // 3-9 14: 관리자가 남의 칸을 열었는지(남이 직접 넣은 신청은 지우지 못한다)
+  own?: boolean
   onClose: () => void
 }) {
   const initialMode: Mode =
@@ -84,11 +87,13 @@ export function RequestPopover({
     ? `${formatMD(cell.date)}${endDate !== cell.date ? `–${formatMD(endDate).split('/')[1]}` : ''} · ${leaveDays(type, cell.date, endDate, reason || undefined)}일 · 유급`
     : ''
 
-  const run = (fn: () => Promise<{ ok: boolean; message?: string }>) =>
+  // 3-9 2: 같은 날 신청·휴가가 있으면 서버가 「바꿀까요?」를 돌려준다 → 확인하면 바꿔서 다시 보낸다
+  const run = (fn: (replace: boolean) => Promise<{ ok: boolean; message?: string; needsReplace?: true }>) =>
     start(async () => {
-      const r = await fn()
+      let r = await fn(false)
+      if (!r.ok && r.needsReplace && window.confirm(r.message ?? '바꿀까요?')) r = await fn(true)
       if (r.ok) onClose()
-      else setError(r.message ?? '저장하지 못했습니다.')
+      else if (!r.needsReplace) setError(r.message ?? '저장하지 못했습니다.')
     })
   // 3-8: OFF만 신청하면 전날 N이 빠지므로, 전날 N이 가능한 사람은 전날 신청을 전부 고르도록 안내
   const eve = formatMD(addDays(cell.date, -1))
@@ -101,7 +106,7 @@ export function RequestPopover({
     )
   const save = () =>
     confirmOffEve() &&
-    run(() =>
+    run((replace) =>
       mode === 'leave'
         ? saveLeaveAction({
             userId,
@@ -110,6 +115,7 @@ export function RequestPopover({
             ...(reason ? { reasonCode: reason } : {}),
             ...(!autoEnd(type) ? { endDate: end } : {}),
             comment,
+            ...(replace ? { replaceShift: true } : {}),
           })
         : saveShiftRequestAction({
             userId,
@@ -117,6 +123,7 @@ export function RequestPopover({
             options: mode === 'edu' ? [] : options,
             ...(mode === 'edu' ? { special: edu } : {}),
             comment,
+            ...(replace ? { replaceLeave: true } : {}),
           }),
     )
 
@@ -340,7 +347,7 @@ export function RequestPopover({
         >
           취소
         </button>
-        {cell.kind === 'shift' && (
+        {cell.kind === 'shift' && (own || !isAdmin || cell.byAdmin) && (
           <button
             type="button"
             disabled={pending}
@@ -356,12 +363,12 @@ export function RequestPopover({
           className="h-8 cursor-pointer rounded-lg bg-ink px-3.5 text-xs font-semibold text-white disabled:opacity-50"
           onClick={save}
         >
-          {proposal && mode === 'leave' ? '휴가로 바꾸기 요청' : isAdmin ? '저장' : '임시 저장'}
+          {proposal && mode === 'leave' ? '휴가로 바꾸기' : isAdmin ? '저장' : '임시 저장'}
         </button>
       </div>
       {proposal && mode === 'leave' && (
         <div className="text-xs text-ink-2">
-          {userName} 간호사가 수락해야 OFF가 휴가로 바뀝니다. 답하기 전에는 OFF 그대로입니다.
+          {userName} 간호사의 OFF가 바로 휴가로 바뀝니다(파란 표시). 근무(D·E·N)로는 바꿀 수 없습니다.
         </div>
       )}
     </Shell>

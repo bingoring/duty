@@ -147,10 +147,12 @@ describe('generationChecks (1i 검사 결과 리스트)', () => {
       },
       { ok: false, title: '신청 3건 중 2건 반영', detail: '불충족 1건은 아래 목록' },
     ])
-    expect(items.slice(2).map((i) => [i.ok, i.title])).toEqual([
-      [false, '11/2 (월) D 수간호사로 인원 충족'],
-      [false, '가나 · 신청 불충족'],
+    // 3-9 5: 규칙별 한 줄, 펼치면 날짜별 상세
+    expect(items.slice(2).map((i) => [i.ok, i.title, i.detail, i.severity])).toEqual([
+      [false, '수간호사로 인원 충족 · 1건', '11/2 D', 'soft'],
+      [false, '신청 불충족 · 1명', '가나', 'soft'],
     ])
+    expect(items[2]!.items).toEqual([{ title: '11/2 (월) D 수간호사로 인원 충족', detail: expect.any(String) }])
   })
 
   it('신청을 모두 반영하면 통과 항목', () => {

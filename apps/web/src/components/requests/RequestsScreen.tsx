@@ -49,8 +49,10 @@ function Chip({ c, compact = false }: { c: RequestCellDTO; compact?: boolean }) 
       ? 'bg-surface'
       : (CHIP_BG[c.label] ?? 'bg-shift-off')
   const outline = leave
-    ? approved
-      ? ''
+    ? c.leave?.byAdmin
+      ? 'shadow-[inset_0_0_0_1.5px_var(--color-admin)]'
+      : approved
+        ? ''
       : 'border border-dashed border-[#8fa874]'
     : c.byAdmin
       ? 'shadow-[inset_0_0_0_1.5px_var(--color-admin)]'
@@ -613,6 +615,7 @@ export function RequestsScreen({
               userId={sel.userId}
               userName={selRow.name}
               head={selRow.head}
+              own={selRow.me}
               cell={selCell}
               sameDay={sameDay}
               mode={view.editable === 'all' ? 'all' : 'leave'}

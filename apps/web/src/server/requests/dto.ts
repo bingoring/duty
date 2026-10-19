@@ -46,6 +46,8 @@ export type RawLeave = {
   comment: string | null
   rejectReason: string | null
   decidedAt: Date | null
+  // 3-9 14: 관리자가 대신 넣은 휴가
+  byAdmin?: boolean
 }
 
 export type PendingLeave = {
@@ -111,6 +113,7 @@ export type LeaveCell = {
   days: number
   kindLabel: string
   rejectReason?: string
+  byAdmin?: boolean
 }
 
 export type RequestCellDTO = {
@@ -267,6 +270,7 @@ export function buildRequestsView(
             days: l.days,
             kindLabel: leaveKindLabel(l.type, mine || isAdmin ? l.reasonCode : null),
             ...(l.rejectReason && mine ? { rejectReason: l.rejectReason } : {}),
+            ...(l.byAdmin ? { byAdmin: true } : {}),
           },
           ...(scheduled ? { scheduled } : {}),
         }

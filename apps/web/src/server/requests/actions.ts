@@ -36,6 +36,7 @@ const ShiftSchema = z.object({
   options: z.array(z.enum(REQUEST_OPTIONS)).max(4),
   special: z.enum(REQUEST_SPECIALS).optional(),
   comment: z.string().max(500).optional(),
+  replaceLeave: z.boolean().optional(),
 })
 
 export async function saveShiftRequestAction(input: unknown) {
@@ -65,6 +66,7 @@ const LeaveSchema = z.object({
   startDate: date,
   endDate: date.optional(),
   comment: z.string().max(500).optional(),
+  replaceShift: z.boolean().optional(),
 })
 
 export async function saveLeaveAction(input: unknown) {

@@ -16,7 +16,7 @@ import type { ScheduleCellRow } from './types'
 // 코멘트·메모·사유는 본인과 관리자만(R-1 ①)
 
 type Snap = { code?: string; offKind?: string | null; leaveKind?: string | null }
-const SPECIAL_LABEL: Record<string, string> = { AL: '연차', EDU_CONT: '보수교육', EDU_UNION: '노조교육' }
+const SPECIAL_LABEL: Record<string, string> = { AL: '연차', EDU_CONT: '보수교육', EDU_UNION: '노조교육', S: 'S 근무' }
 const codeLabel = (c: Snap | null) =>
   !c?.code ? '—' : (leaveCellLabel(c) ?? (c.code === 'OFF' ? 'off' : c.code))
 // "10/2 09:30" (서울)

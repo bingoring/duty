@@ -330,6 +330,17 @@ export function AdjustScreen({ view }: { view: AdjustView }) {
               nameOf={nameOf}
               onApply={addEdits}
               onRevert={revert}
+              onRerolled={(next, text, list) => {
+                setPop(null)
+                setEdits(next)
+                setGroups(new Map())
+                setMsg({
+                  kind: next.length || !list.length ? 'ok' : 'err',
+                  text,
+                  ...(list.length ? { list } : {}),
+                })
+                router.refresh()
+              }}
               onLeaveCancelled={(text, list) => {
                 setPop(null)
                 setMsg({ kind: 'ok', text, ...(list.length ? { list } : {}) })

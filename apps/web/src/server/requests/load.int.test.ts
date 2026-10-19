@@ -42,7 +42,7 @@ describe('loadRequestsRaw', () => {
     const admin = await actor('00101')
     await loadRequestsRaw(db, { ym: { year: 2026, month: 11 }, viewer: admin, today: TODAY })
     await saveLeave(db, who, { userId: who.id, type: 'sick', startDate: '2026-10-02' }, TODAY)
-    await saveLeave(db, who, { userId: who.id, type: 'annual', startDate: '2026-11-04' }, TODAY)
+    await saveLeave(db, who, { userId: who.id, type: 'special', startDate: '2026-11-04' }, TODAY)
     await submitRequests(db, who, { year: 2026, month: 10 }, TODAY)
     await submitRequests(db, who, { year: 2026, month: 11 }, TODAY)
     const r = await loadRequestsRaw(db, { ym: { year: 2026, month: 11 }, viewer: admin, today: TODAY })
@@ -66,7 +66,7 @@ describe('loadRequestsRaw', () => {
         ['오민지 (10/2 OFF, KTAS)', '배지현 (10/2 OFF, KTAS)'],
         { ym: '2026-10', date: '2026-10-02', shift: 'D' },
       ],
-      ['11월 · 신청 중', false, '연차', '11/4 (수)', null, [], null],
+      ['11월 · 신청 중', false, '특별휴가', '11/4 (수)', null, [], null],
     ])
     expect(r.history).toEqual([])
   })

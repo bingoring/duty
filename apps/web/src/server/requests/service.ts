@@ -41,7 +41,7 @@ import { buildScheduleInput } from '../schedule/input'
 import { lockPlansFor, Rejected, rejectable, type Tx } from '../plans/lock'
 import { projectedLeaveBalance } from './balance'
 import { PRE_GENERATION, findPlan, type PlanRow } from './plan'
-import { createLeaveProposal, invalidateProposalsOn, isOffTarget } from './proposals'
+import { invalidateProposalsOn } from './proposals'
 
 // Build Spec 2-5 business-rules §1 — 근무 신청·휴가
 export type Actor = { id: string; role: 'nurse' | 'admin' }
@@ -76,9 +76,11 @@ export async function saveShiftRequest(
     options: RequestOption[]
     special?: RequestSpecial
     comment?: string
+    // 3-9 2: 같은 날 승인 전 휴가(하루짜리)를 취소하고 근무 신청으로 바꾼다(확인 뒤 다시 보냄)
+    replaceLeave?: boolean
   },
   today: string,
-): Promise<Result> {
+): Promise<Result & { needsReplace?: true }> {
   // R-1: 그 달 계획 행을 잠그고 검사·쓰기를 한다(확정·다른 저장과 직렬화, 더블 클릭 중복 방지)
   return outer.transaction(async (tx) => {
     const db = tx as unknown as Db
@@ -98,16 +100,48 @@ export async function saveShiftRequest(
       !(input.options.length === 1 && (input.options[0] === 'OFF' || input.options[0] === 'D'))
     )
       return deny('수간호사는 OFF 또는 D 하나만 신청할 수 있습니다.')
-    const leaveSameDay = await db.$count(
-      leaveRequests,
-      and(
-        eq(leaveRequests.userId, input.userId),
-        inArray(leaveRequests.status, ACTIVE_LEAVE),
-        lte(leaveRequests.startDate, input.date),
-        gte(leaveRequests.endDate, input.date),
-      ),
+    // 3-9 9·14: 관리자는 간호사가 신청한 OFF를 D·E·N으로 바꾸지 못한다(휴가로는 바꿀 수 있다)
+    const [existing] = await db
+      .select()
+      .from(shiftRequests)
+      .where(and(eq(shiftRequests.userId, input.userId), eq(shiftRequests.date, input.date)))
+    if (
+      actor.role === 'admin' &&
+      actor.id !== input.userId &&
+      existing &&
+      !existing.byAdmin &&
+      existing.options.length === 1 &&
+      existing.options[0] === 'OFF' &&
+      (input.special === 'S' || input.options.some((o) => o !== 'OFF'))
     )
-    if (leaveSameDay > 0) return deny('이 날은 휴가 신청이 있습니다.')
+      return deny(
+        '간호사가 신청한 OFF는 근무로 바꿀 수 없습니다. 휴가(연차·검진·개원 등)로는 바꿀 수 있습니다.',
+      )
+    const leavesSameDay = await db
+      .select()
+      .from(leaveRequests)
+      .where(
+        and(
+          eq(leaveRequests.userId, input.userId),
+          inArray(leaveRequests.status, ACTIVE_LEAVE),
+          lte(leaveRequests.startDate, input.date),
+          gte(leaveRequests.endDate, input.date),
+        ),
+      )
+    if (leavesSameDay.length) {
+      const l = leavesSameDay[0]!
+      const st = (await findPlan(db, ymOfDate(input.date)))?.status
+      const replaceable =
+        leavesSameDay.length === 1 &&
+        l.startDate === l.endDate &&
+        st !== 'CONFIRMED' &&
+        st !== 'CLOSED' &&
+        (l.status !== 'APPROVED' || l.type === 'annual' || actor.role === 'admin')
+      if (!replaceable) return deny('이 날은 휴가 신청이 있습니다. 휴가를 먼저 취소해 주세요.')
+      if (!input.replaceLeave)
+        return { ok: false, needsReplace: true, message: '이 날의 휴가를 취소하고 근무 신청으로 바꿀까요?' }
+      await db.update(leaveRequests).set({ status: 'CANCELLED' }).where(eq(leaveRequests.id, l.id))
+    }
     if (input.special === 'EDU_CONT' || input.special === 'EDU_UNION') {
       const edu = await checkEdu(db, input.userId, input.date, input.special)
       if (edu) return deny(edu)
@@ -192,6 +226,15 @@ export async function deleteShiftRequest(
     await lockPlansFor(tx, [input.date])
     const denied = await guardShift(db, actor, input.userId, input.date, today)
     if (denied) return denied
+    // 3-9 14: 관리자는 간호사 본인이 넣은 신청을 지우지 못한다(관리자가 넣은 신청만)
+    if (actor.role === 'admin' && actor.id !== input.userId) {
+      const [q] = await db
+        .select({ byAdmin: shiftRequests.byAdmin })
+        .from(shiftRequests)
+        .where(and(eq(shiftRequests.userId, input.userId), eq(shiftRequests.date, input.date)))
+      if (q && !q.byAdmin)
+        return deny('간호사가 신청한 근무는 지울 수 없습니다. OFF는 휴가로 바꿀 수 있습니다.')
+    }
     await db
       .delete(shiftRequests)
       .where(and(eq(shiftRequests.userId, input.userId), eq(shiftRequests.date, input.date)))
@@ -258,6 +301,8 @@ export type LeaveInput = {
   startDate: string
   endDate?: string
   comment?: string
+  // 3-9 2: 기간 안 근무 신청을 지우고 휴가로 바꾼다(확인 뒤 다시 보냄)
+  replaceShift?: boolean
 }
 
 const BALANCE_LABEL = {
@@ -323,47 +368,85 @@ export async function saveLeave(
   actor: Actor,
   input: LeaveInput,
   today: string,
-): Promise<{ ok: true; id: string; proposed?: true } | { ok: false; message: string }> {
+): Promise<
+  | { ok: true; id: string; proposed?: true; approved?: true }
+  | { ok: false; message: string; needsReplace?: true }
+> {
   // R-1: 그 달 계획 행을 잠그고 검사·쓰기를 한다(확정·다른 저장과 직렬화, 더블 클릭 중복 방지)
-  return outer.transaction(async (tx) => {
-    const db = tx as unknown as Db
-    await lockPlansFor(tx, [input.startDate, input.endDate ?? input.startDate])
-    if (actor.role !== 'admin' && actor.id !== input.userId)
-      return deny('다른 사람의 신청은 바꿀 수 없습니다.')
-    const plan = await findPlan(db, ymOfDate(input.startDate))
-    if (!canRequestLeave(plan, actor, today)) return deny('휴가를 신청할 수 있는 달이 아닙니다.')
-    const checked = await checkLeaveInput(db, input, today)
-    if (!checked.ok) return checked
-    const { endDate, days } = checked
+  return rejectable(() =>
+    outer.transaction(async (tx) => {
+      const db = tx as unknown as Db
+      const locked = await lockPlansFor(tx, [input.startDate, input.endDate ?? input.startDate])
+      if (actor.role !== 'admin' && actor.id !== input.userId)
+        return deny('다른 사람의 신청은 바꿀 수 없습니다.')
+      const plan = await findPlan(db, ymOfDate(input.startDate))
+      if (!canRequestLeave(plan, actor, today)) return deny('휴가를 신청할 수 있는 달이 아닙니다.')
+      const checked = await checkLeaveInput(db, input, today)
+      if (!checked.ok) return checked
+      const { endDate, days } = checked
 
-    // 3-5: 관리자가 간호사의 OFF(OFF 신청·확정된 OFF 칸)를 휴가로 바꾸려면 간호사가 수락해야 한다
-    if (actor.role === 'admin' && actor.id !== input.userId && (await isOffTarget(db, plan!, input)))
-      return createLeaveProposal(db, actor, input, { endDate, days })
-
-    const overlapShift = await db.$count(
-      shiftRequests,
-      and(
-        eq(shiftRequests.userId, input.userId),
-        gte(shiftRequests.date, input.startDate),
-        lte(shiftRequests.date, endDate),
-      ),
-    )
-    if (overlapShift > 0) return deny('기간 안에 근무 신청이 있습니다.')
-    const [row] = await db
-      .insert(leaveRequests)
-      .values({
-        userId: input.userId,
-        type: input.type,
-        reasonCode: input.reasonCode ?? null,
-        startDate: input.startDate,
-        endDate,
-        days: String(days),
-        status: actor.role === 'admin' ? 'SUBMITTED' : 'DRAFT',
-        comment: input.comment?.trim() || null,
-      })
-      .returning({ id: leaveRequests.id })
-    return { ok: true, id: row!.id }
-  })
+      // 3-9 9·14: 관리자는 간호사의 OFF를 바로 휴가로 바꾼다(3-5 「휴가 변경 요청 → 간호사 수락」 대체).
+      // 3-9 2: 기간 안 근무 신청은 확인 뒤 지우고 휴가로 바꾼다(간호사 본인·관리자)
+      const overlapShift = await db
+        .select({ date: shiftRequests.date })
+        .from(shiftRequests)
+        .where(
+          and(
+            eq(shiftRequests.userId, input.userId),
+            gte(shiftRequests.date, input.startDate),
+            lte(shiftRequests.date, endDate),
+          ),
+        )
+      if (overlapShift.length) {
+        if (!input.replaceShift)
+          return {
+            ok: false as const,
+            needsReplace: true as const,
+            message: `기간 안의 근무 신청 ${overlapShift.length}건을 지우고 휴가로 바꿀까요?`,
+          }
+        await db
+          .delete(shiftRequests)
+          .where(
+            and(
+              eq(shiftRequests.userId, input.userId),
+              gte(shiftRequests.date, input.startDate),
+              lte(shiftRequests.date, endDate),
+            ),
+          )
+        for (const q of overlapShift) await invalidateProposalsOn(db, input.userId, q.date)
+      }
+      // 3-9 3: 연차는 승인 없이 바로 반영. 관리자가 넣은 휴가도 관리자가 곧 승인자라 바로 반영
+      const approved = input.type === 'annual' || actor.role === 'admin'
+      const now = new Date()
+      const [row] = await db
+        .insert(leaveRequests)
+        .values({
+          userId: input.userId,
+          type: input.type,
+          reasonCode: input.reasonCode ?? null,
+          startDate: input.startDate,
+          endDate,
+          days: String(days),
+          status: approved ? 'APPROVED' : 'DRAFT',
+        byAdmin: actor.role === 'admin' && actor.id !== input.userId,
+          ...(approved ? { decidedBy: actor.id, decidedAt: now } : {}),
+          comment: input.comment?.trim() || null,
+        })
+        .returning({ id: leaveRequests.id })
+      if (approved) {
+        if (locked.some((p) => p.status === 'CLOSED')) throw new Rejected('마감된 달이 포함된 휴가입니다.')
+        await applyApprovedLeaveToCells(
+        tx,
+        locked,
+        { ...input, endDate, byAdmin: actor.role === 'admin' && actor.id !== input.userId },
+        actor.id,
+        now,
+      )
+        return { ok: true, id: row!.id, approved: true }
+      }
+      return { ok: true, id: row!.id }
+    }),
+  )
 }
 
 async function planStatusOf(db: Db, date: string) {
@@ -379,8 +462,12 @@ export async function cancelLeave(db: Db, actor: Actor, id: string, today: strin
       await db.delete(leaveRequests).where(and(eq(leaveRequests.id, id), eq(leaveRequests.status, 'DRAFT')))
       return { ok: true }
     }
-    if (l.status !== 'SUBMITTED') return deny('취소할 수 없는 휴가입니다.')
+    // 3-9 3: 승인 없이 들어간 본인 연차는 확정 전이면 본인이 취소한다
+    const ownAnnual = l.status === 'APPROVED' && l.type === 'annual'
+    if (l.status !== 'SUBMITTED' && !ownAnnual) return deny('취소할 수 없는 휴가입니다.')
     const plan = await findPlan(db, ymOfDate(l.startDate))
+    if (ownAnnual && (plan?.status === 'CONFIRMED' || plan?.status === 'CLOSED'))
+      return deny('확정된 달의 연차는 관리자가 근무 조정에서 취소합니다.')
     if (!canRequestLeave(plan, actor, today)) return deny('취소할 수 있는 기간이 아닙니다.')
   } else if (l.status === 'APPROVED') {
     const st = await planStatusOf(db, l.startDate)
@@ -451,7 +538,7 @@ export async function decideLeave(
 export async function applyApprovedLeaveToCells(
   tx: Tx,
   plans: Awaited<ReturnType<typeof lockPlansFor>>,
-  l: Pick<LeaveRow, 'userId' | 'type' | 'startDate' | 'endDate'>,
+  l: Pick<LeaveRow, 'userId' | 'type' | 'startDate' | 'endDate'> & { byAdmin?: boolean },
   editorId: string,
   now: Date,
 ) {
@@ -494,10 +581,10 @@ export async function applyApprovedLeaveToCells(
       leaveKind: next.leaveKind ?? null,
       checkupHalf: next.checkupHalf,
     }
-    // 2-11 R-MARK-2: 승인 휴가로 바뀐 칸은 관리자 개입이 아니라 신청 반영(빨간 실선)
+    // 2-11 R-MARK-2: 승인 휴가로 바뀐 칸은 신청 반영(빨간 실선). 3-9 14: 관리자가 대신 넣은 휴가는 파란 표시
     await tx
       .update(scheduleCells)
-      .set({ ...after, source: 'requested', editedBy: editorId, editedAt: now })
+      .set({ ...after, source: l.byAdmin ? 'admin' : 'requested', editedBy: editorId, editedAt: now })
       .where(
         and(
           eq(scheduleCells.monthPlanId, plan.id),

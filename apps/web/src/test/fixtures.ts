@@ -1,5 +1,6 @@
 import { hashPassword } from '../server/auth/password'
-import { credentials, users, wards } from '../server/db/schema'
+import { DEFAULT_RULES } from '@duty/domain'
+import { credentials, ruleVersions, users, wards } from '../server/db/schema'
 import type { Db } from '../server/db/client'
 
 export async function createWard(db: Db) {
@@ -36,4 +37,19 @@ export async function createUserWithPassword(
     mustChangePassword: opts.mustChange ?? false,
   })
   return user!
+}
+
+// 3-9: 「듀티당 최대 인원」과 「누적 OFF 범위」가 둘 다 필수면 시드(교대 10명)의 11월을 만들 수 없다.
+// 생성 흐름을 보는 테스트는 두 규칙을 풀어 둔다(두 규칙 자체는 domain·solver 테스트가 본다)
+export async function relaxCarryStaff(db: Db) {
+  const [ward] = await db.select().from(wards).limit(1)
+  const n = await db.$count(ruleVersions)
+  await db.insert(ruleVersions).values({
+    wardId: ward!.id,
+    version: n + 1,
+    params: { ...DEFAULT_RULES.params, maxStaffPerShift: 10, offCarryMin: -31, offCarryMax: 31 },
+    toggles: DEFAULT_RULES.toggles,
+    forbiddenPatterns: [...DEFAULT_RULES.forbiddenPatterns],
+    severity: DEFAULT_RULES.severity,
+  })
 }

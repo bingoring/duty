@@ -20,7 +20,8 @@ import {
   leaveCellLabel,
 } from '@duty/domain'
 import { useMemo, useRef, useState, useSyncExternalStore, useTransition } from 'react'
-import { cancelApprovedLeaveAction } from '@/server/adjust/actions'
+import { cancelApprovedLeaveAction, rerollFromAction, rerollPreviewAction } from '@/server/adjust/actions'
+import { saveLeaveAction } from '@/server/requests/actions'
 import type { AdjustView } from '@/server/adjust/view'
 
 // 핸드오프 v5 5a·5b — 근무 조정 하단 편집 도크 (AWS 콘솔식 패널)
@@ -248,6 +249,7 @@ export function CellBody(props: {
   onApply: (edits: CellEdit[]) => void
   onRevert: (k: string) => void
   onLeaveCancelled: (text: string, list: string[]) => void
+  onRerolled: (edits: CellEdit[], text: string, list: string[]) => void
 }) {
   const { view, input, edits, base, userId, date, nameOf } = props
   const k = key(userId, date)
@@ -435,135 +437,276 @@ export function CellBody(props: {
     .join(' · ')
 
   return (
-    <div className={bodyCls}>
-      {target}
-      <div className="flex gap-1.5">
-        {/* 2-11 R-HEAD-7: 수간호사 칸은 D·S·OFF만 */}
-        {CHIPS.filter(
-          (c) => view.names[userId]?.rotation !== 'fixed_weekday' || ['D', 'S', 'OFF'].includes(c.code),
-        ).map((c) => {
-          const isNow = now.code === c.code
-          const isOrig = !!mine && orig?.code === c.code
-          const bad = pick === c.code
-          const border = bad
-            ? 'border-danger shadow-[0_0_0_3px_var(--color-danger-bg)]'
-            : mine && isNow
-              ? 'border-admin'
-              : isOrig
-                ? 'border-dashed border-ink-5'
-                : isNow
-                  ? 'border-ink'
-                  : 'border-transparent'
-          const tag = bad ? null : mine && isNow ? '변경' : isOrig ? '이전' : isNow ? '현재' : null
-          return (
-            <button
-              key={c.code}
-              type="button"
-              aria-label={c.code}
-              aria-pressed={isNow}
-              onClick={() => click(c.code)}
-              className={`flex h-[38px] w-11 cursor-pointer flex-col items-center justify-center gap-0.5 rounded-lg border-2 leading-none font-bold text-ink ${c.cls} ${border}`}
-            >
-              {c.code}
-              {tag && (
-                <span
-                  className={`text-[8.5px] font-semibold ${tag === '변경' ? 'text-admin' : 'text-ink-2'}`}
+    <>
+      <div className={bodyCls}>
+        {target}
+        <div className="flex gap-1.5">
+          {/* 2-11 R-HEAD-7: 수간호사 칸은 D·S·OFF만 */}
+          {CHIPS.filter(
+            (c) => view.names[userId]?.rotation !== 'fixed_weekday' || ['D', 'S', 'OFF'].includes(c.code),
+          ).map((c) => {
+            const isNow = now.code === c.code
+            const isOrig = !!mine && orig?.code === c.code
+            const bad = pick === c.code
+            const border = bad
+              ? 'border-danger shadow-[0_0_0_3px_var(--color-danger-bg)]'
+              : mine && isNow
+                ? 'border-admin'
+                : isOrig
+                  ? 'border-dashed border-ink-5'
+                  : isNow
+                    ? 'border-ink'
+                    : 'border-transparent'
+            const tag = bad ? null : mine && isNow ? '변경' : isOrig ? '이전' : isNow ? '현재' : null
+            // 3-9 9: 간호사가 신청한 OFF는 D·E·N으로 못 바꾼다(휴가는 아래 줄에서)
+            const locked = !!req?.offLock && orig?.code === 'OFF' && ['D', 'E', 'N'].includes(c.code)
+            return (
+              <button
+                key={c.code}
+                type="button"
+                aria-label={c.code}
+                aria-pressed={isNow}
+                disabled={locked}
+                title={locked ? '간호사가 신청한 OFF는 근무로 바꿀 수 없습니다' : undefined}
+                onClick={() => click(c.code)}
+                className={`flex h-[38px] w-11 cursor-pointer flex-col items-center justify-center gap-0.5 rounded-lg border-2 leading-none font-bold text-ink disabled:cursor-not-allowed disabled:opacity-35 ${c.cls} ${border}`}
+              >
+                {c.code}
+                {tag && (
+                  <span
+                    className={`text-[8.5px] font-semibold ${tag === '변경' ? 'text-admin' : 'text-ink-2'}`}
+                  >
+                    {tag}
+                  </span>
+                )}
+              </button>
+            )
+          })}
+        </div>
+        <div className="flex min-w-0 flex-col gap-[3px] border-l border-line-soft pl-4">
+          {trial && hard.length > 0 ? (
+            <>
+              <ResultLine
+                tone="bad"
+                strong={`${ro(pick!)} 변경 불가 ·`}
+                text={(others.length ? others : staffing)
+                  .map((v) => vText(v, nameOf, view.month, userId))
+                  .join(' · ')}
+              />
+              <ResultLine
+                small
+                tone={staffing.length ? 'warn' : 'ok'}
+                text={
+                  staffing.length
+                    ? `${staffing.map((v) => vText(v, nameOf, view.month, userId)).join(' · ')}${
+                        resolve
+                          ? ` · 대체 후보 ${nameOf(resolve.who)} (OFF${resolve.kTass ? ', KTAS' : ''})`
+                          : ' · 대체할 수 있는 사람이 없습니다'
+                      }`
+                    : `${staffLine}${resolve ? ` · 맞바꿀 수 있는 사람 ${nameOf(resolve.who)}` : ''}`
+                }
+              />
+            </>
+          ) : mine && applied ? (
+            <>
+              <ResultLine
+                tone={applied.softWarnings.length ? 'warn' : 'ok'}
+                strong={`적용됨 · ${cellLabel(orig)} → ${cellLabel(now)}`}
+                text={
+                  mine.override
+                    ? `예외 적용 · 사유 "${mine.override.reason}"`
+                    : applied.softWarnings.length
+                      ? `권고 · ${applied.softWarnings.map((v) => vText(v, nameOf, view.month, userId)).join(' · ')}`
+                      : passText
+                }
+              />
+              <ResultLine small tone={kShort ? 'warn' : 'ok'} text={staffLine} />
+            </>
+          ) : (
+            <>
+              <ResultLine tone="idle" text="바꿀 근무를 누르세요 · 규칙을 통과하면 바로 적용됩니다" />
+              <ResultLine small tone="idle" text={staffLine} />
+            </>
+          )}
+        </div>
+        <div className="flex items-center gap-1.5">
+          {trial && hard.length > 0 ? (
+            <>
+              {resolve && (
+                <button
+                  type="button"
+                  onClick={() => (setPick(null), props.onApply(resolve.edits))}
+                  className="h-9 cursor-pointer rounded-lg border border-ink bg-surface px-3 text-[12.5px] font-semibold whitespace-nowrap"
                 >
-                  {tag}
-                </span>
+                  ↔ {nameOf(resolve.who)}
+                </button>
               )}
-            </button>
-          )
-        })}
-      </div>
-      <div className="flex min-w-0 flex-col gap-[3px] border-l border-line-soft pl-4">
-        {trial && hard.length > 0 ? (
-          <>
-            <ResultLine
-              tone="bad"
-              strong={`${ro(pick!)} 변경 불가 ·`}
-              text={(others.length ? others : staffing)
-                .map((v) => vText(v, nameOf, view.month, userId))
-                .join(' · ')}
-            />
-            <ResultLine
-              small
-              tone={staffing.length ? 'warn' : 'ok'}
-              text={
-                staffing.length
-                  ? `${staffing.map((v) => vText(v, nameOf, view.month, userId)).join(' · ')}${
-                      resolve
-                        ? ` · 대체 후보 ${nameOf(resolve.who)} (OFF${resolve.kTass ? ', KTAS' : ''})`
-                        : ' · 대체할 수 있는 사람이 없습니다'
-                    }`
-                  : `${staffLine}${resolve ? ` · 맞바꿀 수 있는 사람 ${nameOf(resolve.who)}` : ''}`
-              }
-            />
-          </>
-        ) : mine && applied ? (
-          <>
-            <ResultLine
-              tone={applied.softWarnings.length ? 'warn' : 'ok'}
-              strong={`적용됨 · ${cellLabel(orig)} → ${cellLabel(now)}`}
-              text={
-                mine.override
-                  ? `예외 적용 · 사유 "${mine.override.reason}"`
-                  : applied.softWarnings.length
-                    ? `권고 · ${applied.softWarnings.map((v) => vText(v, nameOf, view.month, userId)).join(' · ')}`
-                    : passText
-              }
-            />
-            <ResultLine small tone={kShort ? 'warn' : 'ok'} text={staffLine} />
-          </>
-        ) : (
-          <>
-            <ResultLine tone="idle" text="바꿀 근무를 누르세요 · 규칙을 통과하면 바로 적용됩니다" />
-            <ResultLine small tone="idle" text={staffLine} />
-          </>
-        )}
-      </div>
-      <div className="flex items-center gap-1.5">
-        {trial && hard.length > 0 ? (
-          <>
-            {resolve && (
+              <input
+                aria-label="예외 사유"
+                placeholder="사유 (필수)"
+                maxLength={200}
+                value={reason}
+                onChange={(e) => setReason(e.target.value)}
+                className="h-9 w-[120px] rounded-lg border border-line px-2.5 text-[12.5px]"
+              />
               <button
                 type="button"
-                onClick={() => (setPick(null), props.onApply(resolve.edits))}
-                className="h-9 cursor-pointer rounded-lg border border-ink bg-surface px-3 text-[12.5px] font-semibold whitespace-nowrap"
+                disabled={!reason.trim()}
+                onClick={() => (
+                  setPick(null),
+                  props.onApply([{ ...trial.edit, override: { reason: reason.trim() } }])
+                )}
+                className="h-9 cursor-pointer rounded-lg border border-danger bg-danger px-3 text-[12.5px] font-semibold whitespace-nowrap text-white disabled:cursor-not-allowed disabled:border-line disabled:bg-panel disabled:text-ink-3"
               >
-                ↔ {nameOf(resolve.who)}
+                그래도 적용
               </button>
-            )}
-            <input
-              aria-label="예외 사유"
-              placeholder="사유 (필수)"
-              maxLength={200}
-              value={reason}
-              onChange={(e) => setReason(e.target.value)}
-              className="h-9 w-[120px] rounded-lg border border-line px-2.5 text-[12.5px]"
-            />
+            </>
+          ) : mine ? (
             <button
               type="button"
-              disabled={!reason.trim()}
-              onClick={() => (
-                setPick(null),
-                props.onApply([{ ...trial.edit, override: { reason: reason.trim() } }])
-              )}
-              className="h-9 cursor-pointer rounded-lg border border-danger bg-danger px-3 text-[12.5px] font-semibold whitespace-nowrap text-white disabled:cursor-not-allowed disabled:border-line disabled:bg-panel disabled:text-ink-3"
+              onClick={() => props.onRevert(k)}
+              className="h-9 cursor-pointer rounded-lg border border-line bg-surface px-3.5 text-[12.5px] font-semibold whitespace-nowrap"
             >
-              그래도 적용
+              이 변경 되돌리기
             </button>
-          </>
-        ) : mine ? (
-          <button
-            type="button"
-            onClick={() => props.onRevert(k)}
-            className="h-9 cursor-pointer rounded-lg border border-line bg-surface px-3.5 text-[12.5px] font-semibold whitespace-nowrap"
-          >
-            이 변경 되돌리기
-          </button>
-        ) : null}
+          ) : null}
+        </div>
       </div>
+      {view.plan && (
+        <LeaveReroll
+          planId={view.plan.id}
+          userId={userId}
+          date={date}
+          monthEnd={view.grid.days.at(-1)!.date}
+          pendingCount={edits.length}
+          nameOf={nameOf}
+          onDone={props.onRerolled}
+        />
+      )}
+    </>
+  )
+}
+
+// 3-9 4·9: 휴가를 기간으로 넣고, 시작일 ~ 월말을 다시 생성한다(결과는 저장 전 편집 → 「저장 · 재배포」)
+const DOCK_LEAVES = [
+  { label: '연차', type: 'annual' },
+  { label: '특휴', type: 'special' },
+  { label: '개원', type: 'founding' },
+  { label: '병가', type: 'sick' },
+  { label: '경조', type: 'family' },
+  { label: '공가', type: 'official' },
+  { label: '오전 검진', type: 'checkup', reasonCode: 'am' },
+  { label: '오후 검진', type: 'checkup', reasonCode: 'pm' },
+] as const
+
+function LeaveReroll(props: {
+  planId: string
+  userId: string
+  date: string
+  monthEnd: string
+  pendingCount: number
+  nameOf: (id: string) => string
+  onDone: (edits: CellEdit[], text: string, list: string[]) => void
+}) {
+  const { planId, userId, date } = props
+  const [kind, setKind] = useState(0)
+  const [end, setEnd] = useState(date)
+  const [err, setErr] = useState('')
+  const [pending, run] = useTransition()
+  const l = DOCK_LEAVES[kind]!
+  const single = l.type === 'checkup'
+  const last = single ? date : end < date ? date : end
+  const range = last === date ? md(date) : `${md(date)}–${md(last)}`
+  const go = () =>
+    run(async () => {
+      setErr('')
+      if (
+        props.pendingCount &&
+        !window.confirm(
+          `저장하지 않은 변경 ${props.pendingCount}건은 다시 생성한 결과로 바뀝니다. 계속할까요?`,
+        )
+      )
+        return
+      const pv = await rerollPreviewAction({ planId, from: date })
+      if (!pv.ok) return setErr(pv.message)
+      const p = pv as { swaps: number; adminEdits: number }
+      const lost = [p.swaps ? `교환 ${p.swaps}칸` : '', p.adminEdits ? `관리자 수정 ${p.adminEdits}칸` : '']
+        .filter(Boolean)
+        .join('·')
+      if (
+        !window.confirm(
+          `${props.nameOf(userId)} ${l.label}(${range})를 넣고 ${md(date)}부터 월말까지 근무를 다시 생성합니다.` +
+            (lost ? `\n이 기간의 ${lost}이 다시 짜이면서 바뀔 수 있습니다.` : '') +
+            '\n결과는 저장 전 편집으로 보여 드리고, 「저장 · 재배포」를 눌러야 근무표에 적용됩니다.',
+        )
+      )
+        return
+      const lv = await saveLeaveAction({
+        userId,
+        type: l.type,
+        ...('reasonCode' in l ? { reasonCode: l.reasonCode } : {}),
+        startDate: date,
+        endDate: last,
+        replaceShift: true,
+      })
+      if (!lv.ok) return setErr(lv.message)
+      const rr = await rerollFromAction({ planId, from: date })
+      if (!rr.ok)
+        return props.onDone(
+          [],
+          `휴가는 넣었지만 다시 생성하지 못했습니다: ${rr.message}`,
+          'causes' in rr ? ((rr.causes as string[] | undefined) ?? []) : [],
+        )
+      const ed = (rr as { edits: CellEdit[] }).edits
+      props.onDone(
+        ed,
+        ed.length
+          ? `휴가를 넣고 ${md(date)}부터 다시 생성했습니다. 바뀌는 ${ed.length}칸을 확인하고 「저장 · 재배포」를 눌러 주세요.`
+          : `휴가를 넣었습니다. 다시 생성해도 바뀌는 칸이 없습니다.`,
+        [],
+      )
+    })
+  return (
+    <div className="flex flex-wrap items-center gap-1.5 border-t border-line-soft px-4 py-2 text-[12.5px]">
+      <span className="font-semibold">휴가 넣기</span>
+      {DOCK_LEAVES.map((x, i) => (
+        <button
+          key={x.label}
+          type="button"
+          aria-pressed={i === kind}
+          onClick={() => setKind(i)}
+          className={`h-7 cursor-pointer rounded-md border bg-shift-off px-2 text-xs font-bold ${i === kind ? 'border-ink' : 'border-line'}`}
+        >
+          {x.label}
+        </button>
+      ))}
+      {!single && (
+        <label className="flex items-center gap-1 text-ink-2">
+          끝
+          <input
+            type="date"
+            aria-label="휴가 끝 날짜"
+            min={date}
+            max={props.monthEnd}
+            value={end}
+            onChange={(e) => setEnd(e.target.value)}
+            className="h-7 rounded-md border border-line px-1.5 text-xs text-ink"
+          />
+        </label>
+      )}
+      <button
+        type="button"
+        disabled={pending}
+        onClick={go}
+        className="h-7 cursor-pointer rounded-md bg-ink px-2.5 text-xs font-semibold text-white disabled:opacity-40"
+      >
+        {pending ? '다시 생성 중…' : '휴가 넣고 이후 다시 생성'}
+      </button>
+      {err && (
+        <span role="alert" className="text-danger">
+          {err}
+        </span>
+      )}
     </div>
   )
 }

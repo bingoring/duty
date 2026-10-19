@@ -5,6 +5,7 @@ import { resetDb, setupTestDb } from '../../test/db'
 import { holidays, scheduleCandidates, trainings, users } from '../db/schema'
 import { ensureRequestPlan, findPlan } from '../requests/plan'
 import { decideLeave, saveLeave, submitRequests } from '../requests/service'
+import { relaxCarryStaff } from '../../test/fixtures'
 import { seedDev } from '../seed/dev'
 import { assembleCells, buildGenerationInput, toSolverRequest } from './input'
 import { confirmCandidate, generate, type GenerateResult } from './service'
@@ -45,6 +46,7 @@ async function hardOf(r: GenerateResult) {
 beforeEach(async () => {
   await resetDb(db)
   await seedDev(db)
+  await relaxCarryStaff(db)
   await ensureRequestPlan(db, NOV, BEFORE, DEFAULT_RULES)
 })
 

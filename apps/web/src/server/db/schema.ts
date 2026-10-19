@@ -303,6 +303,8 @@ export const leaveRequests = pgTable('leave_requests', {
   decidedAt: tstz('decided_at'),
   rejectReason: text('reject_reason'),
   comment: text('comment'),
+  // 3-9 14: 관리자가 대신 넣은 휴가(신청 화면·근무표 파란 표시)
+  byAdmin: boolean('by_admin').notNull().default(false),
   createdAt: createdAt(),
 })
 

@@ -11,7 +11,8 @@ export const OFF_KINDS = ['regular', 'sleeping', 'edu_cont', 'edu_union', 'speci
 export const LEAVE_KINDS = ['family', 'sick', 'official'] as const
 export const CELL_SOURCES = ['auto', 'requested', 'admin', 'swap'] as const
 export const REQUEST_OPTIONS = ['OFF', 'D', 'E', 'N'] as const
-export const REQUEST_SPECIALS = ['AL', 'EDU_CONT', 'EDU_UNION'] as const
+// S: 3-9 6 — 관리자가 생성안에서 그날 S(교육 등)로 정한 신청. 고정 칸이 된다
+export const REQUEST_SPECIALS = ['AL', 'EDU_CONT', 'EDU_UNION', 'S'] as const
 export const HOLIDAY_KINDS = [
   'public',
   'substitute',

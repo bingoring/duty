@@ -151,7 +151,8 @@ describe('saveLeave (R-LEAVE-1~5·8)', () => {
       ),
     ).toEqual({
       ok: false,
-      message: '기간 안에 근무 신청이 있습니다.',
+      needsReplace: true,
+      message: '기간 안의 근무 신청 1건을 지우고 휴가로 바꿀까요?',
     })
     idOf(
       await saveLeave(
@@ -241,7 +242,7 @@ describe('제출·승인·반려·취소 (R-LEAVE-6, R-APPROVE-1·2·4)', () => 
     const me = await actor('00103')
     const admin = await actor('00101')
     const id = idOf(
-      await saveLeave(db, me, { userId: me.id, type: 'annual', startDate: '2026-11-02' }, TODAY),
+      await saveLeave(db, me, { userId: me.id, type: 'special', startDate: '2026-11-02' }, TODAY),
     )
     expect(await decideLeave(db, admin, id, { decision: 'approve' })).toEqual({
       ok: false,
@@ -276,7 +277,6 @@ describe('제출·승인·반려·취소 (R-LEAVE-6, R-APPROVE-1·2·4)', () => 
       ),
     )
     await submitRequests(db, me, { year: 2026, month: 10 }, TODAY)
-    const before = (await cell(me.id, '2026-10-16'))!.code
     await decideLeave(db, admin, sick, { decision: 'approve' })
     await decideLeave(db, admin, check, { decision: 'approve' })
     expect(await cell(me.id, '2026-10-14')).toMatchObject({
@@ -285,7 +285,8 @@ describe('제출·승인·반려·취소 (R-LEAVE-6, R-APPROVE-1·2·4)', () => 
       offKind: null,
       source: 'requested',
     })
-    expect(await cell(me.id, '2026-10-16')).toMatchObject({ code: before, checkupHalf: true })
+    // 3-9 1·7: 검진 날은 S로 고정
+    expect(await cell(me.id, '2026-10-16')).toMatchObject({ code: 'S', checkupHalf: true })
     const logs = await db.select().from(cellEditLogs).where(eq(cellEditLogs.userId, me.id))
     expect(logs.map((l) => [l.date, l.reason]).sort()).toEqual([
       ['2026-10-14', 'leave_approved'],
@@ -298,7 +299,7 @@ describe('제출·승인·반려·취소 (R-LEAVE-6, R-APPROVE-1·2·4)', () => 
     const me = await actor('00103')
     const admin = await actor('00101')
     const id = idOf(
-      await saveLeave(db, me, { userId: me.id, type: 'annual', startDate: '2026-11-02' }, TODAY),
+      await saveLeave(db, me, { userId: me.id, type: 'special', startDate: '2026-11-02' }, TODAY),
     )
     await submitRequests(db, me, { year: 2026, month: 11 }, TODAY)
     expect(await decideLeave(db, admin, id, { decision: 'reject' })).toEqual({
@@ -315,12 +316,12 @@ describe('제출·승인·반려·취소 (R-LEAVE-6, R-APPROVE-1·2·4)', () => 
     const me = await actor('00103')
     const admin = await actor('00101')
     const draft = idOf(
-      await saveLeave(db, me, { userId: me.id, type: 'annual', startDate: '2026-11-02' }, TODAY),
+      await saveLeave(db, me, { userId: me.id, type: 'special', startDate: '2026-11-02' }, TODAY),
     )
     expect(await cancelLeave(db, me, draft, TODAY)).toEqual({ ok: true })
     expect(await db.$count(leaveRequests, eq(leaveRequests.id, draft))).toBe(0)
     const sub = idOf(
-      await saveLeave(db, me, { userId: me.id, type: 'annual', startDate: '2026-11-03' }, TODAY),
+      await saveLeave(db, me, { userId: me.id, type: 'special', startDate: '2026-11-03' }, TODAY),
     )
     await submitRequests(db, me, { year: 2026, month: 11 }, TODAY)
     expect(await cancelLeave(db, me, sub, TODAY)).toEqual({ ok: true })

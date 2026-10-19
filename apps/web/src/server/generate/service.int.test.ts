@@ -5,6 +5,7 @@ import { resetDb, setupTestDb } from '../../test/db'
 import { candidateCells, monthPlans, scheduleCandidates, scheduleCells, users } from '../db/schema'
 import { ensureRequestPlan, findPlan } from '../requests/plan'
 import { decideLeave, saveLeave, saveShiftRequest, submitRequests } from '../requests/service'
+import { relaxCarryStaff } from '../../test/fixtures'
 import { seedDev } from '../seed/dev'
 import { confirmCandidate, generate, isStale } from './service'
 
@@ -32,6 +33,7 @@ const ok = <T extends { ok: boolean }>(r: T) => {
 beforeEach(async () => {
   await resetDb(db)
   await seedDev(db)
+  await relaxCarryStaff(db)
   await ensureRequestPlan(db, NOV, BEFORE, DEFAULT_RULES)
 })
 
