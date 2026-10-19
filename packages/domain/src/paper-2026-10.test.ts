@@ -25,10 +25,10 @@ describe('종이 근무표 2026-10 검사', () => {
     expect(r.hardViolations).toEqual([])
   })
 
-  it('3-9 기본 규칙이면 3인 듀티 19번이 최대 인원 위반, 누적 OFF 범위 밖 1명', () => {
-    const d = checkSchedule(paper).hardViolations
-    expect(d.filter((v) => v.ruleId === 'H-STAFF-MAX')).toHaveLength(19)
-    expect(d.filter((v) => v.ruleId === 'H-OFF-CARRY')).toHaveLength(1)
+  it('3-9 기본 규칙이면 3인 듀티 19번은 최대 인원 권고, 누적 OFF 범위 밖 1명은 필수 위반', () => {
+    const r = checkSchedule(paper)
+    expect(r.softWarnings.filter((v) => v.ruleId === 'H-STAFF-MAX')).toHaveLength(19)
+    expect(r.hardViolations.filter((v) => v.ruleId === 'H-OFF-CARRY')).toHaveLength(1)
   })
 
   it('10/2 D는 수간호사 보충(최후의 수단)이다', () => {

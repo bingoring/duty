@@ -2,7 +2,6 @@ import { applyEdits, checkSchedule } from '@duty/domain'
 import { and, eq } from 'drizzle-orm'
 import { beforeEach, describe, expect, it } from 'vitest'
 import { resetDb, setupTestDb } from '../../test/db'
-import { relaxCarryStaff } from '../../test/fixtures'
 import { scheduleCells, shiftRequests, users } from '../db/schema'
 import { ensureRequestPlan, findPlan } from '../requests/plan'
 import { saveLeave } from '../requests/service'
@@ -27,7 +26,6 @@ async function cellsOf(planId: string) {
 beforeEach(async () => {
   await resetDb(db)
   await seedDev(db)
-  await relaxCarryStaff(db)
 })
 
 describe('rerollFrom', { timeout: 60_000 }, () => {

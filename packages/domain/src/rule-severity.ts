@@ -55,7 +55,7 @@ export const DEFAULT_SEVERITY: Record<SeverityKey, Severity> = {
   EDU_LIMIT: 'hard',
   NIGHT_RESTART: 'soft',
   OFF_EVE: 'hard',
-  STAFF_MAX: 'hard',
+  STAFF_MAX: 'soft',
   OFF_CARRY: 'hard',
 }
 
