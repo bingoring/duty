@@ -5,6 +5,7 @@ import { createDb } from '../src/server/db/client'
 import { runMigrations } from '../src/server/db/migrate'
 import { credentials, privacyConsents, users } from '../src/server/db/schema'
 import { seedDev } from '../src/server/seed/dev'
+import { relaxCarryStaff } from '../src/test/fixtures'
 import { hashPassword } from '../src/server/auth/password'
 import { E2E_TEMP_USER } from './fixtures'
 
@@ -34,6 +35,8 @@ export async function resetE2eDb() {
 
   const { db, close } = createDb(url)
   await seedDev(db)
+  // 3-9: 최대 인원·누적 OFF 범위를 둘 다 필수로 두면 시드(교대 10명)는 생성이 안 된다 → E2E는 풀어 둔다
+  await relaxCarryStaff(db)
   // 첫 로그인 흐름용: 한 명을 처음 로그인하는 상태(동의 없음·임시 비밀번호·초기 설정 전)로 만든다
   const [u] = await db.select().from(users).where(eq(users.employeeNo, E2E_TEMP_USER.employeeNo))
   await db
