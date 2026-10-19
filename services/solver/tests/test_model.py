@@ -319,3 +319,37 @@ def test_3_8_신청_OFF_전날은_N을_주지_않고_N_재시작을_피한다():
             while j < len(seq) and seq[j] in ("OFF", "AL", "LEAVE"):
                 j += 1
             assert not (1 <= j - i - 1 <= 3 and j < len(seq) and seq[j] == "N")
+
+
+def test_3_9_듀티당_최대_인원과_누적_OFF_범위를_필수로_지킨다():
+    req = request(time_limit=8)
+    req["rules"].update(maxStaff=2, offCarryMin=-3, offCarryMax=3)
+    req["rules"]["hard"] = sorted(set(req["rules"]["hard"]) | {"STAFF_MAX", "OFF_CARRY"})
+    res = solve(req)
+    assert res["status"] in ("OPTIMAL", "FEASIBLE")
+    assert hard_violations(req, res) == []
+    per_duty: dict[tuple[str, str], int] = {}
+    for c in res["cells"]:
+        if c["code"] in ("D", "E", "N"):
+            per_duty[(c["date"], c["code"])] = per_duty.get((c["date"], c["code"]), 0) + 1
+    assert max(per_duty.values()) <= 2
+    for n in req["nurses"]:
+        off = sum(
+            1
+            for c in res["cells"]
+            if c["userId"] == n["id"] and c["code"] == "OFF" and c.get("offKind", "regular") == "regular"
+        )
+        assert -3 <= off - n["offTarget"] <= 3
+
+
+def test_3_9_누적_OFF_범위를_지킬_수_없으면_불가능():
+    req = request(time_limit=5)
+    # 모두 월초 누적이 −10: 이번 달 OFF를 7개 이상 더 써야 −3 안에 드는데, 그러면 인원을 채울 수 없다
+    for n in req["nurses"]:
+        n["offTarget"] += 10
+    req["rules"].update(offCarryMin=-3, offCarryMax=3)
+    req["rules"]["hard"] = sorted(set(req["rules"]["hard"]) | {"OFF_CARRY"})
+    res = solve(req)
+    assert res["status"] == "INFEASIBLE"
+    # 진단 시간 안에 원인을 증명하지 못하면 비워 둔다(R-1) — 원인이 있으면 이름 있는 그룹이어야 한다
+    assert all(c["group"] for c in res["causes"])

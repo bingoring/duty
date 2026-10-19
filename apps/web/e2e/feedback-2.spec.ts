@@ -12,7 +12,10 @@ async function as(browser: Browser, employeeNo: string, path: string) {
   return page
 }
 
-test('관리자가 OFF 신청을 휴가로 바꾸자고 하면 간호사가 수락해야 휴가가 된다', async ({ browser }) => {
+// 3-9 9·14: 관리자는 간호사의 OFF 신청을 바로 휴가로 바꾼다(수락 없음), 지우지는 못한다
+test('관리자가 OFF 신청을 바로 휴가로 바꾸면 파란 표시로 보이고, 간호사 신청은 지울 수 없다', async ({
+  browser,
+}) => {
   const me = await as(browser, SORA.employeeNo, '/requests')
   const cellOf = (p: typeof me) => p.getByRole('button', { name: `${SORA.name} 2026-11-27` })
   await cellOf(me).click()
@@ -29,25 +32,20 @@ test('관리자가 OFF 신청을 휴가로 바꾸자고 하면 간호사가 수�
   const admin = await as(browser, ADMIN.employeeNo, '/requests')
   await cellOf(admin).click()
   const pop = admin.getByRole('dialog')
+  await expect(pop.getByRole('button', { name: '삭제' })).toHaveCount(0)
   await pop.getByRole('button', { name: '휴가' }).click()
   await pop.getByRole('button', { name: '병가' }).click()
-  await expect(pop.getByText('간호사가 수락해야 OFF가 휴가로 바뀝니다')).toBeVisible()
-  await pop.getByRole('button', { name: '휴가로 바꾸기 요청' }).click()
-  const sent = admin.getByRole('region', { name: '휴가 변경 요청 · 간호사 답 대기' })
-  await expect(sent).toContainText(`${SORA.name}11/27 OFF → 병가`)
-  // 답하기 전에는 OFF 신청 그대로
-  await expect(cellOf(admin)).toHaveText('O')
+  await expect(pop.getByText('OFF가 바로 휴가로 바뀝니다')).toBeVisible()
+  admin.once('dialog', (d) => {
+    expect(d.message()).toContain('근무 신청 1건을 지우고 휴가로 바꿀까요?')
+    void d.accept()
+  })
+  await pop.getByRole('button', { name: '휴가로 바꾸기' }).click()
+  await expect(cellOf(admin)).toHaveText('병가')
 
-  // 근무표에는 대화형 폼이 없어 하이드레이션 표시가 없다
-  await me.goto('/')
-  await expect(me.getByLabel('받은 휴가 변경 요청 1건')).toBeVisible()
-  await me.getByRole('link', { name: '받은 휴가 변경 요청 1건 → 근무 신청' }).click()
+  await me.reload()
   await waitHydrated(me)
-  const inbox = me.getByRole('region', { name: '받은 휴가 변경 요청' })
-  await inbox.getByRole('button', { name: '수락' }).click()
-  await expect(inbox.getByRole('status')).toHaveText('수락했습니다. 휴가로 바뀌었습니다.')
   await expect(cellOf(me)).toHaveText('병가')
-  await expect(me.getByLabel('받은 휴가 변경 요청 1건')).toHaveCount(0)
   await Promise.all([me.close(), admin.close()])
 })
 

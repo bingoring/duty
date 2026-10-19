@@ -34,6 +34,10 @@ WEIGHTS: dict[str, int] = {
     "nightConsec": 3000,
     "offConsec": 2000,
     "sleepingOver": 3000,
+    # 3-9: 최대 인원(기본 권고, DECISIONS 2026-10-19)은 신청 반영(requestMiss 300)보다 낮게 —
+    # 3명 듀티를 피하려고 간호사 신청을 버리지 않는다. 누적 OFF 범위를 권고로 낮췄을 때는 0.5 단위 ×2 한 값에
+    "staffOver": 250,
+    "offCarry": 3000,
 }
 
 # 검사기 REPEAT_PAIR_MIN과 같은 값. 권고일 때 쌍 평균은 변수라 솔버는 고정 임계 초과분만 벌한다

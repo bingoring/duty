@@ -19,6 +19,9 @@ export const HARD_RULE_IDS = [
   'H-BALANCE',
   // 3-8: 신청한 OFF 전날 N 금지(전날 N을 포함해 신청했으면 예외)
   'H-OFF-EVE',
+  // 3-9: 듀티당 최대 인원 초과, 월말 누적 OFF 범위 밖
+  'H-STAFF-MAX',
+  'H-OFF-CARRY',
 ] as const
 
 export const SOFT_RULE_IDS = [

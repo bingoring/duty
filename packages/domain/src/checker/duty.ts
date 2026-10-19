@@ -6,7 +6,7 @@ import { violation, type Violation } from './rules'
 
 // 날짜·듀티 단위 규칙: H-STAFF, H-KTASS, S-HEAD-FILL, S-JUNIOR-ONLY (R-STAFF-1~4)
 export function checkDuties(input: ScheduleInput, grid: Grid, staffing: Staffing): Violation[] {
-  const { minStaffPerShift, minKTass } = input.rules.params
+  const { minStaffPerShift, maxStaffPerShift, minKTass } = input.rules.params
   const out: Violation[] = []
   for (const d of grid.monthDates) {
     for (const s of DUTY_CODES) {
@@ -16,6 +16,11 @@ export function checkDuties(input: ScheduleInput, grid: Grid, staffing: Staffing
       if (staffShort)
         out.push(
           violation('H-STAFF', c.members, [d], { count: c.count + c.fallback, min: minStaffPerShift }, s),
+        )
+      // 3-9 10: 최소 인원과 같은 셈법(3인 배정 기간 신규 제외, 수간호사는 그 근무일 때만)
+      if (c.count + c.fallback > maxStaffPerShift)
+        out.push(
+          violation('H-STAFF-MAX', c.members, [d], { count: c.count + c.fallback, max: maxStaffPerShift }, s),
         )
       if (kTassShort)
         out.push(violation('H-KTASS', c.members, [d], { count: c.kTass + c.fallbackKTass, min: minKTass }, s))

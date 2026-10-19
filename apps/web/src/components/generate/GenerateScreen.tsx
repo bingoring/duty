@@ -10,7 +10,7 @@ import {
   revokeConfirmationAction,
   revokePreviewAction,
 } from '@/server/generate/actions'
-import { saveShiftRequestAction } from '@/server/requests/actions'
+import { saveLeaveAction, saveShiftRequestAction } from '@/server/requests/actions'
 import type { Priorities } from '@/server/generate/input'
 import type { GenerateView } from '@/server/generate/view'
 import { useHydrated } from '../admin/ui'
@@ -21,7 +21,19 @@ type Failure = { message: string; causes?: string[] }
 // 1i처럼 짧게: 통과 항목 + 앞쪽 미충족만, 나머지는 펼쳐 본다
 const CHECKS_SHOWN = 6
 const card = 'flex flex-col rounded-xl border border-line bg-surface p-4 text-[13px]'
-const dot = (ok: boolean) => `mt-1.5 h-2 w-2 flex-none rounded-full ${ok ? 'bg-primary' : 'bg-warn-dot'}`
+// 3-9 5: 통과 초록 · 필수 위반 빨강 · 권고 미충족 주황
+const dot = (ok: boolean, severity?: 'hard' | 'soft') =>
+  `mt-1.5 h-2 w-2 flex-none rounded-full ${ok ? 'bg-primary' : severity === 'hard' ? 'bg-danger' : 'bg-warn-dot'}`
+// 3-9 6: 생성안 칸에서 고를 수 있는 휴가(하루). 사유가 필요한 경조·공가는 근무 신청 화면에서
+const QUICK_LEAVES = [
+  { label: '연차', type: 'annual' },
+  { label: '특휴', type: 'special' },
+  { label: '개원', type: 'founding' },
+  { label: '병가', type: 'sick' },
+  { label: '오전 검진', type: 'checkup', reasonCode: 'am' },
+  { label: '오후 검진', type: 'checkup', reasonCode: 'pm' },
+] as const
+type QuickLeave = (typeof QUICK_LEAVES)[number]
 
 export function GenerateScreen({ view }: { view: GenerateView }) {
   const router = useRouter()
@@ -46,11 +58,18 @@ export function GenerateScreen({ view }: { view: GenerateView }) {
   const allChecks = cur
     ? [
         ...cur.checks.slice(0, 2),
-        ...cur.offShort.map((o) => ({
-          ok: false,
-          title: `${o.name} · 목표보다 OFF ${o.short}개 적음`,
-          detail: '인원이 모자란 달이라 누적 OFF가 음수로 다음 달에 이월됩니다',
-        })),
+        // 3-9 5: 목표보다 OFF가 적은 사람도 한 줄로 묶는다
+        ...(cur.offShort.length
+          ? [
+              {
+                ok: false,
+                severity: 'soft' as const,
+                title: `목표보다 OFF 적음 · ${cur.offShort.length}명`,
+                detail: cur.offShort.map((o) => `${o.name} −${o.short}`).join(', '),
+                items: [{ title: '인원이 모자란 달이라 누적 OFF가 음수로 다음 달에 이월됩니다', detail: '' }],
+              },
+            ]
+          : []),
         ...cur.checks.slice(2),
       ]
     : []
@@ -58,6 +77,15 @@ export function GenerateScreen({ view }: { view: GenerateView }) {
   const go = (id: string) => router.replace(`/admin/generate?ym=${view.ym}&c=${id}`)
   // 3-8: 생성안 칸 더블클릭 → 그 간호사의 신청(관리자 입력)으로 저장 → 리롤할지 묻는다
   const [ask, setAsk] = useState<{ userId: string; date: string; name: string } | null>(null)
+  // 3-9 6·8: 칸 선택 창의 복수 선택과 그 자리 안내
+  const [picks, setPicks] = useState<('OFF' | 'D' | 'E' | 'N')[]>([])
+  const [askError, setAskError] = useState('')
+  const [open, setOpen] = useState<Set<number>>(new Set())
+  const openAsk = (a: { userId: string; date: string; name: string }) => {
+    setAsk(a)
+    setPicks([])
+    setAskError('')
+  }
 
   const run = () =>
     start(async () => {
@@ -67,21 +95,52 @@ export function GenerateScreen({ view }: { view: GenerateView }) {
       if (r.ok) go(r.candidateId)
       else setFailure({ message: r.message, ...('causes' in r && r.causes ? { causes: r.causes } : {}) })
     })
-  const requestFromCell = (code: 'D' | 'E' | 'N' | 'OFF') => {
+  // 3-9 6: OFF·D·E·N 복수 선택(신청), S(그날 S로 고정), 휴가(하루) → 그 간호사의 관리자 입력 → 리롤할지 묻는다
+  const afterSaved = (name: string, date: string, what: string) => {
+    setAsk(null)
+    const md = `${Number(date.slice(5, 7))}/${Number(date.slice(8))}`
+    if (
+      window.confirm(
+        `${name} ${md} ${what}을(를) 관리자 입력으로 저장했습니다.\n이 신청을 반영해 지금 리롤하겠습니까?`,
+      )
+    )
+      run()
+    else setMessage(`${name} ${md} ${what}을(를) 저장했습니다. 다시 생성하면 반영됩니다.`)
+  }
+  const saveFromCell = (
+    choice: { options: ('OFF' | 'D' | 'E' | 'N')[] } | { special: 'S' } | { leave: QuickLeave },
+  ) => {
     if (!ask) return
     const { userId, date, name } = ask
     start(async () => {
-      const r = await saveShiftRequestAction({ userId, date, options: [code], comment: '' })
-      setAsk(null)
-      if (!r.ok) return setFailure({ message: r.message ?? '신청을 저장하지 못했습니다.' })
-      const md = `${Number(date.slice(5, 7))}/${Number(date.slice(8))}`
-      if (
-        window.confirm(
-          `${name} ${md} ${code}을(를) 신청 근무로 저장했습니다(관리자 입력).\n이 신청을 반영해 지금 리롤하겠습니까?`,
-        )
+      setAskError('')
+      const send = (replace: boolean) =>
+        'leave' in choice
+          ? saveLeaveAction({
+              userId,
+              type: choice.leave.type,
+              startDate: date,
+              endDate: date,
+              ...('reasonCode' in choice.leave ? { reasonCode: choice.leave.reasonCode } : {}),
+              ...(replace ? { replaceShift: true } : {}),
+            })
+          : saveShiftRequestAction({
+              userId,
+              date,
+              options: 'options' in choice ? choice.options : [],
+              ...('special' in choice ? { special: choice.special } : {}),
+              comment: '',
+              ...(replace ? { replaceLeave: true } : {}),
+            })
+      let r: { ok: boolean; message?: string; needsReplace?: true } = await send(false)
+      if (!r.ok && r.needsReplace && window.confirm(r.message ?? '바꿀까요?')) r = await send(true)
+      // 3-9 8: 안 되는 이유는 페이지 맨 위가 아니라 이 창 안에 보인다
+      if (!r.ok) return setAskError(r.needsReplace ? '' : (r.message ?? '저장하지 못했습니다.'))
+      afterSaved(
+        name,
+        date,
+        'leave' in choice ? choice.leave.label : 'special' in choice ? 'S' : choice.options.join('/'),
       )
-        run()
-      else setMessage(`${name} ${md} ${code} 신청을 저장했습니다. 다시 생성하면 반영됩니다.`)
     })
   }
   // 3-8: 확정 철회 → 생성안 검토로. 사라질 변경을 먼저 보여 준다
@@ -285,10 +344,38 @@ export function GenerateScreen({ view }: { view: GenerateView }) {
                   key={`${c.title}-${i}`}
                   className={`flex items-start gap-2.5 py-2 ${i < all.length - 1 ? 'border-b border-line-soft' : ''}`}
                 >
-                  <span className={dot(c.ok)} />
-                  <div>
-                    <b>{c.title}</b>
+                  <span className={dot(c.ok, 'severity' in c ? c.severity : undefined)} />
+                  <div className="min-w-0 flex-1">
+                    {'items' in c && c.items?.length ? (
+                      <button
+                        type="button"
+                        aria-expanded={open.has(i)}
+                        className="cursor-pointer text-left"
+                        onClick={() =>
+                          setOpen((o) => {
+                            const n = new Set(o)
+                            if (n.has(i)) n.delete(i)
+                            else n.add(i)
+                            return n
+                          })
+                        }
+                      >
+                        <b>{c.title}</b> <span className="text-xs text-ink-3">{open.has(i) ? '▴' : '▾'}</span>
+                      </button>
+                    ) : (
+                      <b>{c.title}</b>
+                    )}
                     {c.detail && <div className="text-ink-2">{c.detail}</div>}
+                    {'items' in c && open.has(i) && (
+                      <ul className="mt-1 list-disc pl-4 text-xs text-ink-2">
+                        {c.items?.map((it, k) => (
+                          <li key={k}>
+                            {it.title}
+                            {it.detail ? ` — ${it.detail}` : ''}
+                          </li>
+                        ))}
+                      </ul>
+                    )}
                   </div>
                 </div>
               ))}
@@ -298,7 +385,7 @@ export function GenerateScreen({ view }: { view: GenerateView }) {
                   className="cursor-pointer self-start text-xs font-semibold text-ink-2 underline"
                   onClick={() => setShowAll(!showAll)}
                 >
-                  {showAll ? '접기' : `권고 미충족 ${allChecks.length - CHECKS_SHOWN}건 더 보기`}
+                  {showAll ? '접기' : `미충족 ${allChecks.length - CHECKS_SHOWN}개 항목 더 보기`}
                 </button>
               )}
             </div>
@@ -345,35 +432,72 @@ export function GenerateScreen({ view }: { view: GenerateView }) {
           <div className="flex items-center gap-3 text-[13px]">
             <span className="font-bold">생성안 격자</span>
             <span className="text-xs text-ink-2">
-              빨간 외곽선 = 신청 반영 · 주황 점 = 권고 미충족 칸 · 누적 off·ⓝN은 이 안으로 정산했을 때
+              빨간 글자·테두리 = 신청 반영 · 파란 테두리 = 관리자 입력 · 누적 off·ⓝN은 이 안으로 정산했을 때
             </span>
           </div>
           {!cur.confirmed && (
             <span className="text-xs text-ink-2">
-              칸을 더블클릭하면 그 간호사의 신청(관리자 입력)으로 근무를 정하고 리롤할 수 있습니다.
+              칸을 더블클릭하면 그 간호사의 신청(관리자 입력)으로 근무(복수 선택)·S·휴가를 정하고 리롤할 수
+              있습니다.
             </span>
           )}
           {ask && (
             <div
               role="dialog"
               aria-label={`${ask.name} ${ask.date} 신청`}
-              className="flex items-center gap-2 rounded-lg border border-ink bg-surface px-3 py-2 text-[13px]"
+              className="flex flex-wrap items-center gap-2 rounded-lg border border-ink bg-surface px-3 py-2 text-[13px]"
             >
               <b>
                 {ask.name} · {Number(ask.date.slice(5, 7))}/{Number(ask.date.slice(8))}
               </b>
-              <span className="text-ink-2">신청 근무로 정하기</span>
-              {(['D', 'E', 'N', 'OFF'] as const).map((c) => (
+              <span className="text-ink-2">근무 신청(복수 선택)</span>
+              {(['OFF', 'D', 'E', 'N'] as const).map((c) => (
                 <button
                   key={c}
                   type="button"
+                  aria-pressed={picks.includes(c)}
                   disabled={pending}
-                  onClick={() => requestFromCell(c)}
-                  className="h-8 min-w-10 cursor-pointer rounded-md border border-line bg-surface px-2 font-bold"
+                  onClick={() => setPicks((p) => (p.includes(c) ? p.filter((x) => x !== c) : [...p, c]))}
+                  className={`h-8 min-w-10 cursor-pointer rounded-md px-2 font-bold ${
+                    picks.includes(c) ? 'border-2 border-ink' : 'border border-line bg-surface'
+                  }`}
                 >
                   {c}
                 </button>
               ))}
+              <button
+                type="button"
+                disabled={pending || !picks.length}
+                onClick={() => saveFromCell({ options: picks })}
+                className="h-8 cursor-pointer rounded-md bg-ink px-2.5 text-xs font-bold text-white disabled:opacity-40"
+              >
+                신청 저장
+              </button>
+              <span className="mx-1 h-5 w-px bg-line" />
+              <button
+                type="button"
+                disabled={pending}
+                onClick={() => saveFromCell({ special: 'S' })}
+                className="h-8 min-w-10 cursor-pointer rounded-md border border-line bg-shift-s px-2 font-bold"
+              >
+                S
+              </button>
+              {QUICK_LEAVES.map((l) => (
+                <button
+                  key={l.label}
+                  type="button"
+                  disabled={pending}
+                  onClick={() => saveFromCell({ leave: l })}
+                  className="h-8 cursor-pointer rounded-md border border-line bg-shift-off px-2 text-xs font-bold"
+                >
+                  {l.label}
+                </button>
+              ))}
+              {askError && (
+                <span role="alert" className="basis-full text-xs font-semibold text-danger">
+                  {askError}
+                </span>
+              )}
               <button
                 type="button"
                 onClick={() => setAsk(null)}
@@ -391,7 +515,7 @@ export function GenerateScreen({ view }: { view: GenerateView }) {
                   ? undefined
                   : {
                       onCellDouble: (userId, date) =>
-                        setAsk({
+                        openAsk({
                           userId,
                           date,
                           name: cur.grid.rows.find((r) => r.userId === userId)?.name ?? '',

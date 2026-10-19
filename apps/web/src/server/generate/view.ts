@@ -177,6 +177,12 @@ export async function loadGenerateView(
   // 3-5: 규칙 설정에서 필수로 둔 수치 규칙만 (우선 반영 목록에 있는 규칙과 금지 패턴은 따로 보인다)
   const hardRules: { key: SeverityKey; label: string; value: string }[] = [
     { key: 'STAFF', label: '듀티당 최소 인원', value: `${p.minStaffPerShift}명` },
+    { key: 'STAFF_MAX', label: '듀티당 최대 인원', value: `${p.maxStaffPerShift}명` },
+    {
+      key: 'OFF_CARRY',
+      label: '월말 누적 OFF',
+      value: `${p.offCarryMin} ~ +${p.offCarryMax}`,
+    },
     { key: 'KTAS', label: 'KTAS 권한자 포함', value: `${p.minKTass}명 이상` },
     { key: 'NIGHT_MAX', label: '월 나이트 상한', value: `${p.maxNightPerMonth}개` },
     { key: 'NIGHT_TARGET', label: '월 나이트 목표', value: `≤ ${p.targetNightPerMonth}개` },
@@ -218,9 +224,8 @@ export async function loadGenerateView(
     const meta = pick.solverMeta as SolverMeta
     const check = pick.checkResult as CheckResult
     const cells = (await loadCandidateCells(db, pick.id)) as ScheduleCellRow[]
-    const warnCells = new Set(
-      check.softWarnings.flatMap((v) => v.userIds.flatMap((u) => v.dates.map((d) => `${u}|${d}`))),
-    )
+    // 3-9 12: 생성안 격자의 주황 점(권고 미충족 칸)은 없앴다 — 권고는 결과 목록에서 규칙별로 본다
+    const warnCells = new Set<string>()
     const draft = await loadDraftView(db, { plan, cells, today, warnCells })
     // 2-11 R-HEAD-5: 솔버가 인원 부족으로 D를 넣은 수간호사 칸
     draft.notes = new Map((meta.headFill ?? []).map((k) => [k, ['인원 부족 보충']]))

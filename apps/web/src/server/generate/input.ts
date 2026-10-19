@@ -9,6 +9,7 @@ import {
   headCells,
   hasWeekendPair,
   isEmployed,
+  leaveDates,
   isRedDay,
   isRestCode,
   monthDates,
@@ -65,6 +66,7 @@ export type GenerationInput = {
   base: Omit<SolverRequest, 'seed' | 'timeLimitSec' | 'priorities'>
   headCells: GridCell[]
   fixed: Map<string, Map<IsoDate, FixedCell>>
+  adminLeaveDays: Set<string>
   checkupDates: Map<string, Set<IsoDate>>
   prevMonthConfirmed: boolean
   inputHash: string
@@ -194,7 +196,15 @@ export function canonical(v: unknown): string {
   return JSON.stringify(v)
 }
 
-export async function buildGenerationInput(db: Db, plan: PlanRow): Promise<GenerationInput> {
+// 3-9 4: freeze — 확정된 달의 부분 리롤. from 전 칸(교대 근무자)과 수간호사 칸 전부를 지금 근무표 그대로 고정한다.
+// keep = from 뒤라도 그대로 둘 칸(간호사가 신청한 OFF — 3-9 9, 관리자도 D·E·N으로 못 바꾼다)
+export type FreezeOpts = { from: IsoDate; cells: readonly GridCell[]; keep?: ReadonlySet<string> }
+
+export async function buildGenerationInput(
+  db: Db,
+  plan: PlanRow,
+  opts: { freeze?: FreezeOpts } = {},
+): Promise<GenerationInput> {
   const { input } = await buildScheduleInput(db, plan)
   const ym = { year: plan.year, month: plan.month }
   const rules = input.rules
@@ -217,6 +227,12 @@ export async function buildGenerationInput(db: Db, plan: PlanRow): Promise<Gener
   const specials = input.requests.flatMap((r) =>
     r.special ? [{ userId: r.userId, date: r.date, special: r.special }] : [],
   )
+  // 3-9 14: 관리자가 대신 넣은 휴가 날(생성 칸 출처 'admin' → 파란 표시)
+  const adminLeaveDays = new Set(
+    leaves
+      .filter((l) => l.byAdmin)
+      .flatMap((l) => leaveDates(l.startDate, l.endDate).map((d) => `${l.userId}|${d}`)),
+  )
   const { fixed, checkupDates } = fixedCells({
     days,
     nurses: input.nurses,
@@ -231,25 +247,45 @@ export async function buildGenerationInput(db: Db, plan: PlanRow): Promise<Gener
 
   const rotating = input.nurses.filter((n) => n.rotation === 'rotating' && days.some((d) => isEmployed(n, d)))
   const heads = input.nurses.filter((n) => n.rotation === 'fixed_weekday')
-  const head = heads.flatMap((h) =>
-    headCells(h, days, red, {
-      fixed: fixed.get(h.id) ?? new Map(),
-      offRequests: new Set(
-        input.requests
-          .filter((r) => r.userId === h.id && r.options.includes('OFF') && !r.options.includes('D'))
-          .map((r) => r.date),
-      ),
-      // 2-11 R-HEAD-2: 수간호사 단일 D 신청
-      dRequests: new Set(
-        input.requests
-          .filter((r) => r.userId === h.id && r.options.length === 1 && r.options[0] === 'D')
-          .map((r) => r.date),
-      ),
-    }),
-  )
+  const freeze = opts.freeze
+  if (freeze) {
+    const rotIdsF = new Set(rotating.map((n) => n.id))
+    for (const c of freeze.cells) {
+      if (!rotIdsF.has(c.userId)) continue
+      if (c.date >= freeze.from && !freeze.keep?.has(`${c.userId}|${c.date}`)) continue
+      if (!fixed.has(c.userId)) fixed.set(c.userId, new Map())
+      const f: FixedCell = { code: c.code }
+      if (c.offKind) f.offKind = c.offKind
+      if (c.leaveKind) f.leaveKind = c.leaveKind
+      fixed.get(c.userId)!.set(c.date, f)
+    }
+  }
+  const frozenHead = freeze
+    ? freeze.cells
+        .filter((c) => heads.some((h) => h.id === c.userId))
+        .map((c) => ({ ...c, checkupHalf: c.checkupHalf }))
+    : null
+  const head =
+    frozenHead ??
+    heads.flatMap((h) =>
+      headCells(h, days, red, {
+        fixed: fixed.get(h.id) ?? new Map(),
+        offRequests: new Set(
+          input.requests
+            .filter((r) => r.userId === h.id && r.options.includes('OFF') && !r.options.includes('D'))
+            .map((r) => r.date),
+        ),
+        // 2-11 R-HEAD-2: 수간호사 단일 D 신청
+        dRequests: new Set(
+          input.requests
+            .filter((r) => r.userId === h.id && r.options.length === 1 && r.options[0] === 'D')
+            .map((r) => r.date),
+        ),
+      }),
+    )
   // R-HEAD-3: 고정·신청이 아닌 기본 S 칸만 솔버가 D로 바꿀 수 있다
   const flexKey = new Set(
-    head
+    (frozenHead ? [] : head)
       .filter((c) => c.code === 'S' && !fixed.get(c.userId)?.has(c.date))
       .map((c) => `${c.userId}|${c.date}`),
   )
@@ -362,6 +398,10 @@ export async function buildGenerationInput(db: Db, plan: PlanRow): Promise<Gener
       shiftBalanceWindowMonths: rules.params.shiftBalanceWindowMonths,
       hard: SEVERITY_KEYS.filter((k) => rules.severity[k] === 'hard'),
       avoidNightRestart: rules.toggles.avoidNightRestart,
+      // 3-9 10·13
+      maxStaff: rules.params.maxStaffPerShift,
+      offCarryMin: rules.params.offCarryMin,
+      offCarryMax: rules.params.offCarryMax,
     },
     restHours,
   }
@@ -386,6 +426,7 @@ export async function buildGenerationInput(db: Db, plan: PlanRow): Promise<Gener
     base,
     headCells: head,
     fixed,
+    adminLeaveDays,
     checkupDates,
     prevMonthConfirmed,
     inputHash: createHash('sha256').update(canonical(base)).digest('hex'),

@@ -50,6 +50,9 @@ const PARAM_SEVERITY_KEY: Partial<Record<keyof RuleParams, SeverityKey>> = {
   offAfterNight: 'OFF_AFTER_N',
   sleepingOffPerN: 'SLEEPING',
   minStaffPerShift: 'STAFF',
+  maxStaffPerShift: 'STAFF_MAX',
+  offCarryMin: 'OFF_CARRY',
+  offCarryMax: 'OFF_CARRY',
   minKTass: 'KTAS',
   trainingMonths: 'TRAINING',
   newbieTripleWeeks: 'STAFF',
@@ -103,6 +106,36 @@ export const RULE_PARAM_LIMITS: RuleParamLimit[] = [
   p('offAfterNight', 'N 후 OFF', '권고', '개', 0, 4, '나이트', '불가피 시 N-OFF-E 허용'),
   p('sleepingOffPerN', '슬리핑오프 기준 N', '필수', '개', 1, 12, '나이트', '누적 N마다 OFF 1'),
   p('minStaffPerShift', '듀티당 최소 인원', '필수', '명', 1, 10, '인원·신규', 'D·E·N 각각'),
+  p(
+    'maxStaffPerShift',
+    '듀티당 최대 인원',
+    '필수',
+    '명',
+    1,
+    10,
+    '인원·신규',
+    'D·E·N 각각 · 넘는 사람은 OFF · 3인 배정 기간 신규·수간호사 S는 세지 않음',
+  ),
+  p(
+    'offCarryMin',
+    '누적 OFF 최소',
+    '필수',
+    '개',
+    -31,
+    0,
+    '공정성',
+    '월말 누적 OFF가 이보다 작으면 안 됨 (예: −3)',
+  ),
+  p(
+    'offCarryMax',
+    '누적 OFF 최대',
+    '필수',
+    '개',
+    0,
+    31,
+    '공정성',
+    '월말 누적 OFF가 이보다 크면 안 됨 (예: +3)',
+  ),
   p('minKTass', 'KTAS 권한자', '필수', '명 이상', 0, 5, '인원·신규', '듀티마다'),
   p('trainingMonths', '신규 트레이닝 기간', '필수', '개월', 1, 12, '인원·신규', '프리셉터와 같은 근무'),
   p('newbieTripleWeeks', '3인 배정 기간(완전 신규)', '필수', '주', 0, 12, '인원·신규', '트레이닝 시작 후'),
@@ -219,6 +252,8 @@ export function validateRuleSet(rules: RuleSet): RuleError[] {
   if (v.minNightPerMonth > v.targetNightPerMonth)
     add('minNightPerMonth', '월 나이트 최소는 목표 이하여야 합니다.')
   if (v.minKTass > v.minStaffPerShift) add('minKTass', 'KTAS 권한자는 듀티당 최소 인원 이하여야 합니다.')
+  if (v.maxStaffPerShift < v.minStaffPerShift)
+    add('maxStaffPerShift', '듀티당 최대 인원은 최소 인원 이상이어야 합니다.')
   if (v.negotiationStartDay <= v.requestDeadlineDay || v.negotiationStartDay > v.negotiationEndDay)
     add('negotiationStartDay', '협의 수정 기간은 신청 마감 다음 날 이후이고 시작 ≤ 끝이어야 합니다.')
   if (v.nightDedicatedMaxPerMonth31 < v.nightDedicatedMaxPerMonth)

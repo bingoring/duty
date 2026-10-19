@@ -10,6 +10,7 @@ import {
   type GridCell,
   type LeaveKind,
   type OffKind,
+  type RuleSet,
   type ShiftCode,
 } from '@duty/domain'
 import { and, desc, eq, max } from 'drizzle-orm'
@@ -81,6 +82,11 @@ async function ruleVersionNo(db: Db) {
 }
 
 // R-GEN-12: 불가능 원인 문구
+export const CARRY_STAFF_HINT =
+  '「듀티당 최대 인원」과 「누적 OFF 범위」가 둘 다 필수라 함께 지키지 못할 수 있습니다. 규칙 설정에서 둘 중 하나를 권고로 바꾸거나 범위를 넓혀 주세요.'
+export const carryStaffConflict = (rules: RuleSet) =>
+  rules.severity.STAFF_MAX === 'hard' && rules.severity.OFF_CARRY === 'hard'
+
 export function causeText(
   c: SolverCause,
   nameOf: (id: string) => string,
@@ -126,6 +132,10 @@ export function causeText(
       return `${who} · D·E·N 고르게(필수)와 충돌합니다`
     case 'WEEKEND_PAIR':
       return `${who} · 월 1회 주말 이틀 통 OFF(필수)와 충돌합니다`
+    case 'STAFF_MAX':
+      return `${day} ${c.shift} 인원이 듀티당 최대 인원을 넘습니다 (OFF로 돌릴 사람이 없습니다)`
+    case 'OFF_CARRY':
+      return `${who} · 월말 누적 OFF 범위(필수)를 지킬 수 없습니다`
     case 'JUNIOR_ONLY':
       return `${day} ${c.shift} 저연차끼리만 서게 됩니다 (동일듀티 저연차끼리 배정 방지 · 필수)`
     case 'REPEAT_PAIR':
@@ -208,6 +218,8 @@ async function generateOnce(
       )
       .filter((t) => !seen.has(t) && seen.add(t))
       .slice(0, MAX_CAUSES)
+    // 3-9: 최소 = 최대 인원이면 듀티 수가 고정되어 누적 OFF를 맞출 여지가 없다 — 원인 후보로 알린다
+    if (!causes.length && carryStaffConflict(rules)) causes.push(CARRY_STAFF_HINT)
     return fail(
       'infeasible',
       causes.length
@@ -282,11 +294,14 @@ function cellRows(g: GenerationInput, cells: GridCell[], candidateId: string) {
     offKind: c.offKind ?? null,
     leaveKind: c.leaveKind ?? null,
     checkupHalf: c.checkupHalf,
-    source: generatedCellSource(
-      c,
-      reqs.get(`${c.userId}|${c.date}`),
-      g.fixed.get(c.userId)?.has(c.date) ?? false,
-    ),
+    // 3-9 14: 관리자가 대신 넣은 휴가 칸은 파란 표시
+    source: g.adminLeaveDays.has(`${c.userId}|${c.date}`)
+      ? 'admin'
+      : generatedCellSource(
+          c,
+          reqs.get(`${c.userId}|${c.date}`),
+          g.fixed.get(c.userId)?.has(c.date) ?? false,
+        ),
   }))
 }
 

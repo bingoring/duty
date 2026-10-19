@@ -8,7 +8,7 @@ describe('근무 조정 서버 액션 가드', () => {
   const chunks = src.split('export async function ').slice(1)
   const names = chunks.map((c) => c.slice(0, c.indexOf('(')))
 
-  it('액션이 6개 있다', () => {
+  it('액션이 8개 있다', () => {
     expect(names).toEqual([
       'saveEditsAction',
       'updateNegotiationAction',
@@ -16,6 +16,8 @@ describe('근무 조정 서버 액션 가드', () => {
       'closeMonthAction',
       'reopenMonthAction',
       'cancelApprovedLeaveAction',
+      'rerollPreviewAction',
+      'rerollFromAction',
     ])
   })
 

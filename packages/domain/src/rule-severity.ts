@@ -25,6 +25,9 @@ export const SEVERITY_KEYS = [
   // 3-8
   'NIGHT_RESTART',
   'OFF_EVE',
+  // 3-9
+  'STAFF_MAX',
+  'OFF_CARRY',
 ] as const
 
 export type SeverityKey = (typeof SEVERITY_KEYS)[number]
@@ -52,6 +55,8 @@ export const DEFAULT_SEVERITY: Record<SeverityKey, Severity> = {
   EDU_LIMIT: 'hard',
   NIGHT_RESTART: 'soft',
   OFF_EVE: 'hard',
+  STAFF_MAX: 'soft',
+  OFF_CARRY: 'hard',
 }
 
 const SeverityValue = z.enum(['hard', 'soft'])
@@ -89,6 +94,8 @@ export const RULE_SEVERITY_KEY: Partial<Record<RuleId, SeverityKey>> = {
   'S-REPEAT-PAIR': 'REPEAT_PAIR',
   'S-NIGHT-RESTART': 'NIGHT_RESTART',
   'H-OFF-EVE': 'OFF_EVE',
+  'H-STAFF-MAX': 'STAFF_MAX',
+  'H-OFF-CARRY': 'OFF_CARRY',
 }
 
 export function severityOf(ruleId: RuleId, severity: RuleSeverity): Severity {
@@ -121,4 +128,6 @@ export const SEVERITY_KEY_LABEL: Record<SeverityKey, string> = {
   EDU_LIMIT: '교육 연간 횟수',
   NIGHT_RESTART: 'N 뒤 다시 일할 때 D·E로',
   OFF_EVE: '신청 OFF 전날 N 금지',
+  STAFF_MAX: '듀티당 최대 인원',
+  OFF_CARRY: '누적 OFF 범위',
 }

@@ -527,12 +527,29 @@
                   "REPEAT_PAIR",
                   "EDU_LIMIT",
                   "NIGHT_RESTART",
-                  "OFF_EVE"
+                  "OFF_EVE",
+                  "STAFF_MAX",
+                  "OFF_CARRY"
                 ]
               }
             },
             "avoidNightRestart": {
               "type": "boolean"
+            },
+            "maxStaff": {
+              "type": "integer",
+              "exclusiveMinimum": 0,
+              "maximum": 9007199254740991
+            },
+            "offCarryMin": {
+              "type": "integer",
+              "minimum": -9007199254740991,
+              "maximum": 9007199254740991
+            },
+            "offCarryMax": {
+              "type": "integer",
+              "minimum": -9007199254740991,
+              "maximum": 9007199254740991
             }
           },
           "required": [
@@ -748,7 +765,9 @@
                       "sleepingOver",
                       "nightMin",
                       "nightRestart",
-                      "offEve"
+                      "offEve",
+                      "staffOver",
+                      "offCarry"
                     ]
                   },
                   "additionalProperties": {
@@ -785,7 +804,9 @@
                     "sleepingOver",
                     "nightMin",
                     "nightRestart",
-                    "offEve"
+                    "offEve",
+                    "staffOver",
+                    "offCarry"
                   ]
                 }
               },
@@ -851,7 +872,9 @@
                       "REPEAT_PAIR",
                       "NIGHT_MIN",
                       "NIGHT_RESTART",
-                      "OFF_EVE"
+                      "OFF_EVE",
+                      "STAFF_MAX",
+                      "OFF_CARRY"
                     ]
                   },
                   "userId": {

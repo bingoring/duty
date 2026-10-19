@@ -3,7 +3,12 @@ import type { Violation } from './rules'
 
 export type FormatContext = { nameOf: (userId: string) => string; month: number }
 
-const SPECIAL_LABEL: Record<string, string> = { AL: '연차', EDU_CONT: '보수교육', EDU_UNION: '노조교육' }
+const SPECIAL_LABEL: Record<string, string> = {
+  AL: '연차',
+  EDU_CONT: '보수교육',
+  EDU_UNION: '노조교육',
+  S: 'S 근무',
+}
 const BALANCE_LABEL: Record<string, string> = {
   annual_leave: '연차',
   special_leave: '특휴',
@@ -51,6 +56,15 @@ export function formatViolation(v: Violation, ctx: FormatContext): { title: stri
       return { title: `${name} · 연속 오프 ${d.count}일`, detail: `${range(v.dates)} (상한 ${d.max}일)` }
     case 'H-STAFF':
       return { title: `${day} ${v.shift} 인원 ${d.count}명`, detail: `최소 ${d.min}명` }
+    case 'H-STAFF-MAX':
+      return { title: `${day} ${v.shift} 인원 ${d.count}명`, detail: `최대 ${d.max}명` }
+    case 'H-OFF-CARRY': {
+      const s = (x: number) => (x > 0 ? `+${x}` : x < 0 ? `−${-x}` : '0')
+      return {
+        title: `${name} · 월말 누적 OFF ${s(Number(d.after))}`,
+        detail: `범위 ${s(Number(d.min))} ~ ${s(Number(d.max))}`,
+      }
+    }
     case 'H-KTASS':
       return { title: `${day} ${v.shift} KTAS ${d.count}명`, detail: `최소 ${d.min}명` }
     case 'H-TRAINING':

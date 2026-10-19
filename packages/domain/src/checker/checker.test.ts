@@ -146,6 +146,24 @@ describe('H-OFF-CONSEC (기본 15일, Q2)', () => {
   })
 })
 
+describe('H-OFF-CARRY (3-9 13, 기본 −3 ~ +3)', () => {
+  // 2026-10: 1일 목요일, 빨간 날(주말) 9일 → 기준 OFF 9. 날짜별 토큰 31개
+  const month = (offs: number) => Array.from({ length: 31 }, (_, i) => (i < offs ? 'O' : 'D')).join(' ')
+
+  it('월말 누적 = 월초 + 실제 OFF − 기준 OFF가 범위를 넘으면 위반', () => {
+    expect(only(solo(month(12)), 'H-OFF-CARRY')).toEqual([])
+    expect(only(solo(month(13)), 'H-OFF-CARRY')).toMatchObject([{ data: { after: 4, min: -3, max: 3 } }])
+    expect(only(solo(month(5)), 'H-OFF-CARRY')).toMatchObject([{ data: { after: -4 } }])
+    expect(only(solo(month(9), { nurses: [nurse('a', { offCarryBefore: 4 })] }), 'H-OFF-CARRY')).toHaveLength(
+      1,
+    )
+  })
+
+  it('칸이 비어 있는 달(생성 전)은 보지 않는다', () => {
+    expect(only(solo('O O O O'), 'H-OFF-CARRY')).toEqual([])
+  })
+})
+
 describe('인원·KTAS·수간호사 보충', () => {
   const day = (
     cells: GridCell[],
@@ -169,6 +187,14 @@ describe('인원·KTAS·수간호사 보충', () => {
     expect(dOnly(only(day(onD(['a', 'b']), nurses), 'H-KTASS'))).toMatchObject([{ data: { count: 0 } }])
     const valid = [nurse('a', { kTassUntil: OCT1 }), ...nurses.slice(1)]
     expect(dOnly(only(day(onD(['a', 'b']), valid), 'H-KTASS'))).toEqual([])
+  })
+
+  it('3-9: 듀티당 최대 인원(기본 2명)을 넘으면 H-STAFF-MAX, 수간호사 S는 세지 않는다', () => {
+    const three = [nurse('a'), nurse('b'), nurse('c'), nurse('h', { rotation: 'fixed_weekday' as const })]
+    expect(dOnly(only(day(onD(['a', 'b', 'c']), three), 'H-STAFF-MAX'))).toMatchObject([
+      { data: { count: 3, max: 2 } },
+    ])
+    expect(dOnly(only(day([...onD(['a', 'b']), ...row('h', OCT1, 'S')], three), 'H-STAFF-MAX'))).toEqual([])
   })
 
   it('교대 근무자만으로 모자라면 수간호사 D로 채우고 소프트 경고 (Q1)', () => {

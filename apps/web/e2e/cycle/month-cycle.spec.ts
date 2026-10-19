@@ -57,21 +57,18 @@ test('11월 한 달: 신청·휴가 → 생성·확정 → 교환·관리자 조
     await expect(me.getByRole('status')).toHaveText('1건을 제출했습니다.')
   })
 
-  await test.step('10/13 B 연차 신청 → 10/14 관리자 승인', async () => {
+  // 3-9 3: 연차는 저장하면 바로 승인(관리자 승인 없음)
+  await test.step('10/13 B 연차 저장 → 바로 승인, 관리자 승인 대기에 없음', async () => {
     const b = await as(browser, B.employeeNo, '2026-10-13', '/requests?ym=2026-11')
     await waitHydrated(b)
     await b.getByRole('button', { name: `${B.name} ${LEAVE_DATE}` }).click()
     const pop = b.getByRole('dialog')
     await pop.getByRole('button', { name: '휴가' }).click()
     await pop.getByRole('button', { name: '임시 저장' }).click()
-    await b.getByRole('button', { name: '신청 제출' }).click()
-    await expect(b.getByRole('status')).toContainText('제출했습니다')
+    await expect(b.getByRole('button', { name: `${B.name} ${LEAVE_DATE}` })).toHaveText('연차')
 
     const admin = await as(browser, ADMIN.employeeNo, '2026-10-14', '/requests?ym=2026-11')
     await waitHydrated(admin)
-    const card = admin.getByRole('article', { name: `${B.name} 휴가` })
-    await expect(card).toContainText('11월 · 신청 중')
-    await card.getByRole('button', { name: '승인' }).click()
     await expect(admin.getByRole('article', { name: `${B.name} 휴가` })).toHaveCount(0)
   })
 

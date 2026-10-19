@@ -11,7 +11,8 @@ import type { GridCell, NurseProfile, RequestEntry, ScheduleInput } from './type
 
 export type FixedCell = Pick<GridCell, 'code' | 'offKind' | 'leaveKind'>
 
-// 승인 휴가 → 칸 (2-5 확정된 달 승인과 같은 변환). 검진 반차는 코드를 고정하지 않는다
+// 승인 휴가 → 칸 (2-5 확정된 달 승인과 같은 변환).
+// 3-9 1·7: 검진 반차 날은 S로 고정(그날 D·E·N 듀티를 하지 않는다). 반차 표시(checkupHalf)는 checkupDates로 따로 붙인다
 export function leaveToCell(type: LeaveType): FixedCell | null {
   switch (type) {
     case 'annual':
@@ -21,7 +22,7 @@ export function leaveToCell(type: LeaveType): FixedCell | null {
     case 'founding':
       return { code: 'OFF', offKind: 'founding' }
     case 'checkup':
-      return null
+      return { code: 'S' }
     default:
       return { code: 'LEAVE', leaveKind: type }
   }
@@ -35,6 +36,8 @@ export function specialToCell(special: RequestSpecial): FixedCell {
       return { code: 'OFF', offKind: 'edu_cont' }
     case 'EDU_UNION':
       return { code: 'OFF', offKind: 'edu_union' }
+    case 'S':
+      return { code: 'S' }
   }
 }
 
@@ -65,7 +68,7 @@ export function fixedCells(a: {
       if (!ok(l.userId, d)) continue
       const c = leaveToCell(l.type)
       if (c) put(l.userId, d, c)
-      else {
+      if (l.type === 'checkup') {
         if (!checkupDates.has(l.userId)) checkupDates.set(l.userId, new Set())
         checkupDates.get(l.userId)!.add(d)
       }
@@ -160,7 +163,48 @@ export function generatedCellSource(
   return ok ? requested : 'auto'
 }
 
-export type GenerationCheck = { ok: boolean; title: string; detail: string }
+// 3-9 5: 미충족은 규칙별 한 줄(사람 이름 나열) + 펼치면 날짜별 상세(items). severity로 필수/권고 색을 나눈다
+export type GenerationCheck = {
+  ok: boolean
+  title: string
+  detail: string
+  severity?: 'hard' | 'soft'
+  items?: { title: string; detail: string }[]
+}
+
+// 규칙별 묶음 이름 (사람 단위 규칙은 이름을, 날짜·듀티 단위 규칙은 날짜 수를 센다)
+const GROUP_LABEL: Partial<Record<string, string>> = {
+  'H-CELL': '근무 미배정',
+  'H-PATTERN': '금지 근무 패턴',
+  'H-REST': '근무 간 휴식 부족',
+  'H-NIGHT-MAX': '월 나이트 상한 초과',
+  'H-NIGHT-CONSEC': '연속 나이트 초과',
+  'H-OFF-CONSEC': '연속 오프 초과',
+  'H-STAFF': '듀티 인원 부족',
+  'H-KTASS': 'KTAS 부족',
+  'H-TRAINING': '프리셉터와 다른 근무',
+  'H-SPECIAL-REQ': '특수 신청 미반영',
+  'H-SLEEPING': '슬리핑오프 초과',
+  'H-EDU-UNION': '노조교육 배정 불가',
+  'H-EDU-LIMIT': '교육 연간 한도 초과',
+  'H-BALANCE': '잔여 초과',
+  'H-OFF-EVE': '신청 OFF 전날 N',
+  'H-STAFF-MAX': '듀티당 최대 인원 초과',
+  'H-OFF-CARRY': '월말 누적 OFF 범위 밖',
+  'S-NIGHT-TARGET': '나이트 목표 초과',
+  'S-NIGHT-MIN': '나이트 최소 미달',
+  'S-WORK-CONSEC': '연속 근무 초과',
+  'S-OFF-AFTER-N': 'N 뒤 OFF 부족(N-OFF-E 등)',
+  'S-WEEKEND-PAIR': '주말 통 OFF 없음',
+  'S-WEEKEND-CARRY': '주말 통 OFF 다음 달 우선',
+  'S-SHIFT-BALANCE': 'D·E·N 치우침',
+  'S-HEAD-FILL': '수간호사로 인원 충족',
+  'S-JUNIOR-ONLY': '저연차끼리 근무',
+  'S-REPEAT-PAIR': '같은 사람과 자주 겹침',
+  'S-REQUEST': '신청 불충족',
+  'S-NIGHT-RESTART': 'N 뒤 쉬고 다시 N',
+}
+const DUTY_RULES = new Set(['H-STAFF', 'H-KTASS', 'H-STAFF-MAX', 'S-HEAD-FILL', 'S-JUNIOR-ONLY'])
 
 // 1i 우측 검사 결과 리스트: 통과 항목(인원·신청) → 권고 미충족(formatViolation)
 export function generationChecks(
@@ -204,14 +248,39 @@ export function generationChecks(
           },
     )
   }
-  // 날짜순(날짜 없는 항목은 뒤), 같은 날은 규칙 ID순
+  // 3-9 5: 규칙별로 묶는다. 필수 먼저, 같은 심각도는 건수 많은 순. 묶음 안은 날짜순
   const key = (v: { dates: IsoDate[]; ruleId: string }) => `${v.dates[0] ?? '9999'}|${v.ruleId}`
-  const listed = [...result.hardViolations, ...result.softWarnings].sort((a, b) =>
+  const groups = new Map<string, typeof result.hardViolations>()
+  for (const v of [...result.hardViolations, ...result.softWarnings].sort((a, b) =>
     key(a) < key(b) ? -1 : key(a) > key(b) ? 1 : 0,
-  )
-  for (const v of listed) {
-    const f = formatViolation(v, ctx)
-    out.push({ ok: false, ...f })
+  ))
+    groups.set(v.ruleId, [...(groups.get(v.ruleId) ?? []), v])
+  const ordered = [...groups.entries()].sort(([, a], [, b]) => {
+    const ha = a[0]!.severity === 'hard' ? 0 : 1
+    const hb = b[0]!.severity === 'hard' ? 0 : 1
+    return ha - hb || b.length - a.length
+  })
+  for (const [ruleId, vs] of ordered) {
+    const label = GROUP_LABEL[ruleId] ?? ruleId
+    const items = vs.map((v) => formatViolation(v, ctx))
+    let title: string
+    let detail: string
+    if (DUTY_RULES.has(ruleId)) {
+      title = `${label} · ${vs.length}건`
+      detail = vs
+        .map((v) => `${v.dates[0] ? formatMD(v.dates[0]) : ''}${v.shift ? ` ${v.shift}` : ''}`)
+        .join(', ')
+    } else {
+      const names: string[] = []
+      for (const v of vs)
+        for (const id of v.userIds.slice(0, ruleId === 'H-TRAINING' ? 1 : undefined)) {
+          const n = ctx.nameOf(id)
+          if (n && !names.includes(n)) names.push(n)
+        }
+      title = `${label} · ${names.length}명${vs.length > names.length ? ` (${vs.length}건)` : ''}`
+      detail = names.join(', ')
+    }
+    out.push({ ok: false, title, detail, severity: vs[0]!.severity, items })
   }
   return out
 }

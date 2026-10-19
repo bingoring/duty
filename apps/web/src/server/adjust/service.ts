@@ -9,6 +9,7 @@ import {
   type CellEdit,
   type ScheduleInput,
 } from '@duty/domain'
+import { nurseOffRequests } from './reroll'
 import { and, eq, inArray } from 'drizzle-orm'
 import type { Db } from '../db/client'
 import { lockPlan } from '../plans/lock'
@@ -87,6 +88,20 @@ export async function saveEdits(
       return {
         ok: false,
         message: `다른 곳에서 먼저 바뀐 칸이 있습니다: ${conflicts.map((e) => `${nameOf(e.userId)} ${formatMD(e.date)}`).join(', ')}. 새로 불러와 주세요.`,
+      }
+
+    // 3-9 9: 간호사가 신청한 OFF는 D·E·N으로 바꾸지 못한다(휴가로 바꾸는 것은 근무 신청·도크의 휴가 입력)
+    const offLocked = await nurseOffRequests(tdb, plan)
+    const lockedEdits = edits.filter(
+      (e) =>
+        e.before.code === 'OFF' &&
+        ['D', 'E', 'N'].includes(e.after.code) &&
+        offLocked.has(`${e.userId}|${e.date}`),
+    )
+    if (lockedEdits.length)
+      return {
+        ok: false,
+        message: `간호사가 신청한 OFF는 근무로 바꿀 수 없습니다: ${lockedEdits.map((e) => `${nameOf(e.userId)} ${formatMD(e.date)}`).join(', ')}`,
       }
 
     // R-ADJ-6: 서버 재검사, 예외 사유가 가려 주지 않는 새 필수 위반은 거부

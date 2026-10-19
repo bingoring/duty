@@ -121,6 +121,10 @@ export function buildRulesGuide(rules: RuleSet, version: number | null): RulesGu
           tag: 'auto',
         },
         {
+          text: `월말 누적 OFF는 ${p.offCarryMin} ~ +${p.offCarryMax} 안에 들도록 배정합니다.`,
+          tag: sev('OFF_CARRY'),
+        },
+        {
           text: `누적 N ${p.sleepingOffPerN}개마다 슬리핑오프 1일을 줍니다. 남은 N은 연말 정산 없이 이월됩니다(예: 이번 달 N ${p.sleepingOffPerN + 1}개 → 슬리핑오프 1일, 남은 1개는 다음 달 N과 합산).`,
           tag: sev('SLEEPING'),
         },
@@ -166,6 +170,10 @@ export function buildRulesGuide(rules: RuleSet, version: number | null): RulesGu
         {
           text: `듀티(D·E·N)마다 최소 ${p.minStaffPerShift}명, KTAS 권한자 ${p.minKTass}명 이상을 배정합니다.`,
           tag: sev('STAFF', 'KTAS'),
+        },
+        {
+          text: `듀티마다 최대 ${p.maxStaffPerShift}명까지 배정하고, 남는 사람은 OFF로 둡니다.`,
+          tag: sev('STAFF_MAX'),
         },
         {
           text: '같은 듀티에 저연차끼리만 서지 않도록 합니다.',

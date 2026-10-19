@@ -99,6 +99,13 @@
       "when": 1792347528064,
       "tag": "0013_doctor_schedule",
       "breakpoints": true
+    },
+    {
+      "idx": 14,
+      "version": "7",
+      "when": 1792380091444,
+      "tag": "0014_leave_by_admin",
+      "breakpoints": true
     }
   ]
 }

@@ -26,6 +26,11 @@ export const RuleParamsSchema = z.object({
   maxConsecutiveNight: positiveInt,
   offAfterNight: z.number().int().nonnegative(),
   minStaffPerShift: positiveInt,
+  // 3-9 10: 듀티당 최대 인원(넘는 사람은 OFF). 예전 버전은 기본값
+  maxStaffPerShift: positiveInt.max(10).default(2),
+  // 3-9 13: 월말 누적 OFF 범위(−면 덜 쉰 것, +면 더 쉰 것)
+  offCarryMin: z.number().int().min(-31).max(0).default(-3),
+  offCarryMax: z.number().int().min(0).max(31).default(3),
   minKTass: z.number().int().nonnegative(),
   newbieTripleWeeks: z.number().int().nonnegative(),
   // 2-2에서 추가. 예전 규칙 버전(jsonb)에는 없으므로 기본값으로 채운다
@@ -84,6 +89,9 @@ export const DEFAULT_RULES: RuleSet = {
     maxConsecutiveNight: 3,
     offAfterNight: 2,
     minStaffPerShift: 2,
+    maxStaffPerShift: 2,
+    offCarryMin: -3,
+    offCarryMax: 3,
     minKTass: 1,
     newbieTripleWeeks: 3,
     experiencedTripleWeeks: 2,

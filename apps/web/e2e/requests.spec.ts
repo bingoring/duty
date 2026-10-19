@@ -70,7 +70,7 @@ test.describe('S4 근무 신청', () => {
     await me.reload()
     await waitHydrated(me)
     await expect(me.getByRole('button', { name: `${PEER.name} 2026-11-19` }).locator('span')).toHaveClass(
-      /bg-shift-leave/,
+      /bg-shift-off/,
     )
     await Promise.all([me.close(), admin.close()])
   })

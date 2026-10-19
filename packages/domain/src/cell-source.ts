@@ -15,6 +15,8 @@ export function specialSatisfied(cell: GridCell, special: RequestSpecial): boole
       return cell.code === 'OFF' && cell.offKind === 'edu_cont'
     case 'EDU_UNION':
       return cell.code === 'OFF' && cell.offKind === 'edu_union'
+    case 'S':
+      return cell.code === 'S'
   }
 }
 

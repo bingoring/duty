@@ -9,7 +9,8 @@ const CHIP: Record<NonNullable<GridCellView['chip']>, string> = {
   n: 'bg-shift-n',
   s: 'bg-shift-s',
   off: 'bg-shift-off',
-  leave: 'bg-shift-leave',
+  // 3-9 11: 휴가 칸은 OFF와 같은 색(글자는 종류 이름)
+  leave: 'bg-shift-off',
 }
 // 2-11 R-MARK-1: 관리자 수정 = 파란 실선, 교환 = 빨간 점선, 신청 반영 = 빨간 실선
 export const OUTLINE = {
@@ -69,7 +70,10 @@ function Cell({
     <>
       {v.chip && (
         <span
-          className={`relative flex size-(--chip) items-center justify-center rounded-[5px] font-bold text-ink ${
+          // 3-9 11: 신청 반영 칸은 글자도 빨간색(관리자 수정은 파란 테두리만)
+          className={`relative flex size-(--chip) items-center justify-center rounded-[5px] font-bold ${
+            !pending && v.outline === 'requested' ? 'text-danger' : 'text-ink'
+          } ${
             v.label.length >= 2 ? 'text-[calc(var(--chip)*0.425)]' : 'text-[calc(var(--chip)*0.525)]'
           } ${CHIP[v.chip]} ${pending ? 'shadow-[inset_0_0_0_2px_var(--color-admin)] outline-1 outline-offset-1 outline-admin outline-dashed' : v.outline ? OUTLINE[v.outline] : ''}`}
         >
@@ -78,9 +82,6 @@ function Cell({
             <span aria-hidden className="absolute -top-0.5 -right-0.5 h-1 w-1 rounded-full bg-ink-2" />
           )}
         </span>
-      )}
-      {v.warn && (
-        <span aria-hidden className="absolute bottom-0.5 left-0.5 h-1.5 w-1.5 rounded-full bg-warn-dot" />
       )}
     </>
   )

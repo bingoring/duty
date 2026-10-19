@@ -30,7 +30,7 @@ const CHIP: Record<string, string> = {
   n: 'bg-shift-n',
   s: 'bg-shift-s',
   off: 'bg-shift-off',
-  leave: 'bg-shift-leave',
+  leave: 'bg-shift-off',
 }
 const CODE_CLS: Record<SwapCode, string> = {
   D: 'bg-shift-d',
@@ -340,7 +340,7 @@ function Cell({
   const cls = `relative flex h-8 items-center justify-center border-r border-b border-line-soft ${colSel ? 'bg-warn-bg' : rowSel ? SEL_ROW : c.weekend ? 'bg-weekend-cell' : ''} ${rowSel && colSel ? 'z-10 outline-2 -outline-offset-2 outline-ink' : ''}`
   const chip = c.chip && (
     <span
-      className={`flex h-5 w-5 items-center justify-center rounded-[5px] font-bold text-ink ${c.label === 'off' ? 'text-[8.5px]' : 'text-[10.5px]'} ${CHIP[c.chip]} ${c.outline ? OUTLINE[c.outline] : ''}`}
+      className={`flex h-5 w-5 items-center justify-center rounded-[5px] font-bold ${c.outline === 'requested' ? 'text-danger' : 'text-ink'} ${c.label === 'off' ? 'text-[8.5px]' : 'text-[10.5px]'} ${CHIP[c.chip]} ${c.outline ? OUTLINE[c.outline] : ''}`}
     >
       {c.label}
     </span>
@@ -464,7 +464,7 @@ function SwapPopup(props: {
                 {me ? ' (나)' : ''}
               </span>
               <span
-                className={`flex h-[30px] w-[34px] items-center justify-center rounded-[7px] text-xs font-bold text-ink ${CODE_CLS[cur] ?? 'bg-shift-leave'}`}
+                className={`flex h-[30px] w-[34px] items-center justify-center rounded-[7px] text-xs font-bold text-ink ${CODE_CLS[cur] ?? 'bg-shift-off'}`}
               >
                 {ok ? (cur === 'OFF' ? 'off' : cur) : '휴'}
               </span>

@@ -40,23 +40,27 @@ function Chip({ c, compact = false }: { c: RequestCellDTO; compact?: boolean }) 
           ? 'text-[10px]'
           : 'text-[11px]'
   const box = compact ? 'h-[22px] min-w-[20px] px-[1px]' : 'h-[26px] min-w-[26px] px-[3px]'
+  // 3-9 11: 휴가는 OFF와 같은 색
   const bg = leave
     ? approved
-      ? 'bg-shift-leave'
+      ? 'bg-shift-off'
       : 'bg-surface'
     : multi
       ? 'bg-surface'
       : (CHIP_BG[c.label] ?? 'bg-shift-off')
   const outline = leave
-    ? approved
-      ? ''
-      : 'border border-dashed border-[#8fa874]'
+    ? c.leave?.byAdmin
+      ? 'shadow-[inset_0_0_0_1.5px_var(--color-admin)]'
+      : approved
+        ? ''
+        : 'border border-dashed border-[#8fa874]'
     : c.byAdmin
       ? 'shadow-[inset_0_0_0_1.5px_var(--color-admin)]'
       : 'shadow-[inset_0_0_0_1.5px_var(--color-danger)]'
   return (
     <span
-      className={`flex items-center justify-center rounded-md font-bold text-ink ${box} ${size} ${bg} ${outline} ${
+      // 3-9 11: 간호사 신청은 글자도 빨간색, 관리자 입력은 파란 테두리만
+      className={`flex items-center justify-center rounded-md font-bold ${!leave && !c.byAdmin ? 'text-danger' : 'text-ink'} ${box} ${size} ${bg} ${outline} ${
         c.draft ? 'opacity-60' : ''
       } ${rejected ? 'line-through opacity-50' : ''} ${c.hasComment ? 'underline decoration-ink-2 decoration-dotted underline-offset-[3px]' : ''}`}
     >
@@ -302,7 +306,7 @@ function Legend({ admin = false }: { admin?: boolean }) {
         O
       </span>
       관리자 입력
-      <span className="ml-1.5 rounded-[5px] bg-shift-leave px-2 py-[3px] font-bold text-ink">연차</span>
+      <span className="ml-1.5 rounded-[5px] bg-shift-off px-2 py-[3px] font-bold text-ink">연차</span>
       휴가{admin ? '' : ' (연차·검진·개원·병가·경조·공가·특휴)'}
       <span className="ml-1.5 underline decoration-dotted underline-offset-[3px]">밑줄</span>
       코멘트{admin ? ' — 관리자는 셀에 마우스를 올리면 코멘트 전문이 보입니다' : ''}
@@ -611,6 +615,7 @@ export function RequestsScreen({
               userId={sel.userId}
               userName={selRow.name}
               head={selRow.head}
+              own={selRow.me}
               cell={selCell}
               sameDay={sameDay}
               mode={view.editable === 'all' ? 'all' : 'leave'}
