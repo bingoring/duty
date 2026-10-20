@@ -163,6 +163,7 @@ class HardEnum(StrEnum):
     STAFF_MAX = 'STAFF_MAX'
     OFF_CARRY_MIN = 'OFF_CARRY_MIN'
     OFF_CARRY_MAX = 'OFF_CARRY_MAX'
+    REQUEST = 'REQUEST'
 
 
 class Rules(BaseModel):
@@ -323,6 +324,7 @@ class Group(StrEnum):
     STAFF_MAX = 'STAFF_MAX'
     OFF_CARRY_MIN = 'OFF_CARRY_MIN'
     OFF_CARRY_MAX = 'OFF_CARRY_MAX'
+    REQUEST = 'REQUEST'
 
 
 class Shift(StrEnum):
@@ -364,6 +366,7 @@ class RelaxableEnum(StrEnum):
     STAFF_MAX = 'STAFF_MAX'
     OFF_CARRY_MIN = 'OFF_CARRY_MIN'
     OFF_CARRY_MAX = 'OFF_CARRY_MAX'
+    REQUEST = 'REQUEST'
 
 
 class SolverResponse2(BaseModel):

@@ -18,7 +18,13 @@ import {
   generateDoctorCandidate,
   loadDoctorGenerate,
 } from './generate'
-import { loadDoctorRequests, saveDoctorPrefs, saveDoctorRequests, type DoctorActor } from './requests'
+import {
+  loadDoctorRequests,
+  saveDoctorPrefs,
+  saveDoctorRequests,
+  withdrawDoctorRequest,
+  type DoctorActor,
+} from './requests'
 import { loadDoctorSchedule } from './schedule'
 import { changeDoctorLoginId, createDoctor, saveDoctorRules } from './staff'
 import {
@@ -186,11 +192,15 @@ describe('3-7c 신청·조건', () => {
     )
     const other = await doc('810202')
     const v = await loadDoctorRequests(db, { ...NOV, actor: other, userId: other.id, today: TODAY })
-    expect(v.others[sunday]).toContainEqual({ name: '노준호', text: 'D/O', fixed: false })
+    expect(v.others[sunday]).toContainEqual(
+      expect.objectContaining({ name: '노준호', text: 'D/O', fixed: false, byAdmin: false }),
+    )
     expect(JSON.stringify(v.others)).not.toContain('비밀')
     // 진하람 토요일 Night 필수가 「진하람 N · 고정」으로 보인다
     const sat = monthDates(2026, 11).find((d) => dayOfWeek(d) === 6)!
-    expect(v.others[sat]).toContainEqual({ name: '진하람', text: 'N · 고정', fixed: true })
+    expect(v.others[sat]).toContainEqual(
+      expect.objectContaining({ name: '진하람', text: 'N · 고정', fixed: true }),
+    )
   })
 
   it('신청 마감(10/20) 뒤에는 본인은 못 바꾸고 관리자는 바꾼다, 남의 신청은 관리자만', async () => {
@@ -203,6 +213,73 @@ describe('3-7c 신청·조건', () => {
     ok(await saveDoctorRequests(db, admin, input, '2026-10-21'))
     const [row] = await db.select().from(doctorRequests).where(eq(doctorRequests.userId, go.id))
     expect(row!.byAdmin).toBe(true)
+  })
+
+  // 3-11 4: 관리자가 넣어 준 신청 — 파란 점(byAdmin), 의사는 바꾸거나 철회할 수 없다
+  it('관리자가 넣은 신청은 byAdmin으로 보이고 그 의사는 못 바꾼다', async () => {
+    const go = await doc('810202')
+    const admin = await doc('800101')
+    const item = { date: '2026-11-04', options: ['D' as const], comment: null }
+    ok(await saveDoctorRequests(db, admin, { ...NOV, userId: go.id, items: [item], exceptions: [] }, TODAY))
+    const mine = await loadDoctorRequests(db, { ...NOV, actor: go, userId: go.id, today: TODAY })
+    expect(mine.mine['2026-11-04']).toMatchObject({ options: ['D'], byAdmin: true })
+    const other = await loadDoctorRequests(db, { ...NOV, actor: admin, userId: admin.id, today: TODAY })
+    expect(other.others['2026-11-04']).toContainEqual(
+      expect.objectContaining({ userId: go.id, byAdmin: true, fixed: false }),
+    )
+    const change = { ...NOV, userId: go.id, items: [{ ...item, options: ['O' as const] }], exceptions: [] }
+    const r = await saveDoctorRequests(db, go, change, TODAY)
+    expect(r).toMatchObject({ ok: false, message: expect.stringContaining('관리자가 넣은 신청') })
+    expect((await withdrawDoctorRequest(db, go, { ...NOV, userId: go.id, date: '2026-11-04' })).ok).toBe(
+      false,
+    )
+    // 다른 날은 그대로 신청할 수 있다
+    ok(
+      await saveDoctorRequests(
+        db,
+        go,
+        { ...NOV, userId: go.id, items: [{ ...item, date: '2026-11-05' }], exceptions: [] },
+        TODAY,
+      ),
+    )
+    // 관리자는 바꾸고 철회할 수 있다
+    ok(await saveDoctorRequests(db, admin, change, TODAY))
+    ok(await withdrawDoctorRequest(db, admin, { ...NOV, userId: go.id, date: '2026-11-04' }))
+    const rows = await db.select().from(doctorRequests).where(eq(doctorRequests.userId, go.id))
+    expect(rows.map((x) => x.date)).toEqual(['2026-11-05'])
+  })
+
+  // 3-11 12: 철회 — 본인 신청, 생성 전(REQUESTING)까지는 마감 뒤에도
+  it('신청 철회: 본인만, 마감 뒤에도 생성 전까지, 생성이 시작되면 관리자만', async () => {
+    const go = await doc('810202')
+    const no = await doc('820303')
+    const admin = await doc('800101')
+    const items = [
+      { date: '2026-11-03', options: ['O' as const], comment: null },
+      { date: '2026-11-06', options: ['N' as const], comment: null },
+    ]
+    ok(await saveDoctorRequests(db, go, { ...NOV, userId: go.id, items, exceptions: [] }, TODAY))
+    expect((await withdrawDoctorRequest(db, no, { ...NOV, userId: go.id, date: '2026-11-03' })).ok).toBe(
+      false,
+    )
+    expect((await withdrawDoctorRequest(db, go, { ...NOV, userId: go.id, date: '2026-11-09' })).ok).toBe(
+      false,
+    )
+    // 마감(10/20)이 지나도 REQUESTING이면 철회된다 (날짜와 무관)
+    ok(await withdrawDoctorRequest(db, go, { ...NOV, userId: go.id, date: '2026-11-03' }))
+    const v = await loadDoctorRequests(db, { ...NOV, actor: go, userId: go.id, today: '2026-10-21' })
+    expect(v.canWithdraw).toBe(true)
+    expect(Object.keys(v.mine)).toEqual(['2026-11-06'])
+    // 생성이 시작되면(DRAFTING) 의사는 철회할 수 없고 관리자는 된다
+    await db
+      .update(doctorMonthPlans)
+      .set({ status: 'DRAFTING' })
+      .where(and(eq(doctorMonthPlans.year, NOV.year), eq(doctorMonthPlans.month, NOV.month)))
+    expect((await withdrawDoctorRequest(db, go, { ...NOV, userId: go.id, date: '2026-11-06' })).ok).toBe(
+      false,
+    )
+    ok(await withdrawDoctorRequest(db, admin, { ...NOV, userId: go.id, date: '2026-11-06' }))
+    expect(await db.select().from(doctorRequests).where(eq(doctorRequests.userId, go.id))).toEqual([])
   })
 
   it('내 근무 조건 저장 — 범위 검증, 남의 조건은 관리자만', async () => {
@@ -322,9 +399,16 @@ describe('3-7e 조정·교환', () => {
     expect((await db.select().from(doctorShiftLogs).where(eq(doctorShiftLogs.planId, plan.id))).length).toBe(
       2,
     )
-    const marks = (await loadDoctorAdjust(db, OCT, jin, TODAY)).marks
-    expect(marks['2026-10-22:D']).toBe('swap')
-    expect(marks['2026-10-22:N']).toBeUndefined()
+    const adj = await loadDoctorAdjust(db, OCT, jin, TODAY)
+    expect(adj.marks['2026-10-22:D']).toBe('swap')
+    expect(adj.marks['2026-10-22:N']).toBeUndefined()
+    // 3-11 5: 원래 사람 — 조정 화면(id)·근무표(이름)
+    expect(adj.origins['2026-10-22:D']).toBe(baek.id)
+    expect(adj.origins['2026-10-22:N']).toBeUndefined()
+    const sv = await loadDoctorSchedule(db, { ...OCT, viewerId: jin.id, today: TODAY })
+    expect(sv.origins['2026-10-22:D']).toEqual({ id: baek.id, name: '백승우' })
+    expect(sv.origins['2026-10-23:D']).toEqual({ id: jin.id, name: '진하람' })
+    expect(Object.keys(sv.colors)).toHaveLength(5)
   })
 
   it('고정 조건을 깨는 교환은 보낼 수 없다 (노준호 일요일)', async () => {

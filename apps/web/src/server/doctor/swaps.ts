@@ -18,6 +18,7 @@ import type { DbOrTx } from '../seed/core'
 import { confirmedShifts, findDoctorPlan, type DoctorPlan, type Ym } from './core'
 import { doctorMonthInput } from './generate'
 import type { DoctorActor } from './requests'
+import { originalOwners } from './view'
 
 type Fail = { ok: false; message: string }
 const fail = (message: string): Fail => ({ ok: false, message })
@@ -33,14 +34,14 @@ async function adjustCheck(db: DbOrTx, plan: DoctorPlan, shifts: DoctorShiftRow[
     doctors: input.check,
     shifts,
     mode: 'adjust',
-    prevLastNight: input.prevNight,
+    ...input.checkCtx,
   })
   const before = checkDoctorMonth({
     ...plan,
     doctors: input.check,
     shifts: await confirmedShifts(db, plan.id),
     mode: 'adjust',
-    prevLastNight: input.prevNight,
+    ...input.checkCtx,
   })
   const key = (v: DoctorViolation) => `${v.rule}|${v.userId ?? ''}|${v.dates.join(',')}|${v.message}`
   const had = new Set([...before.hard, ...before.soft].map(key))
@@ -342,6 +343,18 @@ export async function loadDoctorAdjust(db: Db, ym: Ym, viewer: DoctorActor, toda
   return {
     plan,
     marks,
+    // 3-11 5: 바뀐 칸의 원래 사람 id (`${date}:${slot}`)
+    origins: originalOwners(logs),
     swaps: items,
   }
+}
+
+// 3-11 5: 근무표 화면용 — 바뀐 칸의 원래 사람 id
+export async function shiftOrigins(db: DbOrTx, planId: string): Promise<Record<string, string>> {
+  const logs = await db
+    .select()
+    .from(doctorShiftLogs)
+    .where(eq(doctorShiftLogs.planId, planId))
+    .orderBy(doctorShiftLogs.editedAt)
+  return originalOwners(logs)
 }

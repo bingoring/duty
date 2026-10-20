@@ -146,6 +146,11 @@ export function buildRulesGuide(rules: RuleSet, version: number | null): RulesGu
           text: `근무 신청은 매월 ${p.requestDeadlineDay}일까지, 협의 수정은 ${p.negotiationStartDay}–${p.negotiationEndDay}일에 합니다.`,
           tag: 'auto',
         },
+        // 3-11 간호사 1
+        {
+          text: '근무 신청은 신청한 근무 중 하나로 배정합니다(O/N이면 O 또는 N). 같은 날 신청이 몰리면 생성이 안 될 수 있으니 조율해 주세요.',
+          tag: sev('REQUEST'),
+        },
         {
           text: `보수교육 연 ${p.eduContPerYear}회, 노조교육 연 ${p.eduUnionPerYear}회(평일, 노조원)는 OFF로 배정합니다.`,
           tag: sev('EDU_LIMIT'),

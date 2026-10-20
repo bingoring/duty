@@ -13,7 +13,9 @@ import {
 import type { SwapItem } from '@/server/doctor/swaps'
 import type { CalPerson, CalWeek } from '@/server/doctor/view'
 import { Dialog, btnPrimary, btnSecondary, inputCls, useHydrated } from '../admin/ui'
+import type { DoctorColors } from './colors'
 import { DoctorCalendarGrid, KindChip, type ChipMark } from './DoctorCalendar'
+import { DoctorHighlightChips, highlightHrefs } from './DoctorHighlight'
 
 // 3-7e 의사 근무 조정 (간호사 S9 패턴). 의사: 내 칩 → 상대 칩 순서로 눌러 맞바꾸기 요청.
 // 관리자: 칩을 누르면 하단 도크에서 재배정, 두 번째 칩을 누르면 두 칩을 맞바꾼다. 규칙 검사는 서버가 한다
@@ -48,6 +50,10 @@ export function DoctorAdjustScreen(props: {
   admin: boolean
   marks: Record<string, 'admin' | 'swap'>
   swaps: SwapItem[]
+  // 3-11 1·5: 의사별 색 · 강조 · 바뀐 칸의 원래 사람
+  colors: DoctorColors
+  origins: Record<string, CalPerson>
+  highlight: string | null
 }) {
   const { year, month, today, weeks, doctors, viewerId, admin, swaps } = props
   const router = useRouter()
@@ -184,7 +190,7 @@ export function DoctorAdjustScreen(props: {
             </button>
           )}
         </div>
-        <div className="flex items-center gap-3 text-xs text-ink-2">
+        <div className="flex flex-wrap items-center gap-3 text-xs text-ink-2">
           <span className="inline-flex items-center gap-1">
             <span className="h-3.5 w-3.5 rounded shadow-[0_0_0_2px_var(--color-admin)]" />
             관리자 수정
@@ -196,6 +202,18 @@ export function DoctorAdjustScreen(props: {
           <span className="inline-flex items-center gap-1">
             <span className="h-3.5 w-3.5 rounded outline-[1.5px] outline-warn-dot outline-dotted" />
             대기 중인 교환
+          </span>
+          <span className="ml-auto">
+            <DoctorHighlightChips
+              doctors={doctors}
+              viewerId={viewerId}
+              highlight={props.highlight}
+              colors={props.colors}
+              hrefs={highlightHrefs(
+                doctors,
+                (hl) => `/doctor/adjust?ym=${year}-${String(month).padStart(2, '0')}${hl ? `&hl=${hl}` : ''}`,
+              )}
+            />
           </span>
         </div>
         {msg && (
@@ -212,6 +230,9 @@ export function DoctorAdjustScreen(props: {
           month={month}
           weeks={weeks}
           viewerId={viewerId}
+          highlight={props.highlight}
+          colors={props.colors}
+          origins={props.origins}
           hooks={{
             onChip: admin ? (d, s) => onAdminChip(d, s) : onDoctorChip,
             selected,

@@ -148,6 +148,9 @@ export function causeText(
       return `${day} ${c.shift} 저연차끼리만 서게 됩니다 (동일듀티 저연차끼리 배정 방지 · 필수)`
     case 'REPEAT_PAIR':
       return `${who} · 특정 근무자 반복 겹침(필수)과 충돌합니다`
+    // 3-11
+    case 'REQUEST':
+      return `${who} · 근무 신청 반영(필수)과 충돌합니다 — 같은 날 신청이 몰렸는지 확인해 주세요`
   }
 }
 

@@ -53,6 +53,8 @@ export function effectivePriorities(p: Priorities, rules: RuleSet): Priorities {
   const hard = (k: SeverityKey) => rules.severity[k] === 'hard'
   return {
     ...p,
+    // 3-11: 신청 반영이 필수면 끌 수 없다
+    requests: p.requests || hard('REQUEST'),
     offAfterNight: p.offAfterNight || hard('OFF_AFTER_N'),
     weekendPair: p.weekendPair || (hard('WEEKEND_PAIR') && rules.toggles.weekendPairOffMonthly),
     avoidJuniorOnly: p.avoidJuniorOnly || (hard('JUNIOR_ONLY') && rules.toggles.avoidJuniorOnly),

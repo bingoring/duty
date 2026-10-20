@@ -116,3 +116,38 @@ export function buildDoctorCalendar(a: {
     }
   return { weeks, tally, next }
 }
+
+// 3-11 5: 바뀐 칸의 원래 사람 — 그 달 기록 중 그 칸이 처음 바뀐 기록의 before (editedAt 오름차순으로 넘긴다).
+// 지금 사람과 같으면(되돌린 경우) 화면에서 표시하지 않는다
+export type ShiftLogLike = {
+  date: IsoDate
+  before: { day: string; night: string }
+  after: { day: string; night: string }
+}
+export function originalOwners(logs: readonly ShiftLogLike[]): Record<string, string> {
+  const out: Record<string, string> = {}
+  for (const l of logs) {
+    if (l.before.day !== l.after.day) out[`${l.date}:D`] ??= l.before.day
+    if (l.before.night !== l.after.night) out[`${l.date}:N`] ??= l.before.night
+  }
+  return out
+}
+
+// 원래 사람 id → 이름 붙은 사람 (지금 사람과 같은 칸은 뺀다)
+export function originPeople(
+  origins: Readonly<Record<string, string>>,
+  weeks: readonly CalWeek[],
+  people: readonly CalPerson[],
+): Record<string, CalPerson> {
+  const names = new Map(people.map((p) => [p.id, p]))
+  const now = new Map<string, string | undefined>()
+  for (const c of weeks.flat())
+    if (c) {
+      now.set(`${c.date}:D`, c.day?.id)
+      now.set(`${c.date}:N`, c.night?.id)
+    }
+  const out: Record<string, CalPerson> = {}
+  for (const [k, id] of Object.entries(origins))
+    if (now.get(k) !== id) out[k] = names.get(id) ?? { id, name: '?' }
+  return out
+}

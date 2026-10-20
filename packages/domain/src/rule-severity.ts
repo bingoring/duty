@@ -29,6 +29,8 @@ export const SEVERITY_KEYS = [
   // 3-10 7: 누적 OFF 최소·최대는 필수/권고를 따로 정한다(예전 OFF_CARRY 하나를 나눔)
   'OFF_CARRY_MIN',
   'OFF_CARRY_MAX',
+  // 3-11
+  'REQUEST',
 ] as const
 
 export type SeverityKey = (typeof SEVERITY_KEYS)[number]
@@ -58,6 +60,8 @@ export const DEFAULT_SEVERITY: Record<SeverityKey, Severity> = {
   STAFF_MAX: 'soft',
   OFF_CARRY_MIN: 'hard',
   OFF_CARRY_MAX: 'hard',
+  // 3-11 간호사 1: 근무 신청 반영은 기본 필수(신청이 지켜지지 않는다는 피드백)
+  REQUEST: 'hard',
 }
 
 const SeverityValue = z.enum(['hard', 'soft'])
@@ -89,6 +93,7 @@ export type RuleSeverity = z.infer<typeof RuleSeveritySchema>
 // 검사 코드 → 심각도 키. 없는 코드(칸·특수 신청·노조 교육·잔여·수간호사 보충·일반 신청)는 접두사대로 고정
 export const RULE_SEVERITY_KEY: Partial<Record<RuleId, SeverityKey>> = {
   'H-PATTERN': 'PATTERN',
+  'S-REQUEST': 'REQUEST',
   'H-REST': 'REST',
   'H-NIGHT-MAX': 'NIGHT_MAX',
   'H-NIGHT-CONSEC': 'NIGHT_CONSEC',
@@ -159,4 +164,5 @@ export const SEVERITY_KEY_LABEL: Record<SeverityKey, string> = {
   STAFF_MAX: '듀티당 최대 인원',
   OFF_CARRY_MIN: '누적 OFF 최소',
   OFF_CARRY_MAX: '누적 OFF 최대',
+  REQUEST: '근무 신청 반영',
 }

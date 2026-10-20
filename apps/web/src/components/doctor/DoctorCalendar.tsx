@@ -1,6 +1,7 @@
 // 3-7b S-D1 의사 근무표 달력 (핸드오프 6a). 훅이 없어 서버 화면·조정 화면(클라이언트)이 같이 쓴다
 import type { DoctorSlot } from '@duty/domain'
 import type { CalDay, CalPerson, CalWeek, DoctorCalendar as Cal } from '@/server/doctor/view'
+import { colorOf, type DoctorColors } from './colors'
 
 const WEEK = ['일', '월', '화', '수', '목', '금', '토']
 const dowColor = (dow: number, red = false) =>
@@ -17,24 +18,24 @@ export type ChipHooks = {
   preview?: Readonly<Record<string, CalPerson>>
 }
 
+// 3-11 1: 칩 색 = 의사별 고정 색 (D/N 색 아님). 본인 칩은 굵은 글씨 + 안쪽 테두리 그대로
 export function NameChip({
   person,
-  slot,
+  colors,
   me,
   dim,
   strong,
 }: {
   person: CalPerson
-  slot: DoctorSlot
+  colors?: DoctorColors
   me?: boolean
   dim?: boolean
   strong?: boolean
 }) {
+  const color = colorOf(colors, person.id)
   return (
     <span
-      className={`inline-flex h-[26px] min-w-[60px] items-center justify-center rounded-[6px] px-2 text-[13px] text-ink ${
-        slot === 'D' ? 'bg-shift-d' : 'bg-shift-n'
-      } ${me ? 'font-extrabold shadow-[inset_0_0_0_2px_var(--color-ink)]' : 'font-semibold'} ${
+      className={`inline-flex h-[26px] min-w-[60px] items-center justify-center rounded-[6px] px-2 text-[13px] ${color.bg} ${color.ink} ${me ? 'font-extrabold shadow-[inset_0_0_0_2px_var(--color-ink)]' : 'font-semibold'} ${
         strong ? 'outline-2 outline-offset-1 outline-ink' : ''
       } ${dim ? 'opacity-40' : ''}`}
     >
@@ -49,30 +50,33 @@ const MARK_CLS: Record<ChipMark, string> = {
   pending: 'outline-[1.5px] outline-dotted outline-warn-dot',
 }
 
-function SlotCell({
-  c,
-  slot,
-  viewerId,
-  highlight,
-  hooks,
-}: {
-  c: CalDay | null
-  slot: DoctorSlot
+type GridCtx = {
   viewerId: string | null
   highlight: string | null
   hooks: ChipHooks
-}) {
-  if (!c) return <div className="border-t border-line-soft" />
+  colors?: DoctorColors
+  // 3-11 5: 바뀐 칸의 원래 사람 `${date}:${slot}` → 사람
+  origins?: Readonly<Record<string, CalPerson>>
+}
+
+// 3-11 2: 주말·공휴일 같은 배경, 날짜 칸 사이 세로선
+const cellBg = (c: CalDay) =>
+  c.today ? 'bg-[#E9F4F1]' : c.red || c.dow === 0 || c.dow === 6 ? 'bg-weekend-cell/60' : ''
+
+function SlotCell({ c, slot, ctx }: { c: CalDay | null; slot: DoctorSlot; ctx: GridCtx }) {
+  const { viewerId, highlight, hooks } = ctx
+  if (!c) return <div className="border-t border-l border-line-soft border-l-line" />
   const key = `${c.date}:${slot}`
   const base = slot === 'D' ? c.day : c.night
   const person = hooks.preview?.[key] ?? base
-  const weekend = c.dow === 0 || c.dow === 6
   const sel = hooks.selected?.some((s) => s.date === c.date && s.slot === slot)
   const mark = hooks.marks?.[key]
+  const origin = ctx.origins?.[key]
+  const showOrigin = !!origin && !!person && origin.id !== person.id && !hooks.preview?.[key]
   const chip = person && (
     <NameChip
       person={person}
-      slot={slot}
+      colors={ctx.colors}
       me={person.id === viewerId}
       dim={!!highlight && highlight !== person.id}
       strong={(!!highlight && highlight === person.id) || sel}
@@ -82,9 +86,8 @@ function SlotCell({
     <div
       role="gridcell"
       aria-label={`${c.dom}일 ${slot === 'D' ? 'Day' : 'Night'} ${person?.name ?? '비어 있음'}`}
-      className={`flex h-[38px] items-center justify-center border-t border-line-soft ${
-        c.today ? 'bg-[#E9F4F1]' : weekend ? 'bg-[#FCFBF8]' : ''
-      }`}
+      title={showOrigin ? `원래 ${origin.name}` : undefined}
+      className={`relative flex min-h-[40px] flex-col items-center justify-center border-t border-l border-line-soft border-l-line py-[7px] ${cellBg(c)}`}
     >
       {person && hooks.onChip ? (
         <button
@@ -98,26 +101,32 @@ function SlotCell({
       ) : (
         <span className={`rounded-[6px] ${mark ? MARK_CLS[mark] : ''}`}>{chip}</span>
       )}
+      {showOrigin && (
+        <span aria-hidden className="mt-0.5 text-[10px] leading-3 text-ink-2">
+          원래 {origin.name}
+        </span>
+      )}
+      {/* 3-11 2: 올데이 표시는 그 날 Day·Night 사이 가운데 */}
+      {slot === 'D' && c.allDay && (
+        <span className="absolute bottom-0 left-1/2 z-[1] -translate-x-1/2 translate-y-1/2 rounded-full border border-line bg-surface px-1.5 text-[10px] leading-[14px] font-bold whitespace-nowrap text-ink">
+          올데이
+        </span>
+      )}
     </div>
   )
 }
 
 function DateCell({ c }: { c: CalDay | null }) {
-  if (!c) return <div className="h-[26px] border-t border-line" />
+  if (!c) return <div className="h-[26px] border-t border-l border-line" />
   return (
     <div
-      className={`flex h-[26px] items-center gap-1.5 border-t border-line px-2 text-[13px] font-bold ${
-        c.today ? 'bg-primary text-white' : dowColor(c.dow, c.red)
+      className={`flex h-[26px] items-center gap-1.5 border-t border-l border-line px-2 text-[13px] font-bold ${
+        c.today ? 'bg-primary text-white' : `${dowColor(c.dow, c.red)} ${cellBg(c)}`
       }`}
       title={c.holiday ?? undefined}
     >
       {c.dom}
       {c.holiday && <span className="truncate text-[10px] font-semibold">{c.holiday}</span>}
-      {c.allDay && (
-        <span className="ml-auto rounded-full border border-line bg-surface px-1.5 text-[10px] leading-4 font-bold whitespace-nowrap text-ink">
-          올데이
-        </span>
-      )}
     </div>
   )
 }
@@ -128,13 +137,18 @@ export function DoctorCalendarGrid({
   viewerId,
   highlight = null,
   hooks = {},
+  colors,
+  origins,
 }: {
   month: number
   weeks: CalWeek[]
   viewerId: string | null
   highlight?: string | null
   hooks?: ChipHooks
+  colors?: DoctorColors
+  origins?: Readonly<Record<string, CalPerson>>
 }) {
+  const ctx: GridCtx = { viewerId, highlight, hooks, colors, origins }
   return (
     <div
       role="grid"
@@ -147,31 +161,21 @@ export function DoctorCalendarGrid({
         <div
           key={w}
           role="columnheader"
-          className={`flex h-[30px] items-center justify-center bg-panel text-xs font-bold ${dowColor(i)}`}
+          className={`flex h-[30px] items-center justify-center border-l border-line bg-panel text-xs font-bold ${dowColor(i)}`}
         >
           {w}
         </div>
       ))}
       {weeks.map((wk, i) => (
-        <WeekRows key={i} week={wk} viewerId={viewerId} highlight={highlight} hooks={hooks} />
+        <WeekRows key={i} week={wk} ctx={ctx} />
       ))}
     </div>
   )
 }
 
-function WeekRows({
-  week,
-  viewerId,
-  highlight,
-  hooks,
-}: {
-  week: CalWeek
-  viewerId: string | null
-  highlight: string | null
-  hooks: ChipHooks
-}) {
+function WeekRows({ week, ctx }: { week: CalWeek; ctx: GridCtx }) {
   const label = (name: string, time: string) => (
-    <div className="flex h-[38px] flex-col justify-center border-t border-line-soft bg-panel px-3">
+    <div className="flex min-h-[40px] flex-col justify-center border-t border-line-soft bg-panel px-3">
       <span className="text-xs font-bold">{name}</span>
       <span className="text-[10.5px] text-ink-2">{time}</span>
     </div>
@@ -184,11 +188,11 @@ function WeekRows({
       ))}
       {label('Day', '10:00 – 20:00')}
       {week.map((c, i) => (
-        <SlotCell key={`D${i}`} c={c} slot="D" viewerId={viewerId} highlight={highlight} hooks={hooks} />
+        <SlotCell key={`D${i}`} c={c} slot="D" ctx={ctx} />
       ))}
       {label('Night', '20:00 – 익일 10:00')}
       {week.map((c, i) => (
-        <SlotCell key={`N${i}`} c={c} slot="N" viewerId={viewerId} highlight={highlight} hooks={hooks} />
+        <SlotCell key={`N${i}`} c={c} slot="N" ctx={ctx} />
       ))}
     </>
   )

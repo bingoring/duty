@@ -44,6 +44,36 @@ def test_고정_칸은_그대로_두고_신청은_들어준다():
     assert cell[("n1", "2026-11-21")]["code"] in ("D", "E")
 
 
+def test_3_11_신청_반영이_필수면_모든_신청을_고른_근무로_배정한다():
+    req = request(time_limit=8)
+    req["rules"]["hard"].append("REQUEST")
+    asks = {
+        "n1": ("2026-11-15", ["OFF"]),
+        "n2": ("2026-11-17", ["OFF", "N"]),
+        "n3": ("2026-11-18", ["OFF"]),
+        "n4": ("2026-11-20", ["E"]),
+    }
+    for n in req["nurses"]:
+        if n["id"] in asks:
+            d, o = asks[n["id"]]
+            n["requests"] = [{"date": d, "options": o}]
+    res = solve(req)
+    assert res["status"] in ("OPTIMAL", "FEASIBLE")
+    cell = {(c["userId"], c["date"]): c["code"] for c in res["cells"]}
+    for nid, (d, o) in asks.items():
+        assert cell[(nid, d)] in o
+
+
+def test_3_11_신청이_한날에_몰려_필수로_못_지키면_신청이_원인으로_나온다():
+    req = request(time_limit=5)
+    req["rules"]["hard"].append("REQUEST")
+    for n in req["nurses"]:
+        n["requests"] = [{"date": "2026-11-18", "options": ["OFF"]}]
+    res = solve(req)
+    assert res["status"] == "INFEASIBLE"
+    assert any(c["group"] == "REQUEST" for c in res["causes"]) or "REQUEST" in res.get("relaxable", [])
+
+
 def test_전월_말_N_두_개면_1일_N은_한_개까지():
     req = request()
     req["prevTail"] = [

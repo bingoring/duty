@@ -3,13 +3,15 @@ import { DOCTOR_CONTRACT_VERSION, DoctorSolverResponse, type DoctorSolverRequest
 import {
   checkDoctorMonth,
   expandFixedRules,
-  extraNeeded,
   formatMD,
+  isEmployed,
+  patternLabel,
   monthDates,
   type DoctorCheckDoctor,
   type DoctorCheckResult,
   type DoctorExtras,
   type DoctorOption,
+  type DoctorRuleParams,
   type DoctorShiftRow,
   type IsoDate,
 } from '@duty/domain'
@@ -25,11 +27,13 @@ import {
 import { solverTimeLimit, solverUrl } from '../generate/solver-client'
 import {
   currentDoctorRules,
+  employmentOf,
   ensureDoctorPlan,
   findDoctorPlan,
   listDoctors,
+  needFor,
   prefsOf,
-  prevLastNight,
+  prevMonthTail,
   targetsFor,
   type Ym,
 } from './core'
@@ -38,12 +42,13 @@ import type { DoctorActor } from './requests'
 type Fail = { ok: false; message: string }
 const fail = (message: string): Fail => ({ ok: false, message })
 
-// 검사·솔버 입력 공통: 의사별 목표·고정 조건(그 날만 예외 제외)·신청
+// 검사·솔버 입력 공통: 의사별 목표·고정 조건(그 날만 예외 제외)·신청·재직 기간
+// 3-11: checkCtx = 검사기에 같이 넘길 필수/권고·금지 패턴·전월 마지막 며칠 (checkDoctorMonth({...ym, ...checkCtx}))
 export async function doctorMonthInput(db: Db, ym: Ym, extras: DoctorExtras) {
   const doctors = await listDoctors(db)
   const ids = doctors.map((d) => d.id)
   const { version, params } = await currentDoctorRules(db)
-  const targets = targetsFor(ym, ids, params, extras)
+  const targets = targetsFor(ym, doctors, params, extras)
   const prefs = await prefsOf(db, ids)
   const days = monthDates(ym.year, ym.month)
   const reqs = await db
@@ -60,17 +65,29 @@ export async function doctorMonthInput(db: Db, ym: Ym, extras: DoctorExtras) {
       target: targets.get(d.id)!,
       allDayMin: p.allDayMin,
       allDayMax: p.allDayMax,
-      fixed: expandFixedRules(p.fixedRules, days, exceptions),
+      // 3-11 8: 재직 기간 밖 날의 고정 조건은 펼치지 않는다(그 날은 어차피 배정하지 않는다)
+      fixed: expandFixedRules(p.fixedRules, days, exceptions).filter((f) =>
+        isEmployed(employmentOf(d), f.date),
+      ),
       requests: mine
-        .filter((r) => r.options.length > 0)
+        .filter((r) => r.options.length > 0 && isEmployed(employmentOf(d), r.date))
         .map((r) => ({ date: r.date, options: r.options as DoctorOption[] })),
+      employment: employmentOf(d),
     }
   })
-  return { doctors, check, days, version, params, prevNight: await prevLastNight(db, ym) }
+  const prevShifts = await prevMonthTail(db, ym)
+  const prevNight = prevShifts.find((r) => r.date === days[0]!)?.night ?? prevShifts.at(-1)?.night ?? null
+  const checkCtx = { severity: params.severity, patterns: params.patterns, prevShifts }
+  return { doctors, check, days, version, params, prevNight, prevShifts, checkCtx }
 }
 
 export function toDoctorSolverRequest(
-  a: { check: DoctorCheckDoctor[]; days: IsoDate[]; prevNight: string | null },
+  a: {
+    check: DoctorCheckDoctor[]
+    days: IsoDate[]
+    params: Pick<DoctorRuleParams, 'severity' | 'patterns'>
+    prevShifts: DoctorShiftRow[]
+  },
   seed: number,
   timeLimitSec: number,
 ): DoctorSolverRequest {
@@ -87,8 +104,12 @@ export function toDoctorSolverRequest(
       allDayMax: d.allDayMax,
       fixed: d.fixed.map((f) => ({ date: f.date, shift: f.shift, type: f.type })),
       requests: (d.requests ?? []).map((r) => ({ date: r.date, options: [...r.options] })),
+      employedFrom: d.employment?.employedFrom ?? null,
+      employedTo: d.employment?.employedUntil ?? null,
     })),
-    prevLastNight: a.prevNight,
+    severity: { ...a.params.severity },
+    patterns: a.params.patterns.map((p) => ({ pattern: [...p.pattern], severity: p.severity })),
+    prevShifts: a.prevShifts.map((r) => ({ date: r.date, day: r.day, night: r.night })),
   }
 }
 
@@ -122,7 +143,7 @@ export async function generateDoctorCandidate(
   if (plan.status === 'CONFIRMED') return fail('이미 확정된 달입니다.')
   const input = await doctorMonthInput(db, ym, plan.extras)
   if (input.doctors.length === 0) return fail('의사가 없습니다. 의사 관리에서 먼저 추가해 주세요.')
-  const need = extraNeeded(ym.year, ym.month, input.doctors.length, input.params)
+  const need = needFor(ym, input.doctors, input.params)
   if (Math.abs(need.D) !== plan.extras.D.length || Math.abs(need.N) !== plan.extras.N.length)
     return fail(
       Math.abs(need.D) > input.doctors.length || Math.abs(need.N) > input.doctors.length
@@ -138,13 +159,25 @@ export async function generateDoctorCandidate(
   if (res.status === 'UNKNOWN') return fail('시간 안에 근무표를 찾지 못했습니다. 다시 시도해 주세요.')
   if (res.status === 'INFEASIBLE') {
     const name = new Map(input.doctors.map((d) => [d.id, d.name]))
-    const fixed = res.causes.filter((c) => c.kind === 'FIXED')
+    // 3-11: 필수로 정한 신청·올데이 범위·금지 패턴도 원인이 될 수 있다
+    const KIND: Record<string, string> = {
+      FIXED: '고정 조건',
+      REQUEST: '신청',
+      ALLDAY_RANGE: '올데이 범위',
+      PATTERN: `금지 패턴(${input.params.patterns
+        .filter((p) => p.severity === 'hard')
+        .map((p) => patternLabel(p.pattern))
+        .join('·')})`,
+    }
+    const named = res.causes.filter((c) => c.kind !== 'COUNT')
     return fail(
-      fixed.length
-        ? `고정 조건이 서로 부딪혀 근무표를 만들 수 없습니다: ${fixed
-            .map((c) => `${name.get(c.userId ?? '') ?? '?'} ${c.date ? formatMD(c.date) : ''}`)
+      named.length
+        ? `필수 조건이 서로 부딪혀 근무표를 만들 수 없습니다: ${named
+            .map((c) =>
+              `${name.get(c.userId ?? '') ?? '?'} ${c.date ? formatMD(c.date) : ''} ${KIND[c.kind] ?? ''}`.trim(),
+            )
             .join(', ')}`
-        : '개수·고정 조건을 모두 지키는 근무표가 없습니다. 고정 조건이나 ±1 대상을 확인해 주세요.',
+        : '개수·필수 조건을 모두 지키는 근무표가 없습니다. 고정 조건·재직 기간이나 ±1 대상을 확인해 주세요.',
     )
   }
   const shifts: DoctorShiftRow[] = res.shifts.map((s) => ({ date: s.date, day: s.day, night: s.night }))
@@ -154,7 +187,7 @@ export async function generateDoctorCandidate(
     doctors: input.check,
     shifts,
     mode: 'generate',
-    prevLastNight: input.prevNight,
+    ...input.checkCtx,
   })
   // 솔버의 하드 제약 = 검사기의 하드 규칙. 어긋나면 저장하지 않는다
   if (check.hard.length) return fail(`재검사에서 필수 규칙 위반이 나왔습니다: ${check.hard[0]!.message}`)
@@ -255,9 +288,10 @@ export async function setDoctorExtras(
   if (actor.role !== 'admin') return fail('권한이 없습니다.')
   const plan = await ensureDoctorPlan(db, ym)
   if (plan.status === 'CONFIRMED') return fail('이미 확정된 달입니다.')
-  const ids = new Set((await listDoctors(db)).map((d) => d.id))
+  const docs = await listDoctors(db)
+  const ids = new Set(docs.map((d) => d.id))
   const { params } = await currentDoctorRules(db)
-  const need = extraNeeded(ym.year, ym.month, ids.size, params)
+  const need = needFor(ym, docs, params)
   const ok = (list: string[], n: number) =>
     list.length === Math.abs(n) && new Set(list).size === list.length && list.every((id) => ids.has(id))
   if (!ok(extras.D, need.D) || !ok(extras.N, need.N))
@@ -289,10 +323,10 @@ export async function loadDoctorGenerate(db: Db, ym: Ym, candidateId?: string | 
         doctors: input.check,
         shifts,
         mode: 'generate',
-        prevLastNight: input.prevNight,
+        ...input.checkCtx,
       })
     : null
-  const need = extraNeeded(ym.year, ym.month, input.doctors.length, input.params)
+  const need = needFor(ym, input.doctors, input.params)
   const requestCount = input.check.reduce((s, d) => s + (d.requests?.length ?? 0), 0)
   const fixedCount = input.check.reduce((s, d) => s + d.fixed.length, 0)
   return {

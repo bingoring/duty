@@ -13,6 +13,10 @@ export const DOCTOR_REQUEST_OPTIONS = ['D', 'N', 'O', 'ALLDAY'] as const
 
 const RuleShift = z.enum(DOCTOR_RULE_SHIFTS)
 const RequestOption = z.enum(DOCTOR_REQUEST_OPTIONS)
+// 3-11 6/7: 규칙별 필수(hard = 제약)·권고(soft = 벌점)
+const Severity = z.enum(['hard', 'soft'])
+// 3-11 10: 금지 패턴 토큰 — 칸 기준. D = Day 칸(올데이 포함) · N = Night 칸(올데이 포함) · AD = 올데이 · O = 근무 없음
+export const DOCTOR_SOLVER_PATTERN_TOKENS = ['D', 'N', 'AD', 'O'] as const
 
 export const DoctorSolverDoctor = z.object({
   id: z.string(),
@@ -26,6 +30,9 @@ export const DoctorSolverDoctor = z.object({
   fixed: z.array(z.object({ date: IsoDate, shift: RuleShift, type: z.enum(['require', 'forbid']) })),
   // 신청(권고). options 중 하나면 지킨 것
   requests: z.array(z.object({ date: IsoDate, options: z.array(RequestOption).min(1) })),
+  // 3-11 8: 재직 기간(입사일~퇴사 예정일). 밖의 날에는 배정하지 않는다(하드). null이면 제한 없음
+  employedFrom: IsoDate.nullable(),
+  employedTo: IsoDate.nullable(),
 })
 
 export const DoctorSolverRequest = z.object({
@@ -34,15 +41,26 @@ export const DoctorSolverRequest = z.object({
   timeLimitSec: z.number().positive().max(60),
   days: z.array(IsoDate).min(28).max(31),
   doctors: z.array(DoctorSolverDoctor).min(1),
-  // 전월 마지막 날 Night 의사(월초 N → 다음 날 D 피하기용). 없으면 null
-  prevLastNight: z.string().nullable(),
+  // 3-11 6/7: 규칙별 필수/권고. 매일 D1·N1과 재직 기간은 늘 필수
+  severity: z.object({ COUNT: Severity, FIXED: Severity, ALLDAY_RANGE: Severity, REQUEST: Severity }),
+  // 3-11 10: 금지 패턴(연속한 날의 근무 순서) — 예전 「Night 다음 날 Day」를 대신한다
+  patterns: z.array(
+    z.object({ pattern: z.array(z.enum(DOCTOR_SOLVER_PATTERN_TOKENS)).min(2).max(4), severity: Severity }),
+  ),
+  // 3-11 10: 전월 마지막 며칠(최대 3일, 월초 금지 패턴용). 확정 전이면 빈 배열
+  prevShifts: z
+    .array(z.object({ date: IsoDate, day: z.string().nullable(), night: z.string().nullable() }))
+    .max(3),
 })
 
+// 3-11: nightToDay → pattern(권고 금지 패턴), 권고로 바꾼 개수·고정 조건은 countDev·fixedMiss
 export const DOCTOR_TERM_KEYS = [
   'requestMiss',
   'requestMissMax',
   'allDayOut',
-  'nightToDay',
+  'pattern',
+  'fixedMiss',
+  'countDev',
   'tieBreak',
 ] as const
 
@@ -63,9 +81,10 @@ export const DoctorSolverResponse = z.discriminatedUnion('status', [
   z.object({
     status: z.literal('INFEASIBLE'),
     // COUNT = 개수 합이 날짜와 안 맞거나 개수 자체가 불가능, FIXED = 고정 조건끼리·개수와 충돌
+    // 3-11: 필수로 바꾼 신청(REQUEST, 날짜)·올데이 범위(ALLDAY_RANGE)·필수 금지 패턴(PATTERN)도 원인이 될 수 있다
     causes: z.array(
       z.object({
-        kind: z.enum(['COUNT', 'FIXED']),
+        kind: z.enum(['COUNT', 'FIXED', 'REQUEST', 'ALLDAY_RANGE', 'PATTERN']),
         userId: z.string().optional(),
         date: IsoDate.optional(),
       }),

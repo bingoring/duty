@@ -4,6 +4,7 @@ import { NoticeBar } from '@/components/schedule/NoticeBar'
 import { ScheduleGrid } from '@/components/schedule/ScheduleGrid'
 import { ScrollToSelected } from '@/components/schedule/ScrollToSelected'
 import { ScheduleHeader } from '@/components/schedule/ScheduleHeader'
+import { ShiftTimesLegend } from '@/components/schedule/ShiftTimesLegend'
 import { SummaryCards } from '@/components/schedule/SummaryCards'
 import { requireNurse } from '@/server/auth/guards'
 import { getDb } from '@/server/db/client'
@@ -82,6 +83,7 @@ export default async function SchedulePage({
         />
       </FocusClear>
       <ScrollToSelected focus={focus} />
+      <ShiftTimesLegend />
       <p className="text-xs text-ink-2" data-print="hide">
         {view.footer}
       </p>

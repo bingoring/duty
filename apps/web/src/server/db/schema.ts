@@ -52,6 +52,8 @@ export const users = pgTable('users', {
   seniorityRank: integer('seniority_rank').notNull(),
   seniorityTier: text('seniority_tier').notNull(),
   hireDate: day('hire_date'),
+  // 3-11 8: 의사 퇴사 예정일 — 입사일(hire_date)~이 날까지만 배정, 그 달 개수는 재직 날짜 비율
+  plannedEndDate: day('planned_end_date'),
   kTass: boolean('k_tass').notNull().default(false),
   // 3-5: KTAS 수료일. 유효기간 = 수료일 + 3년 − 1일
   ktasCertifiedOn: day('ktas_certified_on'),

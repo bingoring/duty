@@ -4,12 +4,15 @@ import {
   allDayPresets,
   allDayRangeLabel,
   dayOfWeek,
+  DOCTOR_FIXED_CYCLE_LABEL,
+  DOCTOR_FIXED_CYCLES,
   DOCTOR_OPTION_LABEL,
   DOCTOR_OPTION_VALUES,
   fixedRuleLabel,
   formatMD,
   requestConflicts,
   weekdayKo,
+  type DoctorFixedCycle,
   type DoctorFixedRule,
   type DoctorOption,
   type DoctorPrefs,
@@ -19,8 +22,15 @@ import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import { useOptimistic, useState, useTransition } from 'react'
 import { btnPrimary, btnSecondary, Dialog, inputCls, useHydrated } from '@/components/admin/ui'
-import { saveDoctorPrefsAction, saveDoctorRequestsAction } from '@/server/doctor/actions'
+import {
+  saveDoctorPrefsAction,
+  saveDoctorRequestsAction,
+  withdrawDoctorRequestAction,
+} from '@/server/doctor/actions'
 import type { DoctorRequestsView, MyRequest } from '@/server/doctor/requests'
+import { colorOf, type DoctorColorClasses } from './colors'
+import { DoctorHighlightChips, highlightHrefs } from './DoctorHighlight'
+import { DOT_CLS, DOT_LABEL, draftDot, lockedForActor, requestDot, type RequestDot } from './request-marks'
 
 // 3-7c S-D2 의사 근무 신청 (핸드오프 1280×780). 칸을 누르면 우측 패널이 그 날로 바뀐다(팝오버 없음)
 const WEEK = ['일', '월', '화', '수', '목', '금', '토']
@@ -54,23 +64,34 @@ export function DoctorRequestsScreen({
   admin,
   prev,
   next,
+  highlight = null,
 }: {
   view: DoctorRequestsView
   today: string
   admin: boolean
   prev: string
   next: string
+  highlight?: string | null
 }) {
   const router = useRouter()
   const hydrated = useHydrated()
   const base = toDraft(view.mine)
   const [draft, setDraft] = useState<Record<string, Draft>>(base)
-  // 제출 뒤 다시 읽은 신청으로 로컬 편집을 맞춘다 (같은 의사·같은 달이면 선택한 날·안내는 그대로)
+  // 제출·철회 뒤 다시 읽은 신청으로 로컬 편집을 맞춘다 (같은 의사·같은 달이면 선택한 날·안내는 그대로).
+  // 3-11 12: 손대지 않은 날만 새 값으로 — 다른 날의 저장 전 편집은 남긴다
   const mineKey = JSON.stringify(view.mine)
-  const [loadedKey, setLoadedKey] = useState(mineKey)
-  if (loadedKey !== mineKey) {
-    setLoadedKey(mineKey)
-    setDraft(base)
+  const [loaded, setLoaded] = useState(view.mine)
+  if (JSON.stringify(loaded) !== mineKey) {
+    const prevBase = toDraft(loaded)
+    setLoaded(view.mine)
+    setDraft((d) => {
+      const out: Record<string, Draft> = {}
+      for (const k of new Set([...Object.keys(d), ...Object.keys(base)])) {
+        const v = sameDraft(d[k], prevBase[k]) ? base[k] : d[k]
+        if (v) out[k] = v
+      }
+      return out
+    })
   }
   const [sel, setSel] = useState(view.days[0]!)
   const [msg, setMsg] = useState<{ ok: boolean; text: string } | null>(null)
@@ -78,8 +99,16 @@ export function DoctorRequestsScreen({
   const [pending, start] = useTransition()
 
   const ym = `${view.year}-${String(view.month).padStart(2, '0')}`
-  const href = (m: string, user = view.userId) =>
-    `/doctor/requests?ym=${m}${admin && user ? `&user=${user}` : ''}`
+  const href = (m: string, user = view.userId, hl = highlight) =>
+    `/doctor/requests?ym=${m}${admin && user ? `&user=${user}` : ''}${hl ? `&hl=${hl}` : ''}`
+  // 3-11 4: 관리자가 넣어 준 날은 의사가 못 바꾼다
+  const actor = { role: admin ? ('admin' as const) : ('member' as const) }
+  const lockedOf = (d: string) => lockedForActor(view.mine[d], actor)
+  const dotOf = (d: string): RequestDot =>
+    view.mine[d] && sameDraft(draft[d], base[d])
+      ? requestDot(view.mine[d])
+      : draftDot(view.actorId, view.userId)
+  const myColor = colorOf(view.colors, view.userId)
   const changed = view.days.filter((d) => !sameDraft(draft[d], base[d]))
   const fixedOf = (d: string) => view.myFixed.filter((f) => f.date === d)
 
@@ -92,6 +121,21 @@ export function DoctorRequestsScreen({
   const setCur = (patch: Partial<Draft>) => setDraft((p) => ({ ...p, [sel]: { ...cur, ...patch } }))
   const toggle = (o: DoctorOption) =>
     setCur({ options: cur.options.includes(o) ? cur.options.filter((x) => x !== o) : [...cur.options, o] })
+
+  // 3-11 12: 그 날 신청 철회
+  const withdraw = (d: string) =>
+    start(async () => {
+      setMsg(null)
+      const r = await withdrawDoctorRequestAction({
+        year: view.year,
+        month: view.month,
+        userId: view.userId,
+        date: d,
+      })
+      setMsg(
+        r.ok ? { ok: true, text: `${dateLabel(d)} 신청을 철회했습니다` } : { ok: false, text: r.message },
+      )
+    })
 
   const submit = (exceptions: string[]) =>
     start(async () => {
@@ -167,6 +211,24 @@ export function DoctorRequestsScreen({
         )}
       </div>
 
+      <div className="flex flex-wrap items-center gap-3 text-xs text-ink-2">
+        {(['self', 'admin'] as const).map((k) => (
+          <span key={k} className="inline-flex items-center gap-1">
+            <span aria-hidden className={`h-2 w-2 rounded-full ${DOT_CLS[k]}`} />
+            {DOT_LABEL[k]}
+          </span>
+        ))}
+        <span className="ml-auto">
+          <DoctorHighlightChips
+            doctors={view.people}
+            viewerId={view.actorId}
+            highlight={highlight}
+            colors={view.colors}
+            hrefs={highlightHrefs(view.people, (hl) => href(ym, view.userId, hl))}
+          />
+        </span>
+      </div>
+
       <div className="grid grid-cols-[minmax(0,1fr)_300px] items-start gap-4">
         <div
           role="grid"
@@ -177,7 +239,7 @@ export function DoctorRequestsScreen({
             <div
               key={w}
               role="columnheader"
-              className={`flex h-[30px] items-center justify-center bg-panel text-xs font-bold ${
+              className={`flex h-[30px] items-center justify-center border-l border-line bg-panel text-xs font-bold ${
                 i === 0 ? 'text-danger' : i === 6 ? 'text-admin' : ''
               }`}
             >
@@ -196,9 +258,18 @@ export function DoctorRequestsScreen({
                 others={view.others[d] ?? []}
                 selected={d === sel}
                 onSelect={() => setSel(d)}
+                holiday={view.holidays[d] ?? null}
+                color={myColor}
+                colors={view.colors}
+                dot={dotOf(d)}
+                dim={!!highlight && highlight !== view.userId}
+                highlight={highlight}
+                onWithdraw={
+                  view.mine[d] && view.canWithdraw && !lockedOf(d) && !pending ? () => withdraw(d) : undefined
+                }
               />
             ) : (
-              <div key={`b${i}`} className="min-h-[86px] border-t border-l border-line-soft bg-panel" />
+              <div key={`b${i}`} className="min-h-[86px] border-t border-l border-line bg-panel" />
             ),
           )}
         </div>
@@ -217,7 +288,7 @@ export function DoctorRequestsScreen({
                     key={o}
                     type="button"
                     aria-pressed={on}
-                    disabled={!view.editable}
+                    disabled={!view.editable || lockedOf(sel)}
                     onClick={() => toggle(o)}
                     className={`h-9 cursor-pointer rounded-lg text-[13px] font-bold text-ink disabled:cursor-default ${OPT_BG[o]} ${
                       on ? 'border-2 border-ink' : 'border border-line opacity-50'
@@ -229,6 +300,11 @@ export function DoctorRequestsScreen({
                 )
               })}
             </div>
+            {lockedOf(sel) && (
+              <div role="note" className="rounded-md bg-admin-soft px-2 py-1.5 text-xs text-admin">
+                관리자가 넣은 신청입니다 · 바꾸려면 관리자에게 요청
+              </div>
+            )}
             {curConflicts.length > 0 && (
               <div role="alert" className="rounded-md bg-danger-bg px-2 py-1.5 text-xs text-danger-ink">
                 고정 조건 「{curConflicts.join(', ')}」과 부딪힙니다
@@ -242,7 +318,7 @@ export function DoctorRequestsScreen({
               <textarea
                 maxLength={200}
                 rows={2}
-                disabled={!view.editable}
+                disabled={!view.editable || lockedOf(sel)}
                 value={cur.comment}
                 onChange={(e) => setCur({ comment: e.target.value })}
                 className="resize-none rounded-lg border border-line bg-surface px-2.5 py-2 text-[13px] font-normal text-ink disabled:opacity-60"
@@ -317,6 +393,13 @@ function DayCell({
   others,
   selected,
   onSelect,
+  holiday,
+  color,
+  colors,
+  dot,
+  dim,
+  highlight,
+  onWithdraw,
 }: {
   date: string
   mine: Draft | undefined
@@ -326,33 +409,59 @@ function DayCell({
   others: DoctorRequestsView['others'][string]
   selected: boolean
   onSelect: () => void
+  // 3-11: 공휴일 이름 · 신청 의사의 색 · 칩 앞 점 · 강조 · 철회
+  holiday: string | null
+  color: DoctorColorClasses
+  colors: DoctorRequestsView['colors']
+  dot: RequestDot
+  dim: boolean
+  highlight: string | null
+  onWithdraw?: () => void
 }) {
   const dow = dayOfWeek(date)
   const dom = Number(date.slice(8))
   const opts = mine?.options ?? []
+  const red = dow === 0 || !!holiday
+  // 3-11 2: 주말·공휴일 같은 배경 / 내 신청이 있는 칸은 내 색으로
+  const bg = opts.length > 0 ? color.tint : red || dow === 6 ? 'bg-weekend-cell/60' : ''
   return (
-    <button
-      type="button"
-      aria-label={`${dom}일`}
-      aria-pressed={selected}
-      onClick={onSelect}
-      className={`flex min-h-[86px] cursor-pointer flex-col items-start gap-1 border-t border-l border-line-soft px-2 py-1.5 text-left hover:bg-panel ${
-        selected ? 'relative z-10 outline-2 -outline-offset-2 outline-ink' : ''
+    <div
+      role="gridcell"
+      title={holiday ?? undefined}
+      className={`relative flex min-h-[86px] flex-col items-start gap-1 border-t border-l border-line px-2 py-1.5 text-left ${bg} ${
+        selected ? 'z-10 outline-2 -outline-offset-2 outline-ink' : ''
       }`}
     >
+      {/* 칸 전체가 고르는 버튼 — 「철회」 버튼은 그 위에 따로 */}
+      <button
+        type="button"
+        aria-label={`${dom}일`}
+        aria-pressed={selected}
+        onClick={onSelect}
+        className="absolute inset-0 cursor-pointer hover:bg-ink/[0.03]"
+      />
       <span
-        className={`text-[13px] font-bold ${dow === 0 ? 'text-danger' : dow === 6 ? 'text-admin' : 'text-ink'}`}
+        className={`pointer-events-none text-[13px] font-bold ${red ? 'text-danger' : dow === 6 ? 'text-admin' : 'text-ink'}`}
       >
         {dom}
+        {holiday && <span className="ml-1 text-[10px] font-semibold">{holiday}</span>}
         {changed && <span className="ml-1 text-[10px] font-semibold text-warn-dot">수정</span>}
       </span>
       {opts.length > 0 && (
-        <span className="inline-flex h-[22px] min-w-[26px] items-center justify-center rounded-md bg-surface px-1.5 text-[11px] font-bold text-ink shadow-[inset_0_0_0_1.5px_var(--color-danger)]">
-          {optText(opts)}
+        <span className={`pointer-events-none inline-flex items-center gap-1 ${dim ? 'opacity-40' : ''}`}>
+          <span aria-label={DOT_LABEL[dot]} className={`h-2 w-2 shrink-0 rounded-full ${DOT_CLS[dot]}`} />
+          <span
+            className={`inline-flex h-[22px] min-w-[26px] items-center justify-center rounded-md px-1.5 text-[11px] font-bold ${color.bg} ${color.ink}`}
+          >
+            {optText(opts)}
+          </span>
         </span>
       )}
       {fixed.map((f, i) => (
-        <span key={i} className="flex flex-col items-start gap-0.5">
+        <span
+          key={i}
+          className={`pointer-events-none flex flex-col items-start gap-0.5 ${dim ? 'opacity-40' : ''}`}
+        >
           <span
             className={`inline-flex h-[22px] items-center rounded-md border border-dashed border-ink-3 px-1.5 text-[11px] font-bold text-ink-2 ${
               exception ? 'line-through opacity-60' : ''
@@ -364,11 +473,36 @@ function DayCell({
         </span>
       ))}
       {others.map((o, i) => (
-        <span key={i} className="text-[11px] leading-[1.3] text-ink-3">
-          {o.name} {o.text}
+        <span
+          key={i}
+          className={`pointer-events-none inline-flex items-center gap-1 text-[11px] leading-[1.3] text-ink-2 ${
+            highlight && highlight !== o.userId ? 'opacity-40' : ''
+          }`}
+        >
+          {o.fixed ? (
+            <span aria-hidden className="h-2 w-2 shrink-0" />
+          ) : (
+            <span
+              aria-label={DOT_LABEL[requestDot(o)]}
+              className={`h-2 w-2 shrink-0 rounded-full ${DOT_CLS[requestDot(o)]}`}
+            />
+          )}
+          <span className={`rounded px-1 ${colorOf(colors, o.userId).tint}`}>
+            {o.name} {o.text}
+          </span>
         </span>
       ))}
-    </button>
+      {onWithdraw && (
+        <button
+          type="button"
+          aria-label={`${dom}일 신청 철회`}
+          onClick={onWithdraw}
+          className="relative mt-auto self-end cursor-pointer rounded border border-line bg-surface px-1.5 text-[10.5px] font-semibold text-ink-2 hover:border-danger hover:text-danger"
+        >
+          철회
+        </button>
+      )}
+    </div>
   )
 }
 
@@ -379,10 +513,14 @@ function PrefsCard({ view }: { view: DoctorRequestsView }) {
   const [pending, start] = useTransition()
   const [custom, setCustom] = useState({ min: str(view.prefs.allDayMin), max: str(view.prefs.allDayMax) })
   const [adding, setAdding] = useState(false)
-  const [form, setForm] = useState<Pick<DoctorFixedRule, 'weekday' | 'shift' | 'type'>>({
+  // 3-11 3: 주기(매주·홀수 주·짝수 주)
+  const [form, setForm] = useState<
+    Pick<DoctorFixedRule, 'weekday' | 'shift' | 'type'> & { cycle: DoctorFixedCycle }
+  >({
     weekday: 0,
     shift: 'ANY',
     type: 'forbid',
+    cycle: 'weekly',
   })
   const presets = allDayPresets(view.perMonth)
   const active =
@@ -413,7 +551,11 @@ function PrefsCard({ view }: { view: DoctorRequestsView }) {
   const addRule = () => {
     if (
       prefs.fixedRules.some(
-        (r) => r.weekday === form.weekday && r.shift === form.shift && r.type === form.type,
+        (r) =>
+          r.weekday === form.weekday &&
+          r.shift === form.shift &&
+          r.type === form.type &&
+          (r.cycle ?? 'weekly') === form.cycle,
       )
     )
       return setError('이미 있는 조건입니다.')
@@ -496,7 +638,8 @@ function PrefsCard({ view }: { view: DoctorRequestsView }) {
               <div className={`flex min-w-0 flex-1 flex-col ${r.enabled ? '' : 'opacity-50'}`}>
                 <span className="font-bold">{label}</span>
                 <span className="text-[11.5px] text-ink-2">
-                  매주 {WEEK[r.weekday]}요일 {r.shift === 'ANY' ? '근무' : r.shift}
+                  {DOCTOR_FIXED_CYCLE_LABEL[r.cycle ?? 'weekly']} {WEEK[r.weekday]}요일{' '}
+                  {r.shift === 'ANY' ? '근무' : r.shift}
                   {r.type === 'require' ? ' 배정' : ' 배정 안 함'}
                 </span>
               </div>
@@ -532,6 +675,18 @@ function PrefsCard({ view }: { view: DoctorRequestsView }) {
         {adding ? (
           <div className="flex flex-col gap-1.5 rounded-lg bg-panel p-2">
             <div className="flex gap-1">
+              <select
+                aria-label="주기"
+                className={sel}
+                value={form.cycle}
+                onChange={(e) => setForm((f) => ({ ...f, cycle: e.target.value as DoctorFixedCycle }))}
+              >
+                {DOCTOR_FIXED_CYCLES.map((c) => (
+                  <option key={c} value={c}>
+                    {DOCTOR_FIXED_CYCLE_LABEL[c]}
+                  </option>
+                ))}
+              </select>
               <select
                 aria-label="요일"
                 className={sel}
