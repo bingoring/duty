@@ -18,10 +18,13 @@ import {
   type ScheduleInput,
   type Violation,
   leaveCellLabel,
+  leaveEnd,
+  LEAVE_TYPE_SHORT,
 } from '@duty/domain'
 import { useMemo, useRef, useState, useSyncExternalStore, useTransition } from 'react'
 import { cancelApprovedLeaveAction, rerollFromAction, rerollPreviewAction } from '@/server/adjust/actions'
-import { saveLeaveAction } from '@/server/requests/actions'
+import { leaveRangeKeys, mergeRerolled, type DraftLeave } from '@/server/adjust/draft'
+import { LeaveReasonSelect, needsLeaveReason } from '../leave/LeaveReasonSelect'
 import type { AdjustView } from '@/server/adjust/view'
 
 // 핸드오프 v5 5a·5b — 근무 조정 하단 편집 도크 (AWS 콘솔식 패널)
@@ -242,6 +245,8 @@ export function CellBody(props: {
   view: AdjustView
   input: ScheduleInput
   edits: CellEdit[]
+  // 3-10 9: 저장 전 휴가
+  leaves: DraftLeave[]
   base: GridCell[]
   userId: string
   date: string
@@ -249,7 +254,7 @@ export function CellBody(props: {
   onApply: (edits: CellEdit[]) => void
   onRevert: (k: string) => void
   onLeaveCancelled: (text: string, list: string[]) => void
-  onRerolled: (edits: CellEdit[], text: string, list: string[]) => void
+  onRerolled: (leave: DraftLeave, edits: CellEdit[], text: string) => void
 }) {
   const { view, input, edits, base, userId, date, nameOf } = props
   const k = key(userId, date)
@@ -387,6 +392,32 @@ export function CellBody(props: {
       </div>
     </div>
   )
+
+  // 3-10 9: 저장 전 휴가 칸 — 「저장 · 재배포」 전이라 간호사에게는 아직 안 보인다
+  const draftLeave = props.leaves.find((l) => l.userId === userId && l.startDate <= date && date <= l.endDate)
+  if (draftLeave)
+    return (
+      <div className={bodyCls}>
+        {target}
+        <div />
+        <div className="flex min-w-0 flex-col gap-1 border-l border-line-soft pl-4">
+          <ResultLine
+            tone="warn"
+            strong="저장 전 휴가"
+            text={`${LEAVE_TYPE_SHORT[draftLeave.type]} · ${draftLeave.startDate === draftLeave.endDate ? md(draftLeave.startDate) : `${md(draftLeave.startDate)}–${md(draftLeave.endDate)}`} · 「저장 · 재배포」를 눌러야 반영됩니다`}
+          />
+        </div>
+        <div className="flex items-center gap-1.5">
+          <button
+            type="button"
+            onClick={() => props.onRevert(k)}
+            className="h-9 cursor-pointer rounded-lg border border-line bg-surface px-3.5 text-[12.5px] font-semibold whitespace-nowrap"
+          >
+            휴가 넣기 되돌리기
+          </button>
+        </div>
+      </div>
+    )
 
   if (isLeaveCell(now))
     return (
@@ -578,7 +609,8 @@ export function CellBody(props: {
           userId={userId}
           date={date}
           monthEnd={view.grid.days.at(-1)!.date}
-          pendingCount={edits.length}
+          edits={edits}
+          leaves={props.leaves}
           nameOf={nameOf}
           onDone={props.onRerolled}
         />
@@ -587,7 +619,8 @@ export function CellBody(props: {
   )
 }
 
-// 3-9 4·9: 휴가를 기간으로 넣고, 시작일 ~ 월말을 다시 생성한다(결과는 저장 전 편집 → 「저장 · 재배포」)
+// 3-9 4·9: 휴가를 기간으로 넣고, 시작일 ~ 월말을 다시 생성한다.
+// 3-10 9: 휴가와 결과 모두 저장 전 편집 → 「저장 · 재배포」 때 처음 저장된다(간호사에게는 그 전까지 안 보인다)
 const DOCK_LEAVES = [
   { label: '연차', type: 'annual' },
   { label: '특휴', type: 'special' },
@@ -604,66 +637,79 @@ function LeaveReroll(props: {
   userId: string
   date: string
   monthEnd: string
-  pendingCount: number
+  edits: CellEdit[]
+  leaves: DraftLeave[]
   nameOf: (id: string) => string
-  onDone: (edits: CellEdit[], text: string, list: string[]) => void
+  onDone: (leave: DraftLeave, edits: CellEdit[], text: string) => void
 }) {
   const { planId, userId, date } = props
   const [kind, setKind] = useState(0)
   const [end, setEnd] = useState(date)
-  const [err, setErr] = useState('')
+  // 3-10 5: 경조·공가 사유
+  const [reason, setReason] = useState('')
+  const [err, setErr] = useState<{ text: string; list: string[] } | null>(null)
   const [pending, run] = useTransition()
   const l = DOCK_LEAVES[kind]!
-  const single = l.type === 'checkup'
-  const last = single ? date : end < date ? date : end
-  const range = last === date ? md(date) : `${md(date)}–${md(last)}`
+  const reasonCode = 'reasonCode' in l ? l.reasonCode : needsLeaveReason(l.type) ? reason : undefined
+  const autoEnd = l.type === 'checkup' || l.type === 'founding' || l.type === 'family'
+  const last = leaveEnd(l.type, date, reasonCode, end < date ? date : end)
+  const range = !last || last === date ? md(date) : `${md(date)}–${md(last)}`
   const go = () =>
     run(async () => {
-      setErr('')
-      if (
-        props.pendingCount &&
-        !window.confirm(
-          `저장하지 않은 변경 ${props.pendingCount}건은 다시 생성한 결과로 바뀝니다. 계속할까요?`,
-        )
-      )
-        return
+      setErr(null)
+      if (needsLeaveReason(l.type) && !reason) return setErr({ text: '사유를 선택해 주세요.', list: [] })
+      if (!last) return setErr({ text: '종료일을 확인해 주세요.', list: [] })
+      // 새 휴가가 덮는 칸의 저장 전 편집은 빠진다(휴가가 우선)
+      const covered = leaveRangeKeys({ userId, startDate: date, endDate: last })
+      const keptEdits = props.edits.filter((e) => !covered.has(key(e.userId, e.date)))
       const pv = await rerollPreviewAction({ planId, from: date })
-      if (!pv.ok) return setErr(pv.message)
+      if (!pv.ok) return setErr({ text: pv.message, list: [] })
       const p = pv as { swaps: number; adminEdits: number }
-      const lost = [p.swaps ? `교환 ${p.swaps}칸` : '', p.adminEdits ? `관리자 수정 ${p.adminEdits}칸` : '']
+      const kept = [
+        p.adminEdits ? `저장된 관리자 수정 ${p.adminEdits}칸` : '',
+        keptEdits.length ? `저장 전 변경 ${keptEdits.length}건` : '',
+      ]
         .filter(Boolean)
         .join('·')
+      const dropped = props.edits.length - keptEdits.length
       if (
         !window.confirm(
           `${props.nameOf(userId)} ${l.label}(${range})를 넣고 ${md(date)}부터 월말까지 근무를 다시 생성합니다.` +
-            (lost ? `\n이 기간의 ${lost}이 다시 짜이면서 바뀔 수 있습니다.` : '') +
-            '\n결과는 저장 전 편집으로 보여 드리고, 「저장 · 재배포」를 눌러야 근무표에 적용됩니다.',
+            (p.swaps ? `\n이 기간의 교환 ${p.swaps}칸은 다시 짜이면서 바뀔 수 있습니다.` : '') +
+            (kept ? `\n${kept}은 그대로 두고 나머지를 다시 짭니다.` : '') +
+            (dropped ? `\n휴가 기간 안의 저장 전 변경 ${dropped}건은 휴가로 바뀝니다.` : '') +
+            '\n휴가와 결과는 저장 전 편집으로 보여 드리고, 「저장 · 재배포」를 눌러야 근무표에 반영됩니다.',
         )
       )
         return
-      const lv = await saveLeaveAction({
-        userId,
-        type: l.type,
-        ...('reasonCode' in l ? { reasonCode: l.reasonCode } : {}),
-        startDate: date,
-        endDate: last,
-        replaceShift: true,
+      const rr = await rerollFromAction({
+        planId,
+        leave: {
+          userId,
+          type: l.type,
+          ...(reasonCode ? { reasonCode } : {}),
+          startDate: date,
+          endDate: last,
+        },
+        edits: keptEdits,
+        leaves: props.leaves.map((x) => ({
+          userId: x.userId,
+          type: x.type,
+          ...(x.reasonCode ? { reasonCode: x.reasonCode } : {}),
+          startDate: x.startDate,
+          endDate: x.endDate,
+        })),
       })
-      if (!lv.ok) return setErr(lv.message)
-      const rr = await rerollFromAction({ planId, from: date })
       if (!rr.ok)
-        return props.onDone(
-          [],
-          `휴가는 넣었지만 다시 생성하지 못했습니다: ${rr.message}`,
-          'causes' in rr ? ((rr.causes as string[] | undefined) ?? []) : [],
-        )
-      const ed = (rr as { edits: CellEdit[] }).edits
+        return setErr({
+          text: `다시 생성하지 못했습니다. 저장된 것은 없습니다: ${rr.message}`,
+          list: 'causes' in rr ? ((rr.causes as string[] | undefined) ?? []) : [],
+        })
+      const { leave, edits } = rr as { leave: DraftLeave; edits: CellEdit[] }
       props.onDone(
-        ed,
-        ed.length
-          ? `휴가를 넣고 ${md(date)}부터 다시 생성했습니다. 바뀌는 ${ed.length}칸을 확인하고 「저장 · 재배포」를 눌러 주세요.`
-          : `휴가를 넣었습니다. 다시 생성해도 바뀌는 칸이 없습니다.`,
-        [],
+        leave,
+        mergeRerolled(keptEdits, leave, edits),
+        `${props.nameOf(userId)} ${l.label}(${range})를 넣고 ${md(date)}부터 다시 생성했습니다${edits.length ? ` · 바뀌는 ${edits.length}칸` : ''}. 확인하고 「저장 · 재배포」를 눌러야 반영됩니다.`,
       )
     })
   return (
@@ -674,13 +720,21 @@ function LeaveReroll(props: {
           key={x.label}
           type="button"
           aria-pressed={i === kind}
-          onClick={() => setKind(i)}
+          onClick={() => (setKind(i), setReason(''), setErr(null))}
           className={`h-7 cursor-pointer rounded-md border bg-shift-off px-2 text-xs font-bold ${i === kind ? 'border-ink' : 'border-line'}`}
         >
           {x.label}
         </button>
       ))}
-      {!single && (
+      <LeaveReasonSelect
+        type={l.type}
+        value={reason}
+        onChange={(v) => (setReason(v), setErr(null))}
+        className="h-7 rounded-md border border-line px-1.5 text-xs text-ink"
+      />
+      {autoEnd ? (
+        l.type === 'family' && last && last !== date && <span className="text-ink-2">끝 {md(last)}</span>
+      ) : (
         <label className="flex items-center gap-1 text-ink-2">
           끝
           <input
@@ -704,7 +758,8 @@ function LeaveReroll(props: {
       </button>
       {err && (
         <span role="alert" className="text-danger">
-          {err}
+          {err.text}
+          {err.list.length > 0 && ` (${err.list.join(' · ')})`}
         </span>
       )}
     </div>

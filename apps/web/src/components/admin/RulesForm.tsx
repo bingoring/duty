@@ -53,6 +53,78 @@ function SeverityButton({
   )
 }
 
+// 금지 패턴 칩 목록 + 추가 입력. 3-10 11: 금지 근무 패턴·금지 권고 패턴이 함께 쓴다(한 패턴은 한 목록에만)
+function PatternChips({
+  label,
+  patterns,
+  other,
+  chipCls,
+  placeholder,
+  error,
+  onChange,
+}: {
+  label: string
+  patterns: string[]
+  other: { patterns: string[]; label: string }
+  chipCls: string
+  placeholder: string
+  error?: string
+  onChange: (next: string[]) => void
+}) {
+  const [draft, setDraft] = useState<string | null>(null)
+  const [draftError, setDraftError] = useState('')
+  const close = () => (setDraft(null), setDraftError(''))
+  return (
+    <>
+      <div className="flex flex-wrap gap-1.5">
+        {patterns.map((p) => (
+          <button
+            key={p}
+            type="button"
+            aria-label={`${p} 삭제`}
+            className={`cursor-pointer rounded-md px-2.5 py-[5px] text-xs font-bold ${chipCls}`}
+            onClick={() => onChange(patterns.filter((x) => x !== p))}
+          >
+            {p} ×
+          </button>
+        ))}
+        {draft === null ? (
+          <button
+            type="button"
+            className="cursor-pointer rounded-md border border-dashed border-ink-5 px-2.5 py-[5px] text-xs text-ink-2"
+            onClick={() => setDraft('')}
+          >
+            + 패턴 추가
+          </button>
+        ) : (
+          <input
+            autoFocus
+            aria-label={`새 ${label}`}
+            placeholder={placeholder}
+            className="h-7 w-24 rounded-md border border-line px-2 text-xs"
+            value={draft}
+            onChange={(e) => (setDraft(e.target.value), setDraftError(''))}
+            onKeyDown={(e) => {
+              if (e.key === 'Enter') {
+                // 패턴은 D·E·N·S·OFF를 '-'로 이은 것만 (다른 문자·한글·중복·다른 목록에 있는 것은 막는다)
+                const r = parsePatternInput(draft, patterns, other)
+                if (!r.ok) return setDraftError(r.message)
+                onChange([...patterns, r.pattern])
+                close()
+              } else if (e.key === 'Escape') close()
+            }}
+          />
+        )}
+      </div>
+      {(draftError || error) && (
+        <span role="alert" className="text-xs text-danger">
+          {draftError || error}
+        </span>
+      )}
+    </>
+  )
+}
+
 function NumberInput({
   value,
   changed,
@@ -104,8 +176,6 @@ export function RulesForm({
   weekendOptOuts?: string[]
 }) {
   const [rules, setRules] = useState<RuleSet>(editor.rules)
-  const [newPattern, setNewPattern] = useState<string | null>(null)
-  const [patternError, setPatternError] = useState('')
   const [errors, setErrors] = useState<Partial<Record<string, string>>>({})
   const [message, setMessage] = useState('')
   const [pending, start] = useTransition()
@@ -130,13 +200,15 @@ export function RulesForm({
     />
   )
   const paramChanged = (k: keyof RuleParams) => rules.params[k] !== base.params[k]
-  const patternsChanged =
-    [...rules.forbiddenPatterns].sort().join() !== [...base.forbiddenPatterns].sort().join()
+  const listChanged = (a: string[], b: string[]) => [...a].sort().join() !== [...b].sort().join()
+  const patternsChanged = listChanged(rules.forbiddenPatterns, base.forbiddenPatterns)
+  const softPatternsChanged = listChanged(rules.softPatterns, base.softPatterns)
   const changes =
     (Object.keys(rules.params) as (keyof RuleParams)[]).filter(paramChanged).length +
     (Object.keys(rules.toggles) as (keyof RuleToggles)[]).filter((k) => rules.toggles[k] !== base.toggles[k])
       .length +
     (patternsChanged ? 1 : 0) +
+    (softPatternsChanged ? 1 : 0) +
     SEVERITY_KEYS.filter(severityChanged).length
 
   const save = () =>
@@ -270,57 +342,36 @@ export function RulesForm({
           <div className="flex items-center justify-between font-bold">
             금지 근무 패턴 {severityButton('PATTERN', '금지 근무 패턴')}
           </div>
-          <div className="flex flex-wrap gap-1.5">
-            {rules.forbiddenPatterns.map((p) => (
-              <button
-                key={p}
-                type="button"
-                aria-label={`${p} 삭제`}
-                className="cursor-pointer rounded-md bg-danger-bg px-2.5 py-[5px] text-xs font-bold text-danger-ink"
-                onClick={() =>
-                  setRules({ ...rules, forbiddenPatterns: rules.forbiddenPatterns.filter((x) => x !== p) })
-                }
-              >
-                {p} ×
-              </button>
-            ))}
-            {newPattern === null ? (
-              <button
-                type="button"
-                className="cursor-pointer rounded-md border border-dashed border-ink-5 px-2.5 py-[5px] text-xs text-ink-2"
-                onClick={() => setNewPattern('')}
-              >
-                + 패턴 추가
-              </button>
-            ) : (
-              <input
-                autoFocus
-                aria-label="새 금지 패턴"
-                placeholder="예: N-S"
-                className="h-7 w-24 rounded-md border border-line px-2 text-xs"
-                value={newPattern}
-                onChange={(e) => (setNewPattern(e.target.value), setPatternError(''))}
-                onKeyDown={(e) => {
-                  if (e.key === 'Enter') {
-                    // 금지 패턴은 D·E·N·S·OFF를 '-'로 이은 것만 (다른 문자·한글·중복은 막는다)
-                    const r = parsePatternInput(newPattern, rules.forbiddenPatterns)
-                    if (!r.ok) return setPatternError(r.message)
-                    setRules({ ...rules, forbiddenPatterns: [...rules.forbiddenPatterns, r.pattern] })
-                    setNewPattern(null)
-                    setPatternError('')
-                  } else if (e.key === 'Escape') {
-                    setNewPattern(null)
-                    setPatternError('')
-                  }
-                }}
-              />
-            )}
-          </div>
-          {(patternError || errors.forbiddenPatterns) && (
-            <span role="alert" className="text-xs text-danger">
-              {patternError || errors.forbiddenPatterns}
+          <PatternChips
+            label="금지 패턴"
+            patterns={rules.forbiddenPatterns}
+            other={{ patterns: rules.softPatterns, label: '금지 권고 패턴' }}
+            chipCls="bg-danger-bg text-danger-ink"
+            placeholder="예: N-S"
+            error={errors.forbiddenPatterns}
+            onChange={(forbiddenPatterns) => setRules({ ...rules, forbiddenPatterns })}
+          />
+        </div>
+        {/* 3-10 11: 금지 권고 패턴 — 늘 권고(토글 없음), 지키지 못하면 벌점 */}
+        <div className="flex flex-col gap-2.5 rounded-xl border border-line bg-surface p-4 text-[13px]">
+          <div className="flex items-center justify-between font-bold">
+            금지 권고 패턴
+            <span
+              className={`flex-none rounded-full px-[7px] py-0.5 text-[10.5px] font-bold ${KIND_CLS.권고}`}
+            >
+              권고
             </span>
-          )}
+          </div>
+          <span className="text-xs text-ink-2">피하면 좋은 패턴 · 지키지 못하면 벌점</span>
+          <PatternChips
+            label="금지 권고 패턴"
+            patterns={rules.softPatterns}
+            other={{ patterns: rules.forbiddenPatterns, label: '금지 패턴' }}
+            chipCls="bg-warn-bg text-warn-ink"
+            placeholder="예: OFF-D-OFF"
+            error={errors.softPatterns}
+            onChange={(softPatterns) => setRules({ ...rules, softPatterns })}
+          />
         </div>
         <div className="rounded-xl border border-dashed border-line bg-panel p-3.5 text-xs leading-[1.6] text-ink-2">
           <b className="text-ink">변경 이력</b>

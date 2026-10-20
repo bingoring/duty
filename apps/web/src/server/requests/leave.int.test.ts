@@ -7,6 +7,7 @@ import { seedDev } from '../seed/dev'
 import { adjustBalances } from '../staff/service'
 import { projectedLeaveBalance } from './balance'
 import { ensureRequestPlan } from './plan'
+import { ADMIN_ENTERED } from './dto'
 import { cancelLeave, decideLeave, leaveImpact, saveLeave, saveShiftRequest, submitRequests } from './service'
 
 const db = setupTestDb()
@@ -361,5 +362,42 @@ describe('leaveImpact (R-APPROVE-3)', () => {
       await saveLeave(db, me, { userId: me.id, type: 'annual', startDate: '2026-11-02' }, TODAY),
     )
     expect(await leaveImpact(db, nov)).toBeNull()
+  })
+})
+
+describe('3-10 관리자가 넣은 휴가', () => {
+  it('3-10 10: 간호사는 관리자가 넣은(승인된) 휴가를 취소하지 못하고, 그 날 근무 신청으로 덮지도 못한다', async () => {
+    const me = await actor('00103')
+    const admin = await actor('00101')
+    const id = idOf(
+      await saveLeave(db, admin, { userId: me.id, type: 'annual', startDate: '2026-11-10' }, TODAY),
+    )
+    expect(await leaveOf(id)).toMatchObject({ status: 'APPROVED', byAdmin: true })
+    expect(await cancelLeave(db, me, id, TODAY)).toEqual({ ok: false, message: ADMIN_ENTERED })
+    expect(
+      await saveShiftRequest(
+        db,
+        me,
+        { userId: me.id, date: '2026-11-10', options: ['D'], replaceLeave: true },
+        TODAY,
+      ),
+    ).toEqual({ ok: false, message: ADMIN_ENTERED })
+    expect((await leaveOf(id)).status).toBe('APPROVED')
+    // 관리자는 취소한다
+    expect(await cancelLeave(db, admin, id, TODAY)).toEqual({ ok: true })
+    expect((await leaveOf(id)).status).toBe('CANCELLED')
+  })
+
+  it('3-10 2: 확정된 달에 관리자가 넣은 휴가는 신청 화면에서 취소하면 승인 전 칸으로 돌아간다', async () => {
+    const me = await actor('00103')
+    const admin = await actor('00101')
+    const before = await cell(me.id, '2026-10-20')
+    const id = idOf(
+      await saveLeave(db, admin, { userId: me.id, type: 'sick', startDate: '2026-10-20' }, TODAY),
+    )
+    expect(await cell(me.id, '2026-10-20')).toMatchObject({ code: 'LEAVE', source: 'admin' })
+    expect(await cancelLeave(db, admin, id, TODAY)).toEqual({ ok: true })
+    expect((await leaveOf(id)).status).toBe('CANCELLED')
+    expect((await cell(me.id, '2026-10-20'))!.code).toBe(before!.code)
   })
 })

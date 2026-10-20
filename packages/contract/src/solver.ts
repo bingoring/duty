@@ -17,7 +17,6 @@ export const SEVERITY_KEYS = [
   'OFF_CONSEC',
   'WORK_CONSEC',
   'NIGHT_MAX',
-  'NIGHT_TARGET',
   'NIGHT_MIN',
   'NIGHT_CONSEC',
   'SLEEPING',
@@ -34,7 +33,9 @@ export const SEVERITY_KEYS = [
   'OFF_EVE',
   // 3-9
   'STAFF_MAX',
-  'OFF_CARRY',
+  // 3-10 7: 누적 OFF 최소·최대는 필수/권고를 따로 정한다
+  'OFF_CARRY_MIN',
+  'OFF_CARRY_MAX',
 ] as const
 
 export const SolverCell = z.object({
@@ -66,8 +67,6 @@ export const SolverNurse = z.object({
   offTarget: z.number(),
   nightBankBefore: z.number().int(),
   nightMax: z.number().int().nonnegative(),
-  // 권고 N 수. 전담이면 null
-  nightTarget: z.number().int().nonnegative().nullable(),
   // 3-5 추가: 월 나이트 최소(근무 가능한 날만큼 비례, 0·전담·트레이닝 중 신규는 null). 예전 요청과 호환되도록 선택
   nightMin: z.number().int().nonnegative().nullable().optional(),
   weekendMissedStreak: z.number().int().nonnegative(),
@@ -127,6 +126,8 @@ export const SolverRequest = z.object({
     offAfterNight: z.number().int().nonnegative(),
     sleepingOffPerN: z.number().int().positive(),
     forbiddenPatterns: z.array(z.string()),
+    // 3-10 11: 금지 권고 패턴(항상 권고 — 나올 때마다 벌점). 예전 요청과 호환되도록 선택
+    softPatterns: z.array(z.string()).optional(),
     shiftBalanceTolerance: z.number().int().nonnegative(),
     shiftBalanceWindowMonths: z.number().int().positive(),
     // 3-5: 필수(하드 제약)로 둘 규칙. 나머지는 벌점(권고)
@@ -161,7 +162,6 @@ export const TERM_KEYS = [
   'weekendPair',
   'weekendCarry',
   'workConsec',
-  'nightTarget',
   'offAfterNight',
   'sleepingShort',
   'shiftBalance',
@@ -187,6 +187,8 @@ export const TERM_KEYS = [
   // 3-9: 필수를 권고로 낮췄을 때
   'staffOver',
   'offCarry',
+  // 3-10 11: 금지 권고 패턴
+  'softPattern',
 ] as const
 
 export const CAUSE_GROUPS = [
@@ -202,7 +204,6 @@ export const CAUSE_GROUPS = [
   'REST',
   'PATTERN',
   'WORK_CONSEC',
-  'NIGHT_TARGET',
   'OFF_AFTER_N',
   'SHIFT_BALANCE',
   'WEEKEND_PAIR',
@@ -213,7 +214,8 @@ export const CAUSE_GROUPS = [
   'OFF_EVE',
   // 3-9
   'STAFF_MAX',
-  'OFF_CARRY',
+  'OFF_CARRY_MIN',
+  'OFF_CARRY_MAX',
 ] as const
 
 export const SolverCause = z.object({
@@ -234,7 +236,13 @@ export const SolverResponse = z.discriminatedUnion('status', [
     seed: z.number().int(),
     solverVersion: z.string(),
   }),
-  z.object({ status: z.literal('INFEASIBLE'), causes: z.array(SolverCause), wallTimeSec: z.number() }),
+  z.object({
+    status: z.literal('INFEASIBLE'),
+    causes: z.array(SolverCause),
+    // 3-10 13: 원인 증명이 시간 안에 안 끝났을 때, 하나만 권고로 풀면 해가 나오는 필수 규칙
+    relaxable: z.array(z.enum(SEVERITY_KEYS)).optional(),
+    wallTimeSec: z.number(),
+  }),
   z.object({ status: z.literal('UNKNOWN'), wallTimeSec: z.number() }),
 ])
 

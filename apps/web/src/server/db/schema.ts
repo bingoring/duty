@@ -141,6 +141,11 @@ export const ruleVersions = pgTable(
     params: jsonb('params').$type<RuleParams>().notNull(),
     toggles: jsonb('toggles').$type<RuleToggles>().notNull(),
     forbiddenPatterns: jsonb('forbidden_patterns').$type<string[]>().notNull(),
+    // 3-10 11: 금지 권고 패턴(늘 권고)
+    softPatterns: jsonb('soft_patterns')
+      .$type<string[]>()
+      .notNull()
+      .default(sql`'[]'::jsonb`),
     // 3-5: 규칙별 필수/권고. 예전 버전은 빈 객체 → 기본값
     severity: jsonb('severity')
       .$type<Partial<RuleSeverity>>()

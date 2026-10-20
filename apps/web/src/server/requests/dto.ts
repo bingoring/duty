@@ -202,6 +202,18 @@ export const FAMILY_REASON_LABEL: Record<string, string> = {
   ancestor_mourning_end: '직계존속 탈상',
 }
 
+// 3-10 10: 관리자가 넣은 신청·휴가는 간호사가 지우거나 바꾸지 못한다
+export const ADMIN_ENTERED = '관리자가 넣은 신청입니다. 바꾸려면 수간호사에게 요청해 주세요.'
+
+// 3-10 1: 간호사 본인이 D·E·N을 신청한 칸이면 관리자가 넣을 수 있는 근무(신청 근무 + OFF). 아니면 null
+export function nurseShiftAsk(
+  q: { options: readonly string[]; special?: string | null; byAdmin?: boolean } | null | undefined,
+): RequestOption[] | null {
+  if (!q || q.byAdmin || q.special) return null
+  if (!q.options.some((o) => o === 'D' || o === 'E' || o === 'N')) return null
+  return [...new Set([...(q.options as RequestOption[]), 'OFF' as const])]
+}
+
 const signed = (n: number) => (n > 0 ? `+${n}` : n < 0 ? `−${-n}` : '0')
 
 export function buildRequestsView(
@@ -308,18 +320,23 @@ export function buildRequestsView(
     return { userId: u.id, name: u.name, me: u.id === viewer.id, head: !!u.head, cells, count }
   })
 
-  // R-REQ-VIEW-3: 제출된 OFF 단일 신청 수
-  const offCounts: Record<string, number> = {}
+  // R-REQ-VIEW-3: 제출된 OFF 단일 신청 수.
+  // 3-10 4: 쉬는 인원 = OFF 단일 + 휴가(제출·승인). 같은 날 한 사람은 한 번만, 수간호사 제외
+  const resting = new Map<string, Set<string>>()
   const heads = new Set(r.users.filter((u) => u.head).map((u) => u.id))
+  const inMonth = new Set(days)
+  const rest = (date: string, userId: string) => {
+    if (heads.has(userId) || !inMonth.has(date)) return
+    if (!resting.has(date)) resting.set(date, new Set())
+    resting.get(date)!.add(userId)
+  }
   for (const q of r.requests)
-    if (
-      q.submittedAt &&
-      !q.special &&
-      q.options.length === 1 &&
-      q.options[0] === 'OFF' &&
-      !heads.has(q.userId)
-    )
-      offCounts[q.date] = (offCounts[q.date] ?? 0) + 1
+    if (q.submittedAt && !q.special && q.options.length === 1 && q.options[0] === 'OFF')
+      rest(q.date, q.userId)
+  for (const l of r.leaves)
+    if (l.status === 'SUBMITTED' || l.status === 'APPROVED')
+      for (const d of leaveDates(l.startDate, l.endDate)) rest(d, l.userId)
+  const offCounts: Record<string, number> = Object.fromEntries([...resting].map(([d, s]) => [d, s.size]))
 
   let cards: RequestsView['cards'] = null
   if (!isAdmin && r.viewerCard) {
@@ -357,7 +374,7 @@ export function buildRequestsView(
           : c.weekendMissedLastMonth
             ? `주말 연휴 통 OFF: 우선 대상 (${prev}월 미배정)`
             : `주말 연휴 통 OFF: ${prev}월 배정됨`,
-      wardText: `병동 신청 ${r.requests.filter((q) => q.submittedAt).length}건${crowded.length ? ` · ${crowded.join(' · ')} OFF 3명 이상` : ''}`,
+      wardText: `병동 신청 ${r.requests.filter((q) => q.submittedAt).length}건${crowded.length ? ` · ${crowded.join(' · ')} 쉬는 인원 3명 이상` : ''}`,
     }
   }
 

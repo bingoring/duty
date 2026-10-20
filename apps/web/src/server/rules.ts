@@ -32,6 +32,7 @@ export async function getCurrentRules(): Promise<RuleSet & { version: number | n
     params: row.v.params,
     toggles: row.v.toggles,
     forbiddenPatterns: row.v.forbiddenPatterns,
+    softPatterns: row.v.softPatterns,
     severity: row.v.severity,
   })
   if (!parsed.success) {

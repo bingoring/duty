@@ -11,7 +11,6 @@ WEIGHTS: dict[str, int] = {
     "weekendPair": 400,
     "weekendCarry": 400,
     "workConsec": 300,
-    "nightTarget": 200,
     # 3-5 추가: 월 나이트 최소에 모자란 N 하나당
     "nightMin": 200,
     # 3-8: N 재시작(권고 기본), 신청 OFF 전날 N(필수 기본 — 권고로 낮췄을 때)
@@ -30,6 +29,10 @@ WEIGHTS: dict[str, int] = {
     "training": 5000,
     "rest": 5000,
     "pattern": 5000,
+    # 3-10 11: 금지 권고 패턴(항상 권고) 한 번당. 권고로 낮춘 금지 패턴(5000)보다 낮게 — 관리자가 일부러
+    # 권고 목록에 둔 패턴이라 필수 패턴을 낮춘 경우보다 덜 피한다. 그래도 신청 반영(requestMissMax 1500)과
+    # 같은 단계로 두어 OFF-D-OFF처럼 하루 끼인 근무는 웬만하면 생기지 않게 한다
+    "softPattern": 1500,
     "nightMax": 3000,
     "nightConsec": 3000,
     "offConsec": 2000,

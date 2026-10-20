@@ -25,7 +25,6 @@ export const HARD_RULE_IDS = [
 ] as const
 
 export const SOFT_RULE_IDS = [
-  'S-NIGHT-TARGET',
   'S-NIGHT-MIN',
   'S-WORK-CONSEC',
   'S-OFF-AFTER-N',
@@ -38,6 +37,8 @@ export const SOFT_RULE_IDS = [
   'S-REQUEST',
   // 3-8: N 연속 뒤 1~3일 쉬고 다시 N으로 시작
   'S-NIGHT-RESTART',
+  // 3-10 11: 금지 권고 패턴(늘 권고). 3-10 12에서 S-NIGHT-TARGET(월 나이트 목표)은 없앴다
+  'S-SOFT-PATTERN',
 ] as const
 
 export type HardRuleId = (typeof HARD_RULE_IDS)[number]

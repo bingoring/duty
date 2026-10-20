@@ -16,7 +16,7 @@ describe('DEFAULT_RULES', () => {
 
   it('원문에서 추가한 수치를 포함한다', () => {
     const p = DEFAULT_RULES.params
-    expect([p.targetNightPerMonth, p.trainingMonths]).toEqual([6, 3])
+    expect(p.trainingMonths).toBe(3)
     expect([p.nightDedicatedMaxPerMonth, p.nightDedicatedMaxPerMonth31]).toEqual([15, 16])
     expect([p.nightDedicatedMinMonths, p.nightDedicatedMaxMonths]).toEqual([1, 6])
   })
@@ -75,6 +75,27 @@ describe('금지 패턴', () => {
     expect(PATTERN_REGEX.test('D')).toBe(false)
     expect(PATTERN_REGEX.test('E-X')).toBe(false)
     expect(PATTERN_REGEX.test('E--D')).toBe(false)
+  })
+
+  it('3-10: 예전 버전의 월 나이트 목표·NIGHT_TARGET은 버리고, OFF_CARRY는 최소·최대 둘 다에 쓴다', () => {
+    const old = {
+      ...DEFAULT_RULES,
+      params: { ...DEFAULT_RULES.params, targetNightPerMonth: 6 },
+      softPatterns: undefined,
+      severity: { NIGHT_TARGET: 'soft', OFF_CARRY: 'soft' },
+    }
+    const r = RuleSetSchema.parse(old)
+    expect('targetNightPerMonth' in r.params).toBe(false)
+    expect('NIGHT_TARGET' in r.severity).toBe(false)
+    expect('OFF_CARRY' in r.severity).toBe(false)
+    expect([r.severity.OFF_CARRY_MIN, r.severity.OFF_CARRY_MAX]).toEqual(['soft', 'soft'])
+    expect(r.softPatterns).toEqual([])
+    // 새 키가 있으면 그쪽이 이긴다
+    const both = RuleSetSchema.parse({ ...old, severity: { OFF_CARRY: 'soft', OFF_CARRY_MAX: 'hard' } })
+    expect([both.severity.OFF_CARRY_MIN, both.severity.OFF_CARRY_MAX]).toEqual(['soft', 'hard'])
+    // 심각도가 아예 없는 예전 버전
+    const { severity: _s, ...noSeverity } = DEFAULT_RULES
+    expect(RuleSetSchema.parse(noSeverity).severity).toEqual(DEFAULT_RULES.severity)
   })
 
   it('잘못된 패턴이 있으면 규칙 세트 검증에 실패한다', () => {

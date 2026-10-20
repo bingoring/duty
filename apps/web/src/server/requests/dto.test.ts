@@ -1,6 +1,6 @@
 import { DEFAULT_RULES } from '@duty/domain'
 import { describe, expect, it } from 'vitest'
-import { buildRequestsView, type RequestsRaw } from './dto'
+import { buildRequestsView, nurseShiftAsk, type RequestsRaw } from './dto'
 
 const U = (id: string, rank: number, name = id) => ({ id, name, seniorityRank: rank })
 const sub = new Date('2026-10-03T00:00:00Z')
@@ -206,5 +206,88 @@ describe('buildRequestsView — 날짜 머리', () => {
     expect(v.days[2]).toMatchObject({ date: '2026-11-03', red: true, color: 'sun' })
     expect(v.days[6]).toMatchObject({ weekday: '토', red: true, color: 'sat' })
     expect(v.days[19]).toMatchObject({ date: '2026-11-20', red: false })
+  })
+})
+
+describe('3-10 쉬는 인원 · 관리자 입력', () => {
+  const leave = (over: Partial<RequestsRaw['leaves'][number]>): RequestsRaw['leaves'][number] => ({
+    id: 'x',
+    userId: 'c',
+    type: 'annual',
+    reasonCode: null,
+    startDate: '2026-11-13',
+    endDate: '2026-11-13',
+    days: 1,
+    status: 'APPROVED',
+    comment: null,
+    rejectReason: null,
+    decidedAt: sub,
+    ...over,
+  })
+
+  it('쉬는 인원 = 제출된 OFF 단일 + 휴가(제출·승인), 한 사람은 하루 한 번, 수간호사 제외', () => {
+    const v = buildRequestsView(
+      raw({
+        users: [...raw().users, { id: 'h', name: '수간호사', seniorityRank: 1, head: true }],
+        requests: [
+          ...raw().requests,
+          {
+            userId: 'h',
+            date: '2026-11-13',
+            options: ['OFF'],
+            special: null,
+            comment: null,
+            submittedAt: sub,
+          },
+        ],
+        leaves: [
+          ...raw().leaves,
+          leave({ id: 'x1', userId: 'c' }), // OFF 신청과 같은 날 → 한 번
+          leave({ id: 'x2', userId: 'a', type: 'sick', status: 'SUBMITTED' }),
+          leave({ id: 'x3', userId: 'me', status: 'DRAFT' }), // 임시는 제외
+          leave({ id: 'x4', userId: 'h', type: 'special' }), // 수간호사 제외
+        ],
+      }),
+      { id: 'me', role: 'nurse' },
+    )
+    expect(v.offCounts['2026-11-13']).toBe(2) // c(OFF+연차) + a(병가)
+    expect(v.offCounts['2026-11-19']).toBe(1) // a 경조 기간
+    expect(v.offCounts['2026-11-02']).toBeUndefined() // 반려 휴가 제외
+  })
+
+  it('관리자가 넣은 신청·휴가는 칸에 byAdmin으로 남는다', () => {
+    const v = buildRequestsView(
+      raw({
+        requests: [
+          {
+            userId: 'c',
+            date: '2026-11-10',
+            options: ['D'],
+            special: null,
+            comment: null,
+            submittedAt: sub,
+            byAdmin: true,
+          },
+        ],
+        leaves: [
+          leave({ id: 'x5', userId: 'c', startDate: '2026-11-11', endDate: '2026-11-11', byAdmin: true }),
+        ],
+      }),
+      { id: 'c', role: 'nurse' },
+    )
+    expect(cellOf(v, 'c', '2026-11-10')).toMatchObject({ kind: 'shift', byAdmin: true })
+    expect(cellOf(v, 'c', '2026-11-11').leave).toMatchObject({ byAdmin: true })
+  })
+})
+
+describe('nurseShiftAsk (3-10 1)', () => {
+  it('간호사가 D·E·N을 신청한 칸만 신청 근무 + OFF', () => {
+    expect(nurseShiftAsk({ options: ['D'], special: null, byAdmin: false })).toEqual(['D', 'OFF'])
+    expect(nurseShiftAsk({ options: ['D', 'E'], special: null, byAdmin: false })).toEqual(['D', 'E', 'OFF'])
+    expect(nurseShiftAsk({ options: ['OFF', 'N'], special: null, byAdmin: false })).toEqual(['OFF', 'N'])
+    expect(nurseShiftAsk({ options: ['OFF'], special: null, byAdmin: false })).toBeNull() // 3-9 OFF 규칙
+    expect(nurseShiftAsk({ options: ['D'], special: null, byAdmin: true })).toBeNull()
+    expect(nurseShiftAsk({ options: [], special: 'EDU_CONT', byAdmin: false })).toBeNull()
+    expect(nurseShiftAsk(undefined)).toBeNull()
   })
 })

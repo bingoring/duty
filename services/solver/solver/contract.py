@@ -81,10 +81,6 @@ class Request(BaseModel):
     options: Annotated[list[Option], Field(min_length=1)]
 
 
-class NightTarget(RootModel[int]):
-    root: Annotated[int, Field(ge=0, le=9007199254740991)]
-
-
 class NightMin(RootModel[int]):
     root: Annotated[int, Field(ge=0, le=9007199254740991)]
 
@@ -110,7 +106,6 @@ class Nurse(BaseModel):
     offTarget: float
     nightBankBefore: Annotated[int, Field(ge=-9007199254740991, le=9007199254740991)]
     nightMax: Annotated[int, Field(ge=0, le=9007199254740991)]
-    nightTarget: NightTarget | None
     nightMin: NightMin | None = None
     weekendMissedStreak: Annotated[int, Field(ge=0, le=9007199254740991)]
     weekendCarryIn: bool
@@ -151,7 +146,6 @@ class HardEnum(StrEnum):
     OFF_CONSEC = 'OFF_CONSEC'
     WORK_CONSEC = 'WORK_CONSEC'
     NIGHT_MAX = 'NIGHT_MAX'
-    NIGHT_TARGET = 'NIGHT_TARGET'
     NIGHT_MIN = 'NIGHT_MIN'
     NIGHT_CONSEC = 'NIGHT_CONSEC'
     SLEEPING = 'SLEEPING'
@@ -167,7 +161,8 @@ class HardEnum(StrEnum):
     NIGHT_RESTART = 'NIGHT_RESTART'
     OFF_EVE = 'OFF_EVE'
     STAFF_MAX = 'STAFF_MAX'
-    OFF_CARRY = 'OFF_CARRY'
+    OFF_CARRY_MIN = 'OFF_CARRY_MIN'
+    OFF_CARRY_MAX = 'OFF_CARRY_MAX'
 
 
 class Rules(BaseModel):
@@ -180,6 +175,7 @@ class Rules(BaseModel):
     offAfterNight: Annotated[int, Field(ge=0, le=9007199254740991)]
     sleepingOffPerN: Annotated[int, Field(gt=0, le=9007199254740991)]
     forbiddenPatterns: list[str]
+    softPatterns: list[str] | None = None
     shiftBalanceTolerance: Annotated[int, Field(ge=0, le=9007199254740991)]
     shiftBalanceWindowMonths: Annotated[int, Field(gt=0, le=9007199254740991)]
     hard: list[HardEnum]
@@ -264,7 +260,6 @@ class Objective(BaseModel):
             'weekendPair',
             'weekendCarry',
             'workConsec',
-            'nightTarget',
             'offAfterNight',
             'sleepingShort',
             'shiftBalance',
@@ -286,6 +281,7 @@ class Objective(BaseModel):
             'offEve',
             'staffOver',
             'offCarry',
+            'softPattern',
         ],
         TermsAdditionalProperty,
     ]
@@ -316,7 +312,6 @@ class Group(StrEnum):
     REST = 'REST'
     PATTERN = 'PATTERN'
     WORK_CONSEC = 'WORK_CONSEC'
-    NIGHT_TARGET = 'NIGHT_TARGET'
     OFF_AFTER_N = 'OFF_AFTER_N'
     SHIFT_BALANCE = 'SHIFT_BALANCE'
     WEEKEND_PAIR = 'WEEKEND_PAIR'
@@ -326,7 +321,8 @@ class Group(StrEnum):
     NIGHT_RESTART = 'NIGHT_RESTART'
     OFF_EVE = 'OFF_EVE'
     STAFF_MAX = 'STAFF_MAX'
-    OFF_CARRY = 'OFF_CARRY'
+    OFF_CARRY_MIN = 'OFF_CARRY_MIN'
+    OFF_CARRY_MAX = 'OFF_CARRY_MAX'
 
 
 class Shift(StrEnum):
@@ -345,12 +341,38 @@ class Cause(BaseModel):
     shift: Shift | None = None
 
 
+class RelaxableEnum(StrEnum):
+    REST = 'REST'
+    PATTERN = 'PATTERN'
+    OFF_CONSEC = 'OFF_CONSEC'
+    WORK_CONSEC = 'WORK_CONSEC'
+    NIGHT_MAX = 'NIGHT_MAX'
+    NIGHT_MIN = 'NIGHT_MIN'
+    NIGHT_CONSEC = 'NIGHT_CONSEC'
+    SLEEPING = 'SLEEPING'
+    OFF_AFTER_N = 'OFF_AFTER_N'
+    STAFF = 'STAFF'
+    KTAS = 'KTAS'
+    TRAINING = 'TRAINING'
+    SHIFT_BALANCE = 'SHIFT_BALANCE'
+    WEEKEND_PAIR = 'WEEKEND_PAIR'
+    JUNIOR_ONLY = 'JUNIOR_ONLY'
+    REPEAT_PAIR = 'REPEAT_PAIR'
+    EDU_LIMIT = 'EDU_LIMIT'
+    NIGHT_RESTART = 'NIGHT_RESTART'
+    OFF_EVE = 'OFF_EVE'
+    STAFF_MAX = 'STAFF_MAX'
+    OFF_CARRY_MIN = 'OFF_CARRY_MIN'
+    OFF_CARRY_MAX = 'OFF_CARRY_MAX'
+
+
 class SolverResponse2(BaseModel):
     model_config = ConfigDict(
         extra='forbid',
     )
     status: Literal['INFEASIBLE']
     causes: list[Cause]
+    relaxable: list[RelaxableEnum] | None = None
     wallTimeSec: float
 
 

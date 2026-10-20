@@ -339,6 +339,17 @@ class Builder:
                         continue
                     lits = [self.token(nid, tl[i + j], parts[j]) for j in range(k)]
                     self.no_all("PATTERN", "pattern", lits, f"PATTERN:{nid}")
+            # S-SOFT-PATTERN (3-10 11): 금지 권고 패턴(늘 권고). 나올 때마다 벌점, 진단 모드에서는 뺀다
+            if not self.diagnose:
+                for pattern in r.get("softPatterns") or []:
+                    parts = pattern.split("-")
+                    k = len(parts)
+                    for i in range(len(tl) - k + 1):
+                        if not touches(i, k):
+                            continue
+                        v = self._and([self.token(nid, tl[i + j], parts[j]) for j in range(k)])
+                        if v is not self.false:
+                            self.terms["softPattern"].append(v)
             # H-REST
             for i in range(len(tl) - 1):
                 if not touches(i, 2):
@@ -438,11 +449,6 @@ class Builder:
                 self.objective_terms(n, off_short, miss_max)
             self.carry_range(n)
             nights = sum(self.is_(nid, d, "N") for d in self.days)
-            # S-NIGHT-TARGET
-            if n["nightTarget"] is not None:
-                self.at_most(
-                    "NIGHT_TARGET", "nightTarget", nights, n["nightTarget"], f"NIGHT_TARGET:{nid}", ub=31
-                )
             # H-OFF-EVE (3-8): OFF만 신청한 날의 전날 N 금지
             for d in n.get("noNightDates") or []:
                 if d in self.month:
@@ -555,11 +561,11 @@ class Builder:
             return
         actual, fixed_off = self.counted_off(n)
         diff2 = 2 * (sum(actual) + fixed_off) - round(n["offTarget"] * 2)
-        g = f"OFF_CARRY:{n['id']}"
+        # 3-10 7: 최소·최대는 필수/권고를 따로 정한다
         if hi is not None:
-            self.at_most("OFF_CARRY", "offCarry", diff2, 2 * hi, g)
+            self.at_most("OFF_CARRY_MAX", "offCarry", diff2, 2 * hi, f"OFF_CARRY_MAX:{n['id']}")
         if lo is not None:
-            self.at_most("OFF_CARRY", "offCarry", -diff2, -2 * lo, g)
+            self.at_most("OFF_CARRY_MIN", "offCarry", -diff2, -2 * lo, f"OFF_CARRY_MIN:{n['id']}")
 
     def objective_terms(self, n: dict, off_short: list, miss_max: list) -> None:
         """규칙이 아닌 목표: 공정성·신청·슬리핑오프 부여·순환 역방향."""
@@ -765,12 +771,52 @@ def solve(req: dict) -> dict:
             "solverVersion": VERSION,
         }
     if status == cp_model.INFEASIBLE:
-        return {
-            "status": "INFEASIBLE",
-            "causes": diagnose(req),
-            "wallTimeSec": round(time.monotonic() - t0, 3),
-        }
+        causes = diagnose(req)
+        out: dict = {"status": "INFEASIBLE", "causes": causes}
+        if not causes:
+            out["relaxable"] = relaxable(req)
+        out["wallTimeSec"] = round(time.monotonic() - t0, 3)
+        return out
     return {"status": "UNKNOWN", "wallTimeSec": round(time.monotonic() - t0, 3)}
+
+
+# 3-10 13: 원인 증명이 안 될 때 풀어 볼 순서 — 기본이 권고인데 필수로 바뀌기 쉬운 규칙부터
+RELAX_ORDER = (
+    "SHIFT_BALANCE",
+    "NIGHT_RESTART",
+    "STAFF_MAX",
+    "OFF_CARRY_MIN",
+    "OFF_CARRY_MAX",
+    "NIGHT_MIN",
+    "OFF_AFTER_N",
+    "WEEKEND_PAIR",
+    "JUNIOR_ONLY",
+    "REPEAT_PAIR",
+    "OFF_EVE",
+    "PATTERN",
+    "WORK_CONSEC",
+)
+RELAX_MAX = 3
+
+
+def relaxable(req: dict) -> list[str]:
+    """필수 규칙을 하나씩 빼고 첫 해가 나오는지 본다. 진단 시간만큼만 쓰고, 찾은 것(최대 3개)을 돌려준다."""
+    hard = list(req["rules"]["hard"])
+    order = [k for k in RELAX_ORDER if k in hard] + [k for k in hard if k not in RELAX_ORDER]
+    wall = float(os.environ.get("SOLVER_WALL_FACTOR", "1.5"))
+    deadline = time.monotonic() + min(10.0, req["timeLimitSec"]) * wall
+    found: list[str] = []
+    for key in order:
+        left = (deadline - time.monotonic()) / wall
+        if left < 0.5 or len(found) >= RELAX_MAX:
+            break
+        r = {**req, "rules": {**req["rules"], "hard": [h for h in hard if h != key]}}
+        b = Builder(r).build()
+        s = _solver(r, min(3.0, left))
+        s.parameters.stop_after_first_solution = True
+        if s.solve(b.m) in (cp_model.OPTIMAL, cp_model.FEASIBLE):
+            found.append(key)
+    return found
 
 
 def diagnose(req: dict) -> list[dict]:

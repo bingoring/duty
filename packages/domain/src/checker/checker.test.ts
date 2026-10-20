@@ -61,6 +61,18 @@ describe('H-PATTERN', () => {
     expect(only(solo('N L D'), 'H-PATTERN').map((v) => v.data.pattern)).toEqual(['N-OFF-D'])
   })
 
+  it('3-10 11: 금지 권고 패턴은 같은 셈으로 잡되 늘 권고', () => {
+    const r = { ...rules(), softPatterns: ['OFF-D-OFF'] }
+    expect(only(solo('O D O', { rules: r }), 'S-SOFT-PATTERN')).toMatchObject([
+      { severity: 'soft', dates: ['2026-10-01', '2026-10-02', '2026-10-03'], data: { pattern: 'OFF-D-OFF' } },
+    ])
+    expect(only(solo('O D D O', { rules: r }), 'S-SOFT-PATTERN')).toEqual([])
+    const allHard = rules({}, {}, Object.fromEntries(Object.keys(rules().severity).map((k) => [k, 'hard'])))
+    expect(
+      only(solo('O D O', { rules: { ...allHard, softPatterns: ['OFF-D-OFF'] } }), 'S-SOFT-PATTERN'),
+    ).toMatchObject([{ severity: 'soft' }])
+  })
+
   it('N-OFF-OFF-D와 칸 없음(∅)은 패턴이 아니다', () => {
     expect(only(solo('N O O D'), 'H-PATTERN')).toEqual([])
     const inp = input({ nurses: [nurse('a', { employedUntil: OCT1 })], cells: row('a', OCT1, 'E') })
@@ -86,11 +98,10 @@ describe('H-REST', () => {
 describe('나이트 개수·연속', () => {
   const nights = (n: number) => Array(n).fill('N O O').join(' ')
 
-  it('월 N 8개는 하드(상한 7), 7개는 소프트(목표 6)', () => {
+  it('월 N 8개는 하드(상한 7), 7개는 통과 (3-10 12: 월 나이트 목표 경고는 없앴다)', () => {
     expect(only(solo(nights(8)), 'H-NIGHT-MAX')).toMatchObject([{ data: { count: 8, max: 7 } }])
     expect(only(solo(nights(7)), 'H-NIGHT-MAX')).toEqual([])
-    expect(only(solo(nights(7)), 'S-NIGHT-TARGET')).toMatchObject([{ data: { count: 7, target: 6 } }])
-    expect(only(solo(nights(8)), 'S-NIGHT-TARGET')).toEqual([])
+    expect(checkSchedule(solo(nights(7))).softWarnings.filter((v) => v.data.target !== undefined)).toEqual([])
   })
 
   it('3-5 월 나이트 최소: 0이면 보지 않고, 모자라면 경고(필수로 두면 위반), 연차·휴가 날만큼 비례해 줄인다', () => {
@@ -161,6 +172,15 @@ describe('H-OFF-CARRY (3-9 13, 기본 −3 ~ +3)', () => {
 
   it('칸이 비어 있는 달(생성 전)은 보지 않는다', () => {
     expect(only(solo('O O O O'), 'H-OFF-CARRY')).toEqual([])
+  })
+
+  it('3-10 7: 최소·최대는 필수/권고를 따로 따른다', () => {
+    const minSoft = rules({}, {}, { OFF_CARRY_MIN: 'soft' })
+    expect(only(solo(month(5), { rules: minSoft }), 'H-OFF-CARRY')).toMatchObject([{ severity: 'soft' }])
+    expect(only(solo(month(13), { rules: minSoft }), 'H-OFF-CARRY')).toMatchObject([{ severity: 'hard' }])
+    const maxSoft = rules({}, {}, { OFF_CARRY_MAX: 'soft' })
+    expect(only(solo(month(5), { rules: maxSoft }), 'H-OFF-CARRY')).toMatchObject([{ severity: 'hard' }])
+    expect(only(solo(month(13), { rules: maxSoft }), 'H-OFF-CARRY')).toMatchObject([{ severity: 'soft' }])
   })
 })
 

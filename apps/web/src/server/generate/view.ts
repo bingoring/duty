@@ -178,16 +178,13 @@ export async function loadGenerateView(
   const hardRules: { key: SeverityKey; label: string; value: string }[] = [
     { key: 'STAFF', label: '듀티당 최소 인원', value: `${p.minStaffPerShift}명` },
     { key: 'STAFF_MAX', label: '듀티당 최대 인원', value: `${p.maxStaffPerShift}명` },
-    {
-      key: 'OFF_CARRY',
-      label: '월말 누적 OFF',
-      value: `${p.offCarryMin} ~ +${p.offCarryMax}`,
-    },
+    // 3-10 7: 최소·최대는 필수/권고를 따로
+    { key: 'OFF_CARRY_MIN', label: '월말 누적 OFF 최소', value: `≥ ${p.offCarryMin}` },
+    { key: 'OFF_CARRY_MAX', label: '월말 누적 OFF 최대', value: `≤ +${p.offCarryMax}` },
     { key: 'KTAS', label: 'KTAS 권한자 포함', value: `${p.minKTass}명 이상` },
     { key: 'NIGHT_MAX', label: '월 나이트 상한', value: `${p.maxNightPerMonth}개` },
-    { key: 'NIGHT_TARGET', label: '월 나이트 목표', value: `≤ ${p.targetNightPerMonth}개` },
     ...(p.minNightPerMonth > 0
-      ? [{ key: 'NIGHT_MIN' as const, label: '월 나이트 최소', value: `≥ ${p.minNightPerMonth}개` }]
+      ? [{ key: 'NIGHT_MIN' as const, label: '월 나이트 하한', value: `≥ ${p.minNightPerMonth}개` }]
       : []),
     { key: 'NIGHT_CONSEC', label: '연속 나이트', value: `≤ ${p.maxConsecutiveNight}일` },
     { key: 'WORK_CONSEC', label: '연속 근무', value: `≤ ${p.maxConsecutiveWork}일` },

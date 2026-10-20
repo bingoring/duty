@@ -62,7 +62,6 @@ def nurse(nid: str, days: list[str], target: float) -> dict:
         "offTarget": target,
         "nightBankBefore": 0,
         "nightMax": 7,
-        "nightTarget": 6,
         "weekendMissedStreak": 0,
         "weekendCarryIn": False,
         "shiftCountsBefore": {"D": 0, "E": 0, "N": 0},

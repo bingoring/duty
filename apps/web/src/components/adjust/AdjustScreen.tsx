@@ -12,6 +12,7 @@ import {
   saveEditsAction,
   updateNegotiationAction,
 } from '@/server/adjust/actions'
+import { applyDraftLeaves, draftLeaveKeys, type DraftLeave } from '@/server/adjust/draft'
 import type { AdjustView } from '@/server/adjust/view'
 import { cellView, type GridCellView } from '@/server/schedule/view'
 import { useHydrated } from '../admin/ui'
@@ -29,6 +30,8 @@ export function AdjustScreen({ view }: { view: AdjustView }) {
   const hydrated = useHydrated()
   const [pending, start] = useTransition()
   const [edits, setEdits] = useState<CellEdit[]>([])
+  // 3-10 9: 저장 전 휴가(휴가 넣고 다시 생성) — 「저장 · 재배포」 때 처음 저장된다
+  const [leaves, setLeaves] = useState<DraftLeave[]>([])
   const [pop, setPop] = useState<DockTarget | null>(
     view.focus?.shift ? { kind: 'replace', date: view.focus.date, shift: view.focus.shift } : null,
   )
@@ -40,28 +43,36 @@ export function AdjustScreen({ view }: { view: AdjustView }) {
   const [hover, setHover] = useState<{ userId: string; date: string } | null>(null)
   const input = view.checkInput
   const nameOf = (id: string) => view.names[id]?.name ?? id
-  const base = useMemo(() => (input ? applyEdits(input.cells, edits) : []), [input, edits])
+  // 저장 전 휴가를 얹은 칸(편집의 출발점)과 그 위에 편집을 얹은 칸
+  const draftInput = useMemo(
+    () => (input ? { ...input, cells: applyDraftLeaves(input.cells, leaves) } : null),
+    [input, leaves],
+  )
+  const base = useMemo(() => (draftInput ? applyEdits(draftInput.cells, edits) : []), [draftInput, edits])
+  const leaveCellCount = leaves.reduce((n, l) => n + l.cells.length, 0)
+  const unsaved = edits.length + leaveCellCount
 
   // 저장 전 편집이 있으면 떠날 때 경고
   useEffect(() => {
-    if (!edits.length) return
+    if (!unsaved) return
     const h = (e: BeforeUnloadEvent) => e.preventDefault()
     window.addEventListener('beforeunload', h)
     return () => window.removeEventListener('beforeunload', h)
-  }, [edits.length])
+  }, [unsaved])
 
   const pendingViews = useMemo(() => {
     const m = new Map<string, GridCellView>()
     const days = new Map(view.grid.days.map((d) => [d.date, d]))
-    for (const c of applyEdits(input?.cells ?? [], edits).filter((c) =>
-      edits.some((e) => e.userId === c.userId && e.date === c.date),
-    ))
+    const changed = new Set([...edits.map((e) => key(e.userId, e.date)), ...draftLeaveKeys(leaves)])
+    for (const c of base.filter((c) => changed.has(key(c.userId, c.date))))
       m.set(key(c.userId, c.date), cellView({ ...c, source: 'admin' }, days.get(c.date)!))
     return m
-  }, [edits, input, view.grid.days])
+  }, [edits, leaves, base, view.grid.days])
+
+  const resetDraft = () => (setEdits([]), setLeaves([]), setGroups(new Map()))
 
   const addEdits = (next: CellEdit[]) => {
-    const orig = new Map((input?.cells ?? []).map((c) => [key(c.userId, c.date), c]))
+    const orig = new Map((draftInput?.cells ?? []).map((c) => [key(c.userId, c.date), c]))
     setEdits((prev) => {
       const m = new Map(prev.map((e) => [key(e.userId, e.date), e]))
       for (const e of next) {
@@ -86,6 +97,8 @@ export function AdjustScreen({ view }: { view: AdjustView }) {
   const revert = (k: string) => {
     const ks = groups.get(k) ?? [k]
     setEdits((prev) => prev.filter((e) => !ks.includes(key(e.userId, e.date))))
+    // 3-10 9: 휴가 넣기와 그 다시 생성 결과는 함께 되돌린다
+    setLeaves((prev) => prev.filter((l) => !l.cells.some((c) => ks.includes(key(l.userId, c.date)))))
     setGroups((g) => {
       const n = new Map(g)
       for (const x of ks) n.delete(x)
@@ -107,10 +120,9 @@ export function AdjustScreen({ view }: { view: AdjustView }) {
   const save = () =>
     start(async () => {
       if (!view.plan) return
-      const r = await saveEditsAction({ planId: view.plan.id, edits })
+      const r = await saveEditsAction({ planId: view.plan.id, edits, leaves })
       if (r.ok) {
-        setEdits([])
-        setGroups(new Map())
+        resetDraft()
         setMsg({
           kind: 'ok',
           text: `${'saved' in r ? r.saved : 0}건을 저장했습니다. 간호사 근무표에 바로 보입니다.`,
@@ -122,8 +134,7 @@ export function AdjustScreen({ view }: { view: AdjustView }) {
     })
 
   const go = (ym: string) => {
-    if (edits.length && !window.confirm(`저장하지 않은 변경 ${edits.length}건이 사라집니다. 이동할까요?`))
-      return
+    if (unsaved && !window.confirm(`저장하지 않은 변경 ${unsaved}건이 사라집니다. 이동할까요?`)) return
     router.push(`/adjust?ym=${ym}`)
   }
 
@@ -160,21 +171,16 @@ export function AdjustScreen({ view }: { view: AdjustView }) {
         {view.editable && (
           <>
             <span
-              className={`text-[13px] whitespace-nowrap ${edits.length ? 'font-semibold text-admin' : 'text-ink-2'}`}
+              className={`text-[13px] whitespace-nowrap ${unsaved ? 'font-semibold text-admin' : 'text-ink-2'}`}
             >
-              변경 {edits.length}건 미저장
+              변경 {unsaved}건 미저장
             </span>
-            <button
-              type="button"
-              className={btn2}
-              disabled={!edits.length || pending}
-              onClick={() => (setEdits([]), setGroups(new Map()))}
-            >
+            <button type="button" className={btn2} disabled={!unsaved || pending} onClick={resetDraft}>
               되돌리기
             </button>
             <button
               type="button"
-              disabled={!edits.length || pending}
+              disabled={!unsaved || pending}
               onClick={save}
               className="h-8 cursor-pointer rounded-lg bg-primary px-3.5 text-[13px] font-bold whitespace-nowrap text-white disabled:cursor-default disabled:opacity-50"
             >
@@ -212,8 +218,8 @@ export function AdjustScreen({ view }: { view: AdjustView }) {
             <button
               type="button"
               className={btn2}
-              disabled={!view.close.can || !!edits.length || pending}
-              title={edits.length ? '저장하지 않은 변경이 있습니다' : (view.close.reason ?? '')}
+              disabled={!view.close.can || !!unsaved || pending}
+              title={unsaved ? '저장하지 않은 변경이 있습니다' : (view.close.reason ?? '')}
               onClick={() => setClosing(true)}
             >
               월 마감
@@ -297,7 +303,7 @@ export function AdjustScreen({ view }: { view: AdjustView }) {
         </div>
       ) : null}
 
-      {pop && input && (
+      {pop && draftInput && (
         <DockFrame
           mode={mode}
           setMode={setMode}
@@ -310,7 +316,7 @@ export function AdjustScreen({ view }: { view: AdjustView }) {
           summary={
             pop.kind === 'cell'
               ? (() => {
-                  const orig = input.cells.find((c) => c.userId === pop.userId && c.date === pop.date)
+                  const orig = draftInput.cells.find((c) => c.userId === pop.userId && c.date === pop.date)
                   const now = base.find((c) => c.userId === pop.userId && c.date === pop.date)
                   const changed = edits.some((e) => e.userId === pop.userId && e.date === pop.date)
                   return `${nameOf(pop.userId)} · ${md(pop.date)} · ${changed ? `${cellLabel(orig)} → ${cellLabel(now)} 적용됨` : `현재 ${cellLabel(now)}`}`
@@ -322,24 +328,31 @@ export function AdjustScreen({ view }: { view: AdjustView }) {
             <CellBody
               key={key(pop.userId, pop.date)}
               view={view}
-              input={input}
+              input={draftInput}
               edits={edits}
+              leaves={leaves}
               base={base}
               userId={pop.userId}
               date={pop.date}
               nameOf={nameOf}
               onApply={addEdits}
               onRevert={revert}
-              onRerolled={(next, text, list) => {
+              onRerolled={(leave, next, text) => {
+                // 3-10 8·9: 이전 편집 + 새 휴가 + 다시 생성한 편집이 모두 저장 전 편집이다
+                const prevKeys = new Set(edits.map((e) => key(e.userId, e.date)))
+                const ks = [
+                  ...leave.cells.map((c) => key(leave.userId, c.date)),
+                  ...next.map((e) => key(e.userId, e.date)).filter((x) => !prevKeys.has(x)),
+                ]
                 setPop(null)
+                setLeaves((prev) => [...prev, leave])
                 setEdits(next)
-                setGroups(new Map())
-                setMsg({
-                  kind: next.length || !list.length ? 'ok' : 'err',
-                  text,
-                  ...(list.length ? { list } : {}),
+                setGroups((g) => {
+                  const n = new Map(g)
+                  for (const x of ks) n.set(x, ks)
+                  return n
                 })
-                router.refresh()
+                setMsg({ kind: 'ok', text })
               }}
               onLeaveCancelled={(text, list) => {
                 setPop(null)
@@ -350,7 +363,7 @@ export function AdjustScreen({ view }: { view: AdjustView }) {
           ) : (
             <ReplacementBody
               view={view}
-              input={input}
+              input={draftInput}
               base={base}
               date={pop.date}
               shift={pop.shift}

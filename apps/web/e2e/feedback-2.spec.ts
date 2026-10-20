@@ -42,10 +42,18 @@ test('관리자가 OFF 신청을 바로 휴가로 바꾸면 파란 표시로 보
   })
   await pop.getByRole('button', { name: '휴가로 바꾸기' }).click()
   await expect(cellOf(admin)).toHaveText('병가')
+  // 3-10 3: 관리자 입력은 파란 표시
+  await expect(cellOf(admin).locator('[data-by-admin]')).toBeVisible()
 
   await me.reload()
   await waitHydrated(me)
   await expect(cellOf(me)).toHaveText('병가')
+  // 3-10 10: 관리자가 넣은 휴가는 간호사가 취소하지 못한다
+  await cellOf(me).click()
+  const mine = me.getByRole('dialog')
+  await expect(mine.getByText('관리자가 넣은 신청입니다')).toBeVisible()
+  await expect(mine.getByRole('button', { name: '휴가 취소' })).toHaveCount(0)
+  await mine.getByRole('button', { name: '닫기' }).click()
   await Promise.all([me.close(), admin.close()])
 })
 

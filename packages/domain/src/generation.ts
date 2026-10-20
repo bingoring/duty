@@ -109,13 +109,13 @@ const strip = (f: FixedCell): FixedCell => {
   return out
 }
 
-// 검사기 H-NIGHT-MAX·S-NIGHT-TARGET과 같은 판정 (솔버 입력용)
+// 검사기 H-NIGHT-MAX와 같은 판정 (솔버 입력용). 3-10 12: 월 나이트 목표(target)는 없앴다
 export function nightLimits(
   n: NurseProfile,
   rules: RuleSet,
   year: number,
   month: number,
-): { max: number; target: number | null; dedicated: boolean } {
+): { max: number; dedicated: boolean } {
   const days = monthDates(year, month)
   const p = rules.params
   const dedicated =
@@ -126,13 +126,12 @@ export function nightLimits(
   if (dedicated)
     return {
       max: days.length === 31 ? p.nightDedicatedMaxPerMonth31 : p.nightDedicatedMaxPerMonth,
-      target: null,
       dedicated,
     }
-  return { max: p.maxNightPerMonth, target: p.targetNightPerMonth, dedicated }
+  return { max: p.maxNightPerMonth, dedicated }
 }
 
-// 3-5 추가: 월 나이트 최소(S-NIGHT-MIN). 근무할 수 있는 날(재직일 − 연차·휴가 칸)이 적으면 비례해 줄인다(내림).
+// 3-5 추가: 월 나이트 하한(S-NIGHT-MIN). 근무할 수 있는 날(재직일 − 연차·휴가 칸)이 적으면 비례해 줄인다(내림).
 // 0이면·야간 전담이면 null. 트레이닝 중 신규 제외는 부르는 쪽(검사기·솔버 입력)이 정한다
 export function nightMinFor(
   n: NurseProfile,
@@ -191,8 +190,8 @@ const GROUP_LABEL: Partial<Record<string, string>> = {
   'H-OFF-EVE': '신청 OFF 전날 N',
   'H-STAFF-MAX': '듀티당 최대 인원 초과',
   'H-OFF-CARRY': '월말 누적 OFF 범위 밖',
-  'S-NIGHT-TARGET': '나이트 목표 초과',
-  'S-NIGHT-MIN': '나이트 최소 미달',
+  'S-NIGHT-MIN': '나이트 하한 미달',
+  'S-SOFT-PATTERN': '금지 권고 패턴',
   'S-WORK-CONSEC': '연속 근무 초과',
   'S-OFF-AFTER-N': 'N 뒤 OFF 부족(N-OFF-E 등)',
   'S-WEEKEND-PAIR': '주말 통 OFF 없음',
