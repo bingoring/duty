@@ -60,6 +60,7 @@ describe('seedDev', () => {
       params: v1!.params,
       toggles: v1!.toggles,
       forbiddenPatterns: v1!.forbiddenPatterns,
+      softPatterns: v1!.softPatterns,
       severity: v1!.severity,
     }).toEqual(DEFAULT_RULES)
     expect([v1!.version, v1!.diff, v1!.changedBy]).toEqual([1, [], null])

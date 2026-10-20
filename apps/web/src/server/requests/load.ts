@@ -183,6 +183,8 @@ export async function loadRequestsRaw(
       special: q.special,
       comment: q.comment,
       submittedAt: q.submittedAt,
+      // 3-10 2: 빠져 있어 관리자 입력이 파란 표시·삭제 버튼 없이 보였다
+      byAdmin: q.byAdmin,
     })),
     leaves: leaves.map((l) => ({
       id: l.id,

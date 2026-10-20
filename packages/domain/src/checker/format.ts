@@ -107,9 +107,9 @@ export function formatViolation(v: Violation, ctx: FormatContext): { title: stri
     case 'H-OFF-EVE':
       return { title: `${name} · 신청 OFF 전날 N`, detail: `${range(v.dates)} · 전날은 D·E·OFF` }
     case 'S-NIGHT-MIN':
-      return { title: `${name} · 나이트 ${d.count}개`, detail: `최소 ${d.min}개` }
-    case 'S-NIGHT-TARGET':
-      return { title: `${name} · 나이트 ${d.count}개`, detail: `목표 ${d.target}개 이하` }
+      return { title: `${name} · 나이트 ${d.count}개`, detail: `하한 ${d.min}개` }
+    case 'S-SOFT-PATTERN':
+      return { title: `${name} · ${d.pattern} 금지 권고 패턴`, detail: range(v.dates) }
     case 'S-OFF-AFTER-N':
       return { title: `${name} · N-OFF-${d.next} 1회`, detail: range(v.dates) }
     case 'S-WEEKEND-PAIR':
@@ -146,5 +146,8 @@ export function formatViolation(v: Violation, ctx: FormatContext): { title: stri
         .join('/')
       return { title: `${name} · 신청 불충족`, detail: `${range(v.dates)} 신청 ${opts} → 배정 ${d.code}` }
     }
+    // 3-10 12: 예전 생성안에 저장된 S-NIGHT-TARGET(없앤 규칙) 등 알 수 없는 코드
+    default:
+      return { title: `${name} · ${String(v.ruleId)}`, detail: range(v.dates) }
   }
 }

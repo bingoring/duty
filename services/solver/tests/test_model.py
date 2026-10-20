@@ -1,6 +1,6 @@
 from datetime import date, timedelta
 
-from solver.model import solve
+from solver.model import relaxable, solve
 
 from .checks import hard_violations
 from .factory import request
@@ -272,6 +272,18 @@ def test_3_5_KTAS_유효기간이_지난_사람은_KTAS_인원으로_세지_않�
     assert any(c["group"] == "KTASS" for c in res["causes"])
 
 
+def test_3_10_하나만_권고로_풀면_되는_필수_규칙을_찾는다():
+    req = request(time_limit=5)
+    for n in req["nurses"]:
+        n["kTassUntil"] = "2026-10-31" if n["kTass"] else None
+    for h in req["heads"]:
+        h["kTassUntil"] = "2026-10-31" if h["kTass"] else None
+    req["rules"]["hard"] = ["REST", "STAFF", "KTAS"]
+    found = relaxable(req)
+    assert "KTAS" in found
+    assert "REST" not in found
+
+
 def test_3_5_월_나이트_최소를_필수로_두면_모두_그만큼_선다():
     req = request(seed=2, time_limit=8)
     req["rules"]["hard"].append("NIGHT_MIN")
@@ -324,7 +336,7 @@ def test_3_8_신청_OFF_전날은_N을_주지_않고_N_재시작을_피한다():
 def test_3_9_듀티당_최대_인원과_누적_OFF_범위를_필수로_지킨다():
     req = request(time_limit=8)
     req["rules"].update(maxStaff=2, offCarryMin=-3, offCarryMax=3)
-    req["rules"]["hard"] = sorted(set(req["rules"]["hard"]) | {"STAFF_MAX", "OFF_CARRY"})
+    req["rules"]["hard"] = sorted(set(req["rules"]["hard"]) | {"STAFF_MAX", "OFF_CARRY_MIN", "OFF_CARRY_MAX"})
     res = solve(req)
     assert res["status"] in ("OPTIMAL", "FEASIBLE")
     assert hard_violations(req, res) == []
@@ -348,8 +360,52 @@ def test_3_9_누적_OFF_범위를_지킬_수_없으면_불가능():
     for n in req["nurses"]:
         n["offTarget"] += 10
     req["rules"].update(offCarryMin=-3, offCarryMax=3)
-    req["rules"]["hard"] = sorted(set(req["rules"]["hard"]) | {"OFF_CARRY"})
+    req["rules"]["hard"] = sorted(set(req["rules"]["hard"]) | {"OFF_CARRY_MIN", "OFF_CARRY_MAX"})
     res = solve(req)
     assert res["status"] == "INFEASIBLE"
     # 진단 시간 안에 원인을 증명하지 못하면 비워 둔다(R-1) — 원인이 있으면 이름 있는 그룹이어야 한다
     assert all(c["group"] for c in res["causes"])
+
+
+def test_3_10_누적_OFF_최소만_권고로_두면_최대는_필수로_남는다():
+    req = request(time_limit=5)
+    # 위 테스트와 같이 최소(−3)는 지킬 수 없는 달 — 최소만 권고면 풀리고, 최대(+3)는 여전히 지킨다
+    for n in req["nurses"]:
+        n["offTarget"] += 10
+    req["rules"].update(offCarryMin=-3, offCarryMax=3)
+    req["rules"]["hard"] = sorted(set(req["rules"]["hard"]) | {"OFF_CARRY_MAX"})
+    res = solve(req)
+    assert res["status"] in ("OPTIMAL", "FEASIBLE")
+    assert res["objective"]["terms"]["offCarry"] > 0
+    for n in req["nurses"]:
+        off = sum(
+            1
+            for c in res["cells"]
+            if c["userId"] == n["id"] and c["code"] == "OFF" and c.get("offKind", "regular") == "regular"
+        )
+        assert off - n["offTarget"] <= 3
+
+
+def _count_pattern(req: dict, res: dict, pattern: str) -> int:
+    parts = pattern.split("-")
+    out = 0
+    for n in req["nurses"]:
+        seq = [c["code"] for c in sorted(res["cells"], key=lambda c: c["date"]) if c["userId"] == n["id"]]
+        tok = ["OFF" if c in ("OFF", "AL", "LEAVE") else c for c in seq]
+        out += sum(1 for i in range(len(tok) - len(parts) + 1) if tok[i : i + len(parts)] == parts)
+    return out
+
+
+def test_3_10_금지_권고_패턴은_벌점으로_줄인다():
+    base = request(time_limit=8)
+    plain = solve(base)
+    soft = request(time_limit=8)
+    soft["rules"]["softPatterns"] = ["OFF-D-OFF", "OFF-E-OFF", "OFF-N-OFF"]
+    res = solve(soft)
+    assert res["status"] in ("OPTIMAL", "FEASIBLE")
+    # 권고라 하드 위반은 아니다
+    assert hard_violations(soft, res) == []
+    before = sum(_count_pattern(base, plain, p) for p in soft["rules"]["softPatterns"])
+    after = sum(_count_pattern(soft, res, p) for p in soft["rules"]["softPatterns"])
+    assert after <= before
+    assert res["objective"]["terms"]["softPattern"] == after

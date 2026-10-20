@@ -36,3 +36,15 @@ describe('3-5 규칙별 필수/권고', () => {
     expect(effectivePriorities(OFF, DEFAULT_RULES)).toEqual(OFF)
   })
 })
+
+describe('3-10 13: 풀면 생성되는 필수 규칙 안내', () => {
+  it('규칙 이름으로 알린다', async () => {
+    const { relaxText } = await import('./service')
+    expect(relaxText(['SHIFT_BALANCE'])).toBe(
+      '「D·E·N 고르게」을(를) 규칙 설정에서 권고로 바꾸면 근무표를 만들 수 있습니다.',
+    )
+    expect(relaxText(['SHIFT_BALANCE', 'STAFF_MAX'])).toContain(
+      '「D·E·N 고르게」 또는 「듀티당 최대 인원」 중 하나를',
+    )
+  })
+})

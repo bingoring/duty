@@ -38,15 +38,35 @@ const EditSchema = z.object({
     offKind: z.enum(['regular', 'sleeping']).optional(),
   }),
   override: z.object({ reason: z.string().max(200) }).optional(),
-  kind: z.enum(['manual', 'swap', 'replacement']),
+  kind: z.enum(['manual', 'swap', 'replacement', 'reroll']),
+})
+const Before = EditSchema.shape.before
+// 3-10 9: 저장 전 휴가
+const LeaveInput = z.object({
+  userId: uuid,
+  type: z.enum(['annual', 'family', 'sick', 'official', 'special', 'checkup', 'founding']),
+  reasonCode: z.string().max(40).optional(),
+  startDate: date,
+  endDate: date.optional(),
+})
+const DraftLeaveSchema = LeaveInput.extend({
+  endDate: date,
+  cells: z.array(z.object({ date, before: Before })).max(31),
 })
 
 export async function saveEditsAction(input: unknown) {
   const admin = await adminOnly()
   if (!admin) return DENIED
-  const parsed = z.object({ planId: uuid, edits: z.array(EditSchema).max(400) }).safeParse(input)
+  const parsed = z
+    .object({
+      planId: uuid,
+      edits: z.array(EditSchema).max(400),
+      leaves: z.array(DraftLeaveSchema).max(20).default([]),
+    })
+    .safeParse(input)
   if (!parsed.success) return BAD
-  const r = await saveEdits(getDb(), admin, parsed.data.planId, parsed.data.edits)
+  const { planId, edits, leaves } = parsed.data
+  const r = await saveEdits(getDb(), admin, planId, edits, leaves, await requestToday())
   if (r.ok) refresh()
   return r
 }
@@ -102,7 +122,7 @@ export async function cancelApprovedLeaveAction(input: unknown) {
   return r
 }
 
-// 3-9 4: 확정된 달 부분 리롤 — 결과는 저장하지 않고 「저장 전 편집」으로 돌려준다
+// 3-9 4: 확정된 달 부분 리롤 — 결과는 저장하지 않고 「저장 전 편집」으로 돌려준다(3-10 9: 휴가도)
 export async function rerollPreviewAction(input: unknown) {
   const admin = await adminOnly()
   if (!admin) return DENIED
@@ -114,7 +134,15 @@ export async function rerollPreviewAction(input: unknown) {
 export async function rerollFromAction(input: unknown) {
   const admin = await adminOnly()
   if (!admin) return DENIED
-  const parsed = z.object({ planId: uuid, from: date }).safeParse(input)
+  // 3-10 8·9: 새 휴가(저장하지 않음) + 지금 저장 전 편집·휴가(그대로 둔다)
+  const parsed = z
+    .object({
+      planId: uuid,
+      leave: LeaveInput,
+      edits: z.array(EditSchema).max(400).default([]),
+      leaves: z.array(LeaveInput).max(20).default([]),
+    })
+    .safeParse(input)
   if (!parsed.success) return BAD
-  return rerollFrom(getDb(), admin, parsed.data)
+  return rerollFrom(getDb(), admin, { ...parsed.data, today: await requestToday() })
 }

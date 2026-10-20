@@ -14,7 +14,8 @@ export type CellEdit = {
   after: { code: 'D' | 'E' | 'N' | 'S' | 'OFF'; offKind?: 'regular' | 'sleeping' }
   // Q2: 필수 위반을 알고도 적용하는 사유
   override?: { reason: string }
-  kind: 'manual' | 'swap' | 'replacement'
+  // 3-10 8: reroll = 휴가 넣고 다시 생성한 결과(자동 생성 칸 — 다음 리롤에서 고정하지 않는다)
+  kind: 'manual' | 'swap' | 'replacement' | 'reroll'
 }
 
 const cellKey = (userId: string, date: IsoDate) => `${userId}|${date}`

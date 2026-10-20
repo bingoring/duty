@@ -35,9 +35,9 @@ describe('종이 근무표 2026-10 검사', () => {
     expect(titles('S-HEAD-FILL')).toEqual(['10/2 (금) D 수간호사로 인원 충족'])
   })
 
-  it('N-OFF-E 2회, 나이트 7개 2명', () => {
+  // 3-10 12: 나이트 7개 2명(월 나이트 목표 6 초과) 경고는 규칙을 없애 더 나오지 않는다
+  it('N-OFF-E 2회', () => {
     expect(titles('S-OFF-AFTER-N')).toEqual(['배지현 · N-OFF-E 1회', '문가을 · N-OFF-E 1회'])
-    expect(titles('S-NIGHT-TARGET').sort()).toEqual(['문가을 · 나이트 7개', '홍다은 · 나이트 7개'])
   })
 
   // 10/31(토) OFF인 오민지·강도윤·홍다은은 11월 칸이 없어 달성 예정으로 본다

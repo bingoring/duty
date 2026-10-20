@@ -203,7 +203,11 @@ export type FreezeOpts = { from: IsoDate; cells: readonly GridCell[]; keep?: Rea
 export async function buildGenerationInput(
   db: Db,
   plan: PlanRow,
-  opts: { freeze?: FreezeOpts } = {},
+  // 3-10 9: leaves = 아직 저장하지 않은 가정 휴가(근무 조정의 저장 전 휴가로 리롤할 때)
+  opts: {
+    freeze?: FreezeOpts
+    leaves?: { userId: string; type: LeaveType; startDate: IsoDate; endDate: IsoDate; byAdmin: boolean }[]
+  } = {},
 ): Promise<GenerationInput> {
   const { input } = await buildScheduleInput(db, plan)
   const ym = { year: plan.year, month: plan.month }
@@ -213,17 +217,20 @@ export async function buildGenerationInput(
   const { recent, cellsOf } = await fillProfiles(db, input, rules)
   const misses = await requestMisses(db, ym, recent, cellsOf)
 
-  const leaves = await db
-    .select()
-    .from(leaveRequests)
-    .where(
-      and(
-        eq(leaveRequests.status, 'APPROVED'),
-        lte(leaveRequests.startDate, days.at(-1)!),
-        gte(leaveRequests.endDate, days[0]!),
-      ),
-    )
-    .orderBy(asc(leaveRequests.startDate), asc(leaveRequests.id))
+  const leaves = [
+    ...(await db
+      .select()
+      .from(leaveRequests)
+      .where(
+        and(
+          eq(leaveRequests.status, 'APPROVED'),
+          lte(leaveRequests.startDate, days.at(-1)!),
+          gte(leaveRequests.endDate, days[0]!),
+        ),
+      )
+      .orderBy(asc(leaveRequests.startDate), asc(leaveRequests.id))),
+    ...(opts.leaves ?? []),
+  ]
   const specials = input.requests.flatMap((r) =>
     r.special ? [{ userId: r.userId, date: r.date, special: r.special }] : [],
   )
@@ -313,7 +320,6 @@ export async function buildGenerationInput(
       offTarget: Math.round((baselineOff(n, ym.year, ym.month, input.holidays) - n.offCarryBefore) * 10) / 10,
       nightBankBefore: n.nightBankBefore,
       nightMax: nl.max,
-      nightTarget: nl.target,
       // 3-5 추가: 검사기 S-NIGHT-MIN과 같은 값(고정 연차·휴가 날만큼 비례, 트레이닝 중 신규 제외)
       nightMin: trainees.has(n.id)
         ? null
@@ -394,6 +400,8 @@ export async function buildGenerationInput(
       offAfterNight: rules.params.offAfterNight,
       sleepingOffPerN: rules.params.sleepingOffPerN,
       forbiddenPatterns: rules.forbiddenPatterns,
+      // 3-10 11: 금지 권고 패턴(늘 권고)
+      softPatterns: rules.softPatterns,
       shiftBalanceTolerance: rules.params.shiftBalanceTolerance,
       shiftBalanceWindowMonths: rules.params.shiftBalanceWindowMonths,
       hard: SEVERITY_KEYS.filter((k) => rules.severity[k] === 'hard'),

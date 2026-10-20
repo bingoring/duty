@@ -5,12 +5,14 @@ import {
   formatViolation,
   generatedCellSource,
   nextPlanStatus,
+  SEVERITY_KEY_LABEL,
   weekdayKo,
   type CheckResult,
   type GridCell,
   type LeaveKind,
   type OffKind,
   type RuleSet,
+  type SeverityKey,
   type ShiftCode,
 } from '@duty/domain'
 import { and, desc, eq, max } from 'drizzle-orm'
@@ -83,9 +85,14 @@ async function ruleVersionNo(db: Db) {
 
 // R-GEN-12: 불가능 원인 문구
 export const CARRY_STAFF_HINT =
-  '「듀티당 최대 인원」과 「누적 OFF 범위」가 둘 다 필수라 함께 지키지 못할 수 있습니다. 규칙 설정에서 둘 중 하나를 권고로 바꾸거나 범위를 넓혀 주세요.'
+  '「듀티당 최대 인원」과 「누적 OFF 최소·최대」가 필수라 함께 지키지 못할 수 있습니다. 규칙 설정에서 하나를 권고로 바꾸거나 범위를 넓혀 주세요.'
+// 3-10 7: 누적 OFF 최소·최대 중 하나라도 필수면
 export const carryStaffConflict = (rules: RuleSet) =>
-  rules.severity.STAFF_MAX === 'hard' && rules.severity.OFF_CARRY === 'hard'
+  rules.severity.STAFF_MAX === 'hard' &&
+  (rules.severity.OFF_CARRY_MIN === 'hard' || rules.severity.OFF_CARRY_MAX === 'hard')
+
+export const relaxText = (keys: readonly SeverityKey[]) =>
+  `${keys.map((k) => `「${SEVERITY_KEY_LABEL[k]}」`).join(' 또는 ')}${keys.length > 1 ? ' 중 하나를' : '을(를)'} 규칙 설정에서 권고로 바꾸면 근무표를 만들 수 있습니다.`
 
 export function causeText(
   c: SolverCause,
@@ -118,14 +125,12 @@ export function causeText(
       return `${who} · 금지 근무 패턴과 충돌합니다`
     case 'WORK_CONSEC':
       return `${who} · 최대 연속 근무(${rules.maxWork}일)와 충돌합니다`
-    case 'NIGHT_TARGET':
-      return `${who} · 월 나이트 목표(필수)와 충돌합니다`
     case 'OFF_EVE':
       return `${who} · 신청한 OFF 전날 N 금지(필수)와 충돌합니다`
     case 'NIGHT_RESTART':
       return `${who} · N 뒤 다시 일할 때 D·E(필수)와 충돌합니다`
     case 'NIGHT_MIN':
-      return `${who} · 월 나이트 최소(필수)를 채울 수 없습니다`
+      return `${who} · 월 나이트 하한(필수)을 채울 수 없습니다`
     case 'OFF_AFTER_N':
       return `${who} · N 후 OFF(필수)와 충돌합니다`
     case 'SHIFT_BALANCE':
@@ -134,8 +139,11 @@ export function causeText(
       return `${who} · 월 1회 주말 이틀 통 OFF(필수)와 충돌합니다`
     case 'STAFF_MAX':
       return `${day} ${c.shift} 인원이 듀티당 최대 인원을 넘습니다 (OFF로 돌릴 사람이 없습니다)`
-    case 'OFF_CARRY':
-      return `${who} · 월말 누적 OFF 범위(필수)를 지킬 수 없습니다`
+    // 3-10 7
+    case 'OFF_CARRY_MIN':
+      return `${who} · 월말 누적 OFF 최소(필수)를 지킬 수 없습니다`
+    case 'OFF_CARRY_MAX':
+      return `${who} · 월말 누적 OFF 최대(필수)를 지킬 수 없습니다`
     case 'JUNIOR_ONLY':
       return `${day} ${c.shift} 저연차끼리만 서게 됩니다 (동일듀티 저연차끼리 배정 방지 · 필수)`
     case 'REPEAT_PAIR':
@@ -220,6 +228,8 @@ async function generateOnce(
       .slice(0, MAX_CAUSES)
     // 3-9: 최소 = 최대 인원이면 듀티 수가 고정되어 누적 OFF를 맞출 여지가 없다 — 원인 후보로 알린다
     if (!causes.length && carryStaffConflict(rules)) causes.push(CARRY_STAFF_HINT)
+    // 3-10 13: 원인 증명이 안 됐어도 하나만 권고로 풀면 생성되는 필수 규칙을 알린다
+    if (!causes.length && out.relaxable.length) causes.push(relaxText(out.relaxable))
     return fail(
       'infeasible',
       causes.length

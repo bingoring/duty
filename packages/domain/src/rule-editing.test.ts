@@ -52,12 +52,11 @@ describe('validateRuleSet (R-RULE-EDIT-1·2)', () => {
     expect(validateRuleSet(withParams({ minStaffPerShift: 0 }))[0]?.key).toBe('minStaffPerShift')
   })
 
-  it('상호 제약: 목표 ≤ 상한, KTAS ≤ 최소 인원, 마감 < 협의 시작 ≤ 끝, 전담 값 순서', () => {
+  it('상호 제약: 하한 ≤ 상한, KTAS ≤ 최소 인원, 마감 < 협의 시작 ≤ 끝, 전담 값 순서', () => {
     const keys = (p: Partial<RuleSet['params']>) => validateRuleSet(withParams(p)).map((e) => e.key)
-    expect(keys({ targetNightPerMonth: 8 })).toEqual(['targetNightPerMonth'])
     expect(keys({ minKTass: 3 })).toEqual(['minKTass'])
-    expect(keys({ minNightPerMonth: 7 })).toEqual(['minNightPerMonth'])
-    expect(keys({ minNightPerMonth: 6 })).toEqual([])
+    expect(keys({ minNightPerMonth: 8 })).toEqual(['minNightPerMonth'])
+    expect(keys({ minNightPerMonth: 7 })).toEqual([])
     expect(keys({ negotiationStartDay: 15 })).toEqual(['negotiationStartDay'])
     expect(keys({ negotiationEndDay: 16, negotiationStartDay: 17 })).toEqual(['negotiationStartDay'])
     expect(keys({ nightDedicatedMaxPerMonth31: 14 })).toEqual(['nightDedicatedMaxPerMonth31'])
@@ -74,6 +73,16 @@ describe('validateRuleSet (R-RULE-EDIT-1·2)', () => {
       { key: 'forbiddenPatterns', message: "D·E·N·S·OFF를 '-'로 두 개 이상 이어 주세요. 예: E-D" },
     ])
   })
+
+  it('3-10 11 금지 권고 패턴: 문법, 금지 패턴과 겹치면 거부', () => {
+    expect(validateRuleSet({ ...DEFAULT_RULES, softPatterns: ['OFF-D-OFF'] })).toEqual([])
+    expect(validateRuleSet({ ...DEFAULT_RULES, softPatterns: ['OFF-X'] }).map((e) => e.key)).toEqual([
+      'softPatterns',
+    ])
+    expect(validateRuleSet({ ...DEFAULT_RULES, softPatterns: ['e-d'] })).toEqual([
+      { key: 'softPatterns', message: 'E-D은 금지 패턴에 이미 있습니다.' },
+    ])
+  })
 })
 
 describe('diffRuleSets (R-RULE-SAVE-1)', () => {
@@ -82,14 +91,22 @@ describe('diffRuleSets (R-RULE-SAVE-1)', () => {
       params: { ...DEFAULT_RULES.params, maxConsecutiveOff: 16 },
       toggles: { ...DEFAULT_RULES.toggles, nightDedicated: true },
       forbiddenPatterns: [...DEFAULT_RULES.forbiddenPatterns, 'N-S'],
-      severity: { ...DEFAULT_RULES.severity, WORK_CONSEC: 'soft', WEEKEND_PAIR: 'hard' },
+      softPatterns: ['OFF-D-OFF'],
+      severity: {
+        ...DEFAULT_RULES.severity,
+        WORK_CONSEC: 'soft',
+        WEEKEND_PAIR: 'hard',
+        OFF_CARRY_MIN: 'soft',
+      },
     }
     expect(diffRuleSets(DEFAULT_RULES, after)).toEqual([
       { key: 'maxConsecutiveOff', before: 15, after: 16 },
       { key: 'nightDedicated', before: false, after: true },
       { key: 'severity.WORK_CONSEC', before: '필수', after: '권고' },
       { key: 'severity.WEEKEND_PAIR', before: '권고', after: '필수' },
+      { key: 'severity.OFF_CARRY_MIN', before: '필수', after: '권고' },
       { key: 'forbiddenPatterns', before: 'E-D, N-E, N-OFF-D, E-S', after: 'E-D, N-E, N-OFF-D, E-S, N-S' },
+      { key: 'softPatterns', before: '', after: 'OFF-D-OFF' },
     ])
   })
 

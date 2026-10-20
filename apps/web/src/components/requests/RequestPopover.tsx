@@ -2,8 +2,6 @@
 
 import {
   CHECKUP_HALVES,
-  FAMILY_LEAVE_DAYS,
-  OFFICIAL_LEAVE_REASONS,
   addDays,
   formatMD,
   leaveDays,
@@ -19,7 +17,8 @@ import {
   saveLeaveAction,
   saveShiftRequestAction,
 } from '@/server/requests/actions'
-import { FAMILY_REASON_LABEL, type RequestCellDTO } from '@/server/requests/dto'
+import { nurseShiftAsk, type RequestCellDTO } from '@/server/requests/dto'
+import { LeaveReasonSelect } from '../leave/LeaveReasonSelect'
 
 // S4 셀 팝오버 + S5 휴가 (Build Spec 2-5 frontend-components §2, 핸드오프 2a·3b)
 const SHIFT_BG: Record<RequestOption, string> = {
@@ -82,6 +81,11 @@ export function RequestPopover({
   const [pending, start] = useTransition()
 
   const leave = cell.leave
+  // 3-10 10: 관리자가 넣은 신청·휴가는 간호사에게 잠긴 칸
+  const lockedForNurse = !isAdmin && (cell.kind === 'shift' ? !!cell.byAdmin : !!leave?.byAdmin)
+  // 3-10 1: 간호사가 D·E·N을 신청한 칸은 관리자가 신청 근무 또는 OFF만
+  const nurseAsk =
+    isAdmin && !own && cell.kind === 'shift' ? nurseShiftAsk({ ...cell, options: cell.options ?? [] }) : null
   const endDate = leaveEnd(type, cell.date, reason || undefined, end)
   const summary = endDate
     ? `${formatMD(cell.date)}${endDate !== cell.date ? `–${formatMD(endDate).split('/')[1]}` : ''} · ${leaveDays(type, cell.date, endDate, reason || undefined)}일 · 유급`
@@ -127,6 +131,11 @@ export function RequestPopover({
           }),
     )
 
+  const lockNote = (
+    <div className="rounded-md bg-admin-soft px-2 py-1.5 text-xs text-admin">
+      관리자가 넣은 신청입니다 · 바꾸려면 수간호사에게 요청
+    </div>
+  )
   const toggle = (o: RequestOption) =>
     setOptions(options.includes(o) ? options.filter((x) => x !== o) : head ? [o] : [...options, o])
   const chipBtn = (active: boolean) =>
@@ -145,6 +154,7 @@ export function RequestPopover({
             ] ?? leave.status}
           </div>
           {leave.rejectReason && <div className="text-danger">반려 사유: {leave.rejectReason}</div>}
+          {lockedForNurse && lockNote}
           {cell.comment && (
             <div className="rounded-md bg-panel px-2 py-1.5 text-xs text-ink-2">{cell.comment}</div>
           )}
@@ -162,7 +172,8 @@ export function RequestPopover({
           >
             닫기
           </button>
-          {['DRAFT', 'SUBMITTED'].includes(leave.status) || (isAdmin && leave.status === 'APPROVED') ? (
+          {!lockedForNurse &&
+          (['DRAFT', 'SUBMITTED'].includes(leave.status) || (isAdmin && leave.status === 'APPROVED')) ? (
             <button
               type="button"
               disabled={pending}
@@ -172,6 +183,27 @@ export function RequestPopover({
               휴가 취소
             </button>
           ) : null}
+        </div>
+      </Shell>
+    )
+  }
+
+  if (lockedForNurse) {
+    return (
+      <Shell title={`${formatMD(cell.date)} (${weekdayKo(cell.date)}) · 신청`} onClose={onClose}>
+        <div className="font-bold text-admin">{cell.label}</div>
+        {cell.comment && (
+          <div className="rounded-md bg-panel px-2 py-1.5 text-xs text-ink-2">{cell.comment}</div>
+        )}
+        {lockNote}
+        <div className="flex justify-end">
+          <button
+            type="button"
+            className="h-8 cursor-pointer rounded-lg border border-line bg-surface px-3 text-xs"
+            onClick={onClose}
+          >
+            닫기
+          </button>
         </div>
       </Shell>
     )
@@ -189,11 +221,13 @@ export function RequestPopover({
             key={o}
             type="button"
             aria-pressed={mode === 'shift' && options.includes(o)}
-            disabled={allowed !== 'all'}
+            disabled={allowed !== 'all' || (!!nurseAsk && !nurseAsk.includes(o))}
             className={`h-9 cursor-pointer rounded-lg font-bold text-ink disabled:cursor-default ${SHIFT_BG[o]} ${
               mode === 'shift' && options.includes(o)
                 ? 'border-2 border-ink'
-                : 'border-2 border-transparent opacity-50'
+                : nurseAsk && !nurseAsk.includes(o)
+                  ? 'border-2 border-transparent opacity-20'
+                  : 'border-2 border-transparent opacity-50'
             }`}
             // 휴가·교육을 고른 상태에서 근무 토글을 누르면 근무 신청으로 돌아간다(핸드오프 3b)
             onClick={() => (mode === 'shift' ? toggle(o) : (setMode('shift'), setOptions([o])))}
@@ -205,7 +239,9 @@ export function RequestPopover({
       <div className="flex gap-1.5">
         <button
           type="button"
-          className={`${chipBtn(mode === 'leave')} ${mode === 'leave' ? 'bg-shift-leave' : ''}`}
+          // 3-10 1: 신청 기간에는 간호사 D·E·N 칸에 휴가도 못 넣는다(확정된 달의 휴가는 그대로)
+          disabled={!!nurseAsk && allowed === 'all'}
+          className={`${chipBtn(mode === 'leave')} ${mode === 'leave' ? 'bg-shift-leave' : ''} disabled:cursor-default disabled:opacity-40`}
           onClick={() => setMode(mode === 'leave' && allowed === 'all' ? 'shift' : 'leave')}
         >
           휴가
@@ -213,13 +249,19 @@ export function RequestPopover({
         {allowed === 'all' && (
           <button
             type="button"
-            className={chipBtn(mode === 'edu')}
+            disabled={!!nurseAsk}
+            className={`${chipBtn(mode === 'edu')} disabled:cursor-default disabled:opacity-40`}
             onClick={() => setMode(mode === 'edu' ? 'shift' : 'edu')}
           >
             교육 (보수·노조)
           </button>
         )}
       </div>
+      {nurseAsk && (
+        <div className="text-xs text-ink-2">
+          간호사 신청: {(cell.options ?? []).join(' · ')} · 신청 근무 또는 OFF만
+        </div>
+      )}
       {mode === 'edu' && (
         <div className="flex gap-4 text-xs">
           {(
@@ -276,25 +318,13 @@ export function RequestPopover({
           {(type === 'family' || type === 'official') && (
             <label className="flex flex-col gap-1 text-xs text-ink-2">
               {type === 'family' ? '경조사 사유' : '공가 사유'}
-              <select
-                aria-label={type === 'family' ? '경조사 사유' : '공가 사유'}
-                className="h-[38px] rounded-lg border border-ink px-2 text-[13px] text-ink"
+              {/* 3-10 5: 근무 조정 도크와 같은 사유 목록 */}
+              <LeaveReasonSelect
+                type={type}
                 value={reason}
-                onChange={(e) => setReason(e.target.value)}
-              >
-                <option value="">선택</option>
-                {type === 'family'
-                  ? Object.entries(FAMILY_LEAVE_DAYS).map(([k, d]) => (
-                      <option key={k} value={k}>
-                        {FAMILY_REASON_LABEL[k]} · {d}일
-                      </option>
-                    ))
-                  : Object.entries(OFFICIAL_LEAVE_REASONS).map(([k, l]) => (
-                      <option key={k} value={k}>
-                        {l}
-                      </option>
-                    ))}
-              </select>
+                onChange={setReason}
+                className="h-[38px] rounded-lg border border-ink px-2 text-[13px] text-ink"
+              />
             </label>
           )}
           <div className="grid grid-cols-2 gap-2">

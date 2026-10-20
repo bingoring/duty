@@ -5,7 +5,8 @@ import { resetDb, setupTestDb } from '../../test/db'
 import { monthPlans, shiftRequests, users } from '../db/schema'
 import { seedDev } from '../seed/dev'
 import { ensureRequestPlan } from './plan'
-import { deleteShiftRequest, saveShiftRequest, submitRequests } from './service'
+import { ADMIN_ENTERED } from './dto'
+import { deleteShiftRequest, saveLeave, saveShiftRequest, submitRequests } from './service'
 
 const db = setupTestDb()
 const NOV = { year: 2026, month: 11 }
@@ -200,5 +201,68 @@ describe('근무 신청 (R-REQ-SHIFT·DRAFT)', () => {
       ok: true,
     })
     expect(await db.$count(shiftRequests)).toBe(0)
+  })
+})
+
+describe('3-10 관리자 입력과 간호사 신청', () => {
+  const T = '2026-10-05'
+  beforeEach(async () => {
+    await ensureRequestPlan(db, NOV, T, DEFAULT_RULES)
+  })
+
+  it('3-10 1: 간호사가 D·E·N을 신청한 칸은 관리자가 신청 근무 또는 OFF만 넣는다', async () => {
+    const me = await actor('00103')
+    const admin = await actor('00101')
+    const at = (date: string) => ({ userId: me.id, date })
+    await saveShiftRequest(db, me, { ...at('2026-11-13'), options: ['D'] }, T)
+    await saveShiftRequest(db, me, { ...at('2026-11-14'), options: ['D', 'E'] }, T)
+    await submitRequests(db, me, NOV, T)
+    for (const bad of [{ options: ['E' as const] }, { options: ['D' as const, 'N' as const] }])
+      expect(await saveShiftRequest(db, admin, { ...at('2026-11-13'), ...bad }, T)).toMatchObject({
+        ok: false,
+        message: expect.stringContaining('신청 근무 또는 OFF만'),
+      })
+    expect(
+      await saveShiftRequest(db, admin, { ...at('2026-11-13'), options: [], special: 'EDU_CONT' }, T),
+    ).toMatchObject({ ok: false })
+    expect(await saveShiftRequest(db, admin, { ...at('2026-11-14'), options: ['N'] }, T)).toMatchObject({
+      ok: false,
+    })
+    // 휴가로도 덮지 못한다(신청 기간)
+    expect(
+      await saveLeave(
+        db,
+        admin,
+        { userId: me.id, type: 'sick', startDate: '2026-11-14', replaceShift: true },
+        T,
+      ),
+    ).toMatchObject({ ok: false, message: expect.stringContaining('신청 근무 또는 OFF만') })
+    expect(await saveShiftRequest(db, admin, { ...at('2026-11-14'), options: ['E'] }, T)).toEqual({
+      ok: true,
+    })
+    expect(await saveShiftRequest(db, admin, { ...at('2026-11-13'), options: ['OFF'] }, T)).toEqual({
+      ok: true,
+    })
+    // 관리자가 바꾼 칸은 관리자 입력 → 관리자가 지울 수 있다
+    expect(await deleteShiftRequest(db, admin, at('2026-11-13'), T)).toEqual({ ok: true })
+  })
+
+  it('3-10 2·10: 관리자가 넣은 신청은 관리자가 지우고, 간호사는 바꾸거나 지우지 못한다', async () => {
+    const me = await actor('00103')
+    const admin = await actor('00101')
+    const at = { userId: me.id, date: '2026-11-13' }
+    expect(await saveShiftRequest(db, admin, { ...at, options: ['N'] }, T)).toEqual({ ok: true })
+    expect(await saveShiftRequest(db, me, { ...at, options: ['OFF'] }, T)).toEqual({
+      ok: false,
+      message: ADMIN_ENTERED,
+    })
+    expect(await deleteShiftRequest(db, me, at, T)).toEqual({ ok: false, message: ADMIN_ENTERED })
+    expect(
+      await saveLeave(db, me, { userId: me.id, type: 'annual', startDate: at.date, replaceShift: true }, T),
+    ).toEqual({ ok: false, message: ADMIN_ENTERED })
+    const [row] = await db.select().from(shiftRequests).where(eq(shiftRequests.userId, me.id))
+    expect(row).toMatchObject({ options: ['N'], byAdmin: true })
+    expect(await deleteShiftRequest(db, admin, at, T)).toEqual({ ok: true })
+    expect(await db.$count(shiftRequests, eq(shiftRequests.userId, me.id))).toBe(0)
   })
 })

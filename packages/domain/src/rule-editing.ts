@@ -44,15 +44,15 @@ const PARAM_SEVERITY_KEY: Partial<Record<keyof RuleParams, SeverityKey>> = {
   maxConsecutiveOff: 'OFF_CONSEC',
   maxConsecutiveWork: 'WORK_CONSEC',
   maxNightPerMonth: 'NIGHT_MAX',
-  targetNightPerMonth: 'NIGHT_TARGET',
   minNightPerMonth: 'NIGHT_MIN',
   maxConsecutiveNight: 'NIGHT_CONSEC',
   offAfterNight: 'OFF_AFTER_N',
   sleepingOffPerN: 'SLEEPING',
   minStaffPerShift: 'STAFF',
   maxStaffPerShift: 'STAFF_MAX',
-  offCarryMin: 'OFF_CARRY',
-  offCarryMax: 'OFF_CARRY',
+  // 3-10 7: 최소·최대는 필수/권고를 따로
+  offCarryMin: 'OFF_CARRY_MIN',
+  offCarryMax: 'OFF_CARRY_MAX',
   minKTass: 'KTAS',
   trainingMonths: 'TRAINING',
   newbieTripleWeeks: 'STAFF',
@@ -91,10 +91,10 @@ export const RULE_PARAM_LIMITS: RuleParamLimit[] = [
   // 「주 근무일」은 어디에도 쓰이지 않아 뺐다(한 달 OFF 수는 빨간 날 기준). 대신 연속 근무 상한(R-1, DECISIONS 2026-10-08)
   p('maxConsecutiveWork', '최대 연속 근무', '필수', '일', 3, 14, '근무·휴식', 'D·E·N·S 연속'),
   p('maxNightPerMonth', '월 나이트 상한', '필수', '개', 1, 31, '나이트', '최대값'),
-  p('targetNightPerMonth', '월 나이트 목표', '권고', '개', 1, 31, '나이트', '이 수를 넘으면 경고'),
+  // 3-10 12: 「월 나이트 목표」는 없앴다(상한·하한만)
   p(
     'minNightPerMonth',
-    '월 나이트 최소',
+    '월 나이트 하한',
     '권고',
     '개',
     0,
@@ -229,7 +229,7 @@ export const RULE_TOGGLE_DEFS: {
   },
 ]
 
-export type RuleError = { key: keyof RuleParams | 'forbiddenPatterns'; message: string }
+export type RuleError = { key: keyof RuleParams | 'forbiddenPatterns' | 'softPatterns'; message: string }
 
 // R-RULE-EDIT-1·2
 export function validateRuleSet(rules: RuleSet): RuleError[] {
@@ -247,10 +247,8 @@ export function validateRuleSet(rules: RuleSet): RuleError[] {
     if (!Number.isInteger(x)) add(l.key, `${l.label}은 정수여야 합니다.`)
     else if (x < l.min || x > l.max) add(l.key, `${l.label}은 ${l.min}~${l.max}${l.unit} 사이여야 합니다.`)
   }
-  if (v.targetNightPerMonth > v.maxNightPerMonth)
-    add('targetNightPerMonth', '월 나이트 목표는 상한 이하여야 합니다.')
-  if (v.minNightPerMonth > v.targetNightPerMonth)
-    add('minNightPerMonth', '월 나이트 최소는 목표 이하여야 합니다.')
+  if (v.minNightPerMonth > v.maxNightPerMonth)
+    add('minNightPerMonth', '월 나이트 하한은 상한 이하여야 합니다.')
   if (v.minKTass > v.minStaffPerShift) add('minKTass', 'KTAS 권한자는 듀티당 최소 인원 이하여야 합니다.')
   if (v.maxStaffPerShift < v.minStaffPerShift)
     add('maxStaffPerShift', '듀티당 최대 인원은 최소 인원 이상이어야 합니다.')
@@ -262,6 +260,15 @@ export function validateRuleSet(rules: RuleSet): RuleError[] {
     add('nightDedicatedMaxMonths', '야간 전담 최대 기간은 최소 기간 이상이어야 합니다.')
   if (!rules.forbiddenPatterns.every((x) => PATTERN_REGEX.test(normalizePattern(x))))
     add('forbiddenPatterns', "D·E·N·S·OFF를 '-'로 두 개 이상 이어 주세요. 예: E-D")
+  // 3-10 11: 금지 권고 패턴 — 같은 문법, 금지 패턴과 겹치면 안 된다
+  const soft = rules.softPatterns ?? []
+  if (!soft.every((x) => PATTERN_REGEX.test(normalizePattern(x))))
+    add('softPatterns', "D·E·N·S·OFF를 '-'로 두 개 이상 이어 주세요. 예: OFF-D-OFF")
+  else {
+    const hard = new Set(rules.forbiddenPatterns.map(normalizePattern))
+    const both = soft.map(normalizePattern).filter((x) => hard.has(x))
+    if (both.length) add('softPatterns', `${both.join(', ')}은 금지 패턴에 이미 있습니다.`)
+  }
   return errors
 }
 
@@ -291,18 +298,29 @@ export function diffRuleSets(before: RuleSet, after: RuleSet): RuleDiff[] {
       before: before.forbiddenPatterns.join(', '),
       after: after.forbiddenPatterns.join(', '),
     })
+  const sa = [...(before.softPatterns ?? [])].sort().join()
+  const sb = [...(after.softPatterns ?? [])].sort().join()
+  if (sa !== sb)
+    out.push({
+      key: 'softPatterns',
+      before: (before.softPatterns ?? []).join(', '),
+      after: (after.softPatterns ?? []).join(', '),
+    })
   return out
 }
 
 const PATTERN_MESSAGE = "D·E·N·S·OFF를 '-'로 두 개 이상 이어 주세요. 예: E-D"
 
 // 금지 패턴 입력 검사: 정규화 후 문법·중복 확인. 화면에서 칩을 추가하기 전에 쓴다
+// 3-10 11: other = 다른 목록(금지 ↔ 금지 권고). 한 패턴은 두 목록 중 하나에만 둔다
 export function parsePatternInput(
   raw: string,
   existing: readonly string[] = [],
+  other?: { patterns: readonly string[]; label: string },
 ): { ok: true; pattern: string } | { ok: false; message: string } {
   const pattern = normalizePattern(raw)
   if (!PATTERN_REGEX.test(pattern)) return { ok: false, message: PATTERN_MESSAGE }
   if (existing.includes(pattern)) return { ok: false, message: '이미 있는 패턴입니다.' }
+  if (other?.patterns.includes(pattern)) return { ok: false, message: `${other.label}에 이미 있습니다.` }
   return { ok: true, pattern }
 }

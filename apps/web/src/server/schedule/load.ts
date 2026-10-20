@@ -81,6 +81,7 @@ async function loadRules(db: Db): Promise<Map<number, RuleSet>> {
         params: r.params,
         toggles: r.toggles,
         forbiddenPatterns: r.forbiddenPatterns,
+        softPatterns: r.softPatterns,
         severity: r.severity,
       }),
     ]),

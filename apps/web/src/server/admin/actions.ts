@@ -124,7 +124,10 @@ export async function saveRulesAction(input: unknown): Promise<SaveResult> {
   const admin = await adminOnly()
   if (!admin) return DENIED
   // 금지 패턴 문법은 service의 validateRuleSet이 항목 오류로 돌려준다(여기서 막으면 뭉뚱그린 오류가 된다)
-  const Rules = RuleSetSchema.extend({ forbiddenPatterns: z.array(z.string().max(40)).max(30) })
+  const Rules = RuleSetSchema.extend({
+    forbiddenPatterns: z.array(z.string().max(40)).max(30),
+    softPatterns: z.array(z.string().max(40)).max(30).default([]),
+  })
   const parsed = z.object({ rules: Rules, baseVersion: z.number().int().min(0) }).safeParse(input)
   if (!parsed.success) return { ok: false, message: '입력 형식이 올바르지 않습니다.' }
   const r = await saveRules(getDb(), parsed.data, admin)

@@ -55,6 +55,33 @@ describe('saveRules (R-RULE-SAVE-1·2)', () => {
     expect(v2!.forbiddenPatterns).toEqual(['E-D', 'N-E', 'N-OFF-D', 'E-S', 'N-OFF-E'])
   })
 
+  it('3-10 11: 금지 권고 패턴은 정규화·중복 제거 후 저장하고 이력에 남긴다, 금지 패턴과 겹치면 거부', async () => {
+    const rules = edit({}, { softPatterns: ['off-d-off', 'OFF-D-OFF', 'OFF-E-OFF'] })
+    expect(await saveRules(db, { rules, baseVersion: 1 }, await adminId())).toEqual({ ok: true, version: 2 })
+    const editor = await loadRuleEditor(db, '2026-10-20')
+    expect(editor.rules.softPatterns).toEqual(['OFF-D-OFF', 'OFF-E-OFF'])
+    expect(editor.history[0]!.lines).toEqual(['금지 권고 패턴 없음 → OFF-D-OFF, OFF-E-OFF'])
+    const both = edit({}, { softPatterns: ['E-D'] })
+    expect(await saveRules(db, { rules: both, baseVersion: 2 }, await adminId())).toEqual({
+      ok: false,
+      errors: { softPatterns: 'E-D은 금지 패턴에 이미 있습니다.' },
+    })
+  })
+
+  it('3-10 7·12: 예전 버전의 OFF_CARRY는 최소·최대 둘 다로, 월 나이트 목표·NIGHT_TARGET은 버리고 읽는다', async () => {
+    await db
+      .update(ruleVersions)
+      .set({
+        params: { ...DEFAULT_RULES.params, targetNightPerMonth: 6 } as RuleSet['params'],
+        severity: { OFF_CARRY: 'soft', NIGHT_TARGET: 'soft' } as never,
+      })
+      .where(eq(ruleVersions.version, 1))
+    const editor = await loadRuleEditor(db, '2026-10-20')
+    expect(editor.rules.severity).toMatchObject({ OFF_CARRY_MIN: 'soft', OFF_CARRY_MAX: 'soft' })
+    expect('NIGHT_TARGET' in editor.rules.severity).toBe(false)
+    expect('targetNightPerMonth' in editor.rules.params).toBe(false)
+  })
+
   it('바뀐 것이 없으면 저장하지 않는다', async () => {
     expect(await saveRules(db, { rules: DEFAULT_RULES, baseVersion: 1 }, await adminId())).toEqual({
       ok: false,

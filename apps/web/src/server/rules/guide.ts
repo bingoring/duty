@@ -61,6 +61,15 @@ export function buildRulesGuide(rules: RuleSet, version: number | null): RulesGu
           text: `${rules.forbiddenPatterns.map(pattern).join(', ')} 패턴은 편성하지 않습니다.`,
           tag: sev('PATTERN'),
         },
+        // 3-10 11: 금지 권고 패턴(늘 권고)
+        ...(rules.softPatterns.length
+          ? [
+              {
+                text: `${rules.softPatterns.map(pattern).join(', ')} 패턴은 되도록 피합니다.`,
+                tag: 'rec' as const,
+              },
+            ]
+          : []),
         {
           text: `연속 OFF(연차 포함)는 최대 ${p.maxConsecutiveOff}일까지 배정합니다. 경조·병가·공가는 세지 않되 연속은 이어집니다.`,
           tag: sev('OFF_CONSEC'),
@@ -120,9 +129,14 @@ export function buildRulesGuide(rules: RuleSet, version: number | null): RulesGu
           text: '기준 OFF보다 적게 쉬면 누적 OFF가 −, 많이 쉬면 +가 되어 다음 달에 더 받거나 반납합니다. 연말 정산 없이 계속 이월됩니다.',
           tag: 'auto',
         },
+        // 3-10 7: 최소·최대는 필수/권고를 따로
         {
-          text: `월말 누적 OFF는 ${p.offCarryMin} ~ +${p.offCarryMax} 안에 들도록 배정합니다.`,
-          tag: sev('OFF_CARRY'),
+          text: `월말 누적 OFF는 ${p.offCarryMin}보다 작아지지 않도록 배정합니다.`,
+          tag: sev('OFF_CARRY_MIN'),
+        },
+        {
+          text: `월말 누적 OFF는 +${p.offCarryMax}보다 커지지 않도록 배정합니다.`,
+          tag: sev('OFF_CARRY_MAX'),
         },
         {
           text: `누적 N ${p.sleepingOffPerN}개마다 슬리핑오프 1일을 줍니다. 남은 N은 연말 정산 없이 이월됩니다(예: 이번 달 N ${p.sleepingOffPerN + 1}개 → 슬리핑오프 1일, 남은 1개는 다음 달 N과 합산).`,
@@ -143,7 +157,7 @@ export function buildRulesGuide(rules: RuleSet, version: number | null): RulesGu
       title: '응급실 야간 운영',
       items: [
         {
-          text: `나이트는 월 ${p.targetNightPerMonth}개 이하를 목표로, 최대 ${p.maxNightPerMonth}개로 제한합니다.`,
+          text: `나이트는 월 최대 ${p.maxNightPerMonth}개로 제한합니다.`,
           tag: sev('NIGHT_MAX'),
         },
         ...(p.minNightPerMonth > 0

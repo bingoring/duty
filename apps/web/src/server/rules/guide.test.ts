@@ -52,8 +52,8 @@ describe('buildRulesGuide', () => {
     expect(item(DEFAULT_RULES, /패턴은 편성하지/)!.text).toBe(
       'E-D, N-E, N-off-D, E-S 패턴은 편성하지 않습니다.',
     )
-    expect(item(withParams({ maxNightPerMonth: 8, targetNightPerMonth: 5 }), /나이트는 월/)!.text).toBe(
-      '나이트는 월 5개 이하를 목표로, 최대 8개로 제한합니다.',
+    expect(item(withParams({ maxNightPerMonth: 8 }), /나이트는 월 최대/)!.text).toBe(
+      '나이트는 월 최대 8개로 제한합니다.',
     )
   })
 

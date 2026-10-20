@@ -84,6 +84,15 @@ export function checkPerson(n: NurseProfile, ctx: PersonCtx): Violation[] {
       if (touchesMonth(dates)) out.push(violation('H-PATTERN', [n.id], dates, { pattern }))
     }
   }
+  // 3-10 11 S-SOFT-PATTERN: 금지 권고 패턴 — H-PATTERN과 같은 셈, 늘 권고
+  for (const pattern of input.rules.softPatterns ?? []) {
+    const parts = pattern.split('-')
+    for (let i = 0; i + parts.length <= tokens.length; i++) {
+      if (!parts.every((t, k) => tokens[i + k] === t)) continue
+      const dates = grid.timeline.slice(i, i + parts.length)
+      if (touchesMonth(dates)) out.push(violation('S-SOFT-PATTERN', [n.id], dates, { pattern }))
+    }
+  }
 
   // H-REST: 서로 다른 근무 코드가 이어질 때만
   for (let i = 0; i + 1 < grid.timeline.length; i++) {
@@ -134,19 +143,13 @@ export function checkPerson(n: NurseProfile, ctx: PersonCtx): Violation[] {
     if (r.count > p.maxConsecutiveOff)
       out.push(violation('H-OFF-CONSEC', [n.id], r.dates, { count: r.count, max: p.maxConsecutiveOff }))
 
-  // H-NIGHT-MAX · S-NIGHT-TARGET · H-SLEEPING
+  // H-NIGHT-MAX · H-SLEEPING (3-10 12: 월 나이트 목표 S-NIGHT-TARGET은 없앴다)
   const monthCells = month.map(at).filter((c): c is GridCell => c !== undefined)
   const nightDates = monthCells.filter((c) => c.code === 'N').map((c) => c.date)
   const nights = nightDates.length
-  const {
-    max: nightMax,
-    target: nightTarget,
-    dedicated,
-  } = nightLimits(n, input.rules, input.year, input.month)
+  const { max: nightMax, dedicated } = nightLimits(n, input.rules, input.year, input.month)
   if (nights > nightMax)
     out.push(violation('H-NIGHT-MAX', [n.id], nightDates, { count: nights, max: nightMax }))
-  else if (nightTarget !== null && nights > nightTarget)
-    out.push(violation('S-NIGHT-TARGET', [n.id], nightDates, { count: nights, target: nightTarget }))
   // S-NIGHT-MIN (3-5 추가): 트레이닝 중 신규는 프리셉터를 따라가므로 제외
   if (!ctx.trainees.has(n.id)) {
     const leaveDays = monthCells.filter((c) => c.code === 'AL' || c.code === 'LEAVE').length
@@ -168,7 +171,7 @@ export function checkPerson(n: NurseProfile, ctx: PersonCtx): Violation[] {
       }),
     )
 
-  // H-OFF-CARRY (3-9 13): 월말 누적 OFF = 월초 + 실제 OFF − 기준 OFF(정산과 같은 셈). 칸이 다 채워진 달만
+  // H-OFF-CARRY (3-9 13): 월말 누적 OFF. 3-10 7: 심각도는 벗어난 쪽(최소 OFF_CARRY_MIN·최대 OFF_CARRY_MAX)을 따른다 = 월초 + 실제 OFF − 기준 OFF(정산과 같은 셈). 칸이 다 채워진 달만
   if (!missing.length) {
     const counted = monthCells.filter(
       (c) => c.code === 'OFF' && ['regular', 'edu_cont', 'edu_union'].includes(c.offKind ?? 'regular'),

@@ -11,6 +11,7 @@ import { useHydrated } from '@/components/admin/ui'
 import { decideLeaveAction, submitRequestsAction } from '@/server/requests/actions'
 import type { PendingLeave, RequestCellDTO, RequestsView } from '@/server/requests/dto'
 import { RequestPopover } from './RequestPopover'
+import { OUTLINE } from '@/components/schedule/ScheduleGrid'
 
 // S4 근무 신청 · S5 휴가 · S4-A 휴가 승인 (Build Spec 2-5 frontend-components)
 const CHIP_BG: Record<string, string> = {
@@ -48,19 +49,20 @@ function Chip({ c, compact = false }: { c: RequestCellDTO; compact?: boolean }) 
     : multi
       ? 'bg-surface'
       : (CHIP_BG[c.label] ?? 'bg-shift-off')
-  const outline = leave
-    ? c.leave?.byAdmin
-      ? 'shadow-[inset_0_0_0_1.5px_var(--color-admin)]'
-      : approved
+  // 3-10 3: 관리자 입력(신청·휴가)은 근무표와 같은 2px 파란 테두리 + 파란 글자
+  const byAdmin = leave ? !!c.leave?.byAdmin : !!c.byAdmin
+  const outline = byAdmin
+    ? OUTLINE.admin
+    : leave
+      ? approved
         ? ''
         : 'border border-dashed border-[#8fa874]'
-    : c.byAdmin
-      ? 'shadow-[inset_0_0_0_1.5px_var(--color-admin)]'
       : 'shadow-[inset_0_0_0_1.5px_var(--color-danger)]'
   return (
     <span
-      // 3-9 11: 간호사 신청은 글자도 빨간색, 관리자 입력은 파란 테두리만
-      className={`flex items-center justify-center rounded-md font-bold ${!leave && !c.byAdmin ? 'text-danger' : 'text-ink'} ${box} ${size} ${bg} ${outline} ${
+      // 3-9 11: 간호사 신청은 글자도 빨간색. 3-10 3: 관리자 입력은 파란 글자
+      data-by-admin={byAdmin || undefined}
+      className={`flex items-center justify-center rounded-md font-bold ${byAdmin ? 'text-admin' : leave ? 'text-ink' : 'text-danger'} ${box} ${size} ${bg} ${outline} ${
         c.draft ? 'opacity-60' : ''
       } ${rejected ? 'line-through opacity-50' : ''} ${c.hasComment ? 'underline decoration-ink-2 decoration-dotted underline-offset-[3px]' : ''}`}
     >
@@ -302,7 +304,9 @@ function Legend({ admin = false }: { admin?: boolean }) {
         O/D
       </span>
       신청
-      <span className="ml-1.5 rounded-[5px] bg-shift-off px-2 py-[3px] font-bold text-ink shadow-[inset_0_0_0_1.5px_var(--color-admin)]">
+      <span
+        className={`ml-1.5 rounded-[5px] bg-shift-off px-2 py-[3px] font-bold text-admin ${OUTLINE.admin}`}
+      >
         O
       </span>
       관리자 입력
@@ -545,8 +549,9 @@ export function RequestsScreen({
                 </div>
               </div>
             ))}
-            <div className="flex h-[30px] items-center border-t border-r border-line bg-panel px-2 text-[10.5px] text-ink-2">
-              OFF 신청{admin ? '' : ' 인원'}
+            <div className="flex h-[30px] items-center border-t border-r border-line bg-panel px-2 text-[10.5px] leading-[1.15] text-ink-2">
+              {/* 3-10 4: OFF 단일 신청 + 휴가(제출·승인), 한 사람은 하루 한 번 */}
+              쉬는 인원(OFF·휴가)
             </div>
             {view.days.map((d) => {
               const n = view.offCounts[d.date] ?? 0

@@ -20,9 +20,9 @@ export const RuleParamsSchema = z.object({
   // 최대 연속 근무(권고, 넘으면 경고·솔버 벌점). 예전 규칙 버전에는 없으므로 기본값으로 채운다(R-1, DECISIONS 2026-10-08)
   maxConsecutiveWork: positiveInt.max(14).default(5),
   maxNightPerMonth: positiveInt,
-  // 3-5 추가: 월 나이트 최소(0 = 사용 안 함)
+  // 3-5 추가: 월 나이트 하한(0 = 사용 안 함)
   minNightPerMonth: z.number().int().min(0).max(31).default(0),
-  targetNightPerMonth: positiveInt,
+  // 3-10 12: 월 나이트 목표(targetNightPerMonth)는 없앴다. 예전 버전 값은 z.object가 버린다
   maxConsecutiveNight: positiveInt,
   offAfterNight: z.number().int().nonnegative(),
   minStaffPerShift: positiveInt,
@@ -68,6 +68,8 @@ export const RuleSetSchema = z.object({
   params: RuleParamsSchema,
   toggles: RuleTogglesSchema,
   forbiddenPatterns: z.array(z.string().regex(PATTERN_REGEX)),
+  // 3-10 11: 금지 권고 패턴(늘 권고 — 지키지 못하면 벌점). 문법은 금지 패턴과 같고, 두 목록에 같은 패턴은 없다
+  softPatterns: z.array(z.string().regex(PATTERN_REGEX)).default([]),
   // 3-5: 규칙별 필수/권고. 예전 버전은 기본값
   severity: RuleSeveritySchema,
 })
@@ -85,7 +87,6 @@ export const DEFAULT_RULES: RuleSet = {
     maxConsecutiveWork: 5,
     maxNightPerMonth: 7,
     minNightPerMonth: 0,
-    targetNightPerMonth: 6,
     maxConsecutiveNight: 3,
     offAfterNight: 2,
     minStaffPerShift: 2,
@@ -120,5 +121,6 @@ export const DEFAULT_RULES: RuleSet = {
     offEveNoNight: true,
   },
   forbiddenPatterns: ['E-D', 'N-E', 'N-off-D', 'E-S'].map(normalizePattern),
+  softPatterns: [],
   severity: { ...DEFAULT_SEVERITY },
 }

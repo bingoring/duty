@@ -82,13 +82,13 @@ describe('fixedCells (고정 칸 우선순위)', () => {
   })
 })
 
-describe('nightLimits (검사기 H-NIGHT-MAX·S-NIGHT-TARGET과 같은 값)', () => {
-  it('교대 근무자는 상한 7·목표 6, 전담은 15/16·목표 없음', () => {
+describe('nightLimits (검사기 H-NIGHT-MAX와 같은 값)', () => {
+  it('교대 근무자는 상한 7, 전담은 15/16', () => {
     const r = rules({}, { nightDedicated: true })
-    expect(nightLimits(nurse('a'), r, 2026, 11)).toEqual({ max: 7, target: 6, dedicated: false })
+    expect(nightLimits(nurse('a'), r, 2026, 11)).toEqual({ max: 7, dedicated: false })
     const d = nurse('b', { nightDedicated: { from: '2026-11-01', to: '2027-01-31' } })
-    expect(nightLimits(d, r, 2026, 11)).toEqual({ max: 15, target: null, dedicated: true })
-    expect(nightLimits(d, r, 2026, 12)).toEqual({ max: 16, target: null, dedicated: true })
+    expect(nightLimits(d, r, 2026, 11)).toEqual({ max: 15, dedicated: true })
+    expect(nightLimits(d, r, 2026, 12)).toEqual({ max: 16, dedicated: true })
     // 토글이 꺼져 있으면 전담으로 보지 않는다
     expect(nightLimits(d, rules(), 2026, 11).dedicated).toBe(false)
   })

@@ -33,9 +33,10 @@ const LABEL: Record<string, string> = {
   negotiationEndDay: '협의 수정 기간 끝',
   ...Object.fromEntries(RULE_TOGGLE_DEFS.map((t) => [t.key, t.label])),
   forbiddenPatterns: '금지 패턴',
+  softPatterns: '금지 권고 패턴',
   ...Object.fromEntries(SEVERITY_KEYS.map((k) => [`severity.${k}`, `${SEVERITY_KEY_LABEL[k]} 필수/권고`])),
 }
-const show = (v: unknown) => (v === true ? '켜짐' : v === false ? '꺼짐' : String(v))
+const show = (v: unknown) => (v === true ? '켜짐' : v === false ? '꺼짐' : v === '' ? '없음' : String(v))
 const line = (d: RuleDiff) => `${LABEL[d.key] ?? d.key} ${show(d.before)} → ${show(d.after)}`
 
 const parse = (r: typeof ruleVersions.$inferSelect): RuleSet =>
@@ -43,6 +44,7 @@ const parse = (r: typeof ruleVersions.$inferSelect): RuleSet =>
     params: r.params,
     toggles: r.toggles,
     forbiddenPatterns: r.forbiddenPatterns,
+    softPatterns: r.softPatterns,
     severity: r.severity,
   })
 
@@ -83,7 +85,9 @@ export async function saveRules(
   adminId: string,
 ): Promise<SaveResult> {
   const patterns = [...new Set(input.rules.forbiddenPatterns.map(normalizePattern))]
-  const rules: RuleSet = { ...input.rules, forbiddenPatterns: patterns }
+  // 3-10 11: 금지 권고 패턴도 같은 정규화·중복 제거
+  const softPatterns = [...new Set((input.rules.softPatterns ?? []).map(normalizePattern))]
+  const rules: RuleSet = { ...input.rules, forbiddenPatterns: patterns, softPatterns }
   const errors = validateRuleSet(rules)
   if (errors.length) return { ok: false, errors: Object.fromEntries(errors.map((e) => [e.key, e.message])) }
   return db.transaction(async (tx) => {
@@ -107,6 +111,7 @@ export async function saveRules(
       params: rules.params,
       toggles: rules.toggles,
       forbiddenPatterns: rules.forbiddenPatterns,
+      softPatterns: rules.softPatterns,
       severity: rules.severity,
       diff,
       changedBy: adminId,
