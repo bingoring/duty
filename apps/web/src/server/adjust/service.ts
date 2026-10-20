@@ -167,7 +167,13 @@ export async function saveEdits(
           }
           await tx
             .update(scheduleCells)
-            .set({ ...after, source: 'admin', editedBy: actor.id, editedAt: now })
+            // 3-10 8: 다시 생성한 칸은 자동 생성(다음 리롤에서 고정하지 않음), 손으로 바꾼 칸만 관리자 수정
+            .set({
+              ...after,
+              source: e.kind === 'reroll' ? 'auto' : 'admin',
+              editedBy: actor.id,
+              editedAt: now,
+            })
             .where(
               and(
                 eq(scheduleCells.monthPlanId, plan.id),
@@ -188,7 +194,7 @@ export async function saveEdits(
             after,
             editedBy: actor.id,
             editedAt: now,
-            reason: 'manual',
+            reason: e.kind === 'reroll' ? 'reroll' : 'manual',
             note: e.override?.reason.trim() ?? null,
           })
         }

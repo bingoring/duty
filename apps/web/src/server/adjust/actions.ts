@@ -38,7 +38,7 @@ const EditSchema = z.object({
     offKind: z.enum(['regular', 'sleeping']).optional(),
   }),
   override: z.object({ reason: z.string().max(200) }).optional(),
-  kind: z.enum(['manual', 'swap', 'replacement']),
+  kind: z.enum(['manual', 'swap', 'replacement', 'reroll']),
 })
 const Before = EditSchema.shape.before
 // 3-10 9: 저장 전 휴가

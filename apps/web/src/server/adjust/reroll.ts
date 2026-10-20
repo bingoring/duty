@@ -236,7 +236,7 @@ export async function rerollFrom(
           code: c.code as 'D' | 'E' | 'N' | 'S' | 'OFF',
           ...(c.code === 'OFF' ? { offKind: c.offKind === 'sleeping' ? 'sleeping' : 'regular' } : {}),
         },
-        kind: 'manual',
+        kind: 'reroll',
       })
     }
     return { ok: true, leave, edits }
