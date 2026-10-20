@@ -92,6 +92,8 @@ function PatternChips({
           <button
             type="button"
             className="cursor-pointer rounded-md border border-dashed border-ink-5 px-2.5 py-[5px] text-xs text-ink-2"
+            // 3-10 11: 두 목록의 추가 버튼을 구분한다(금지 패턴은 예전 이름 그대로)
+            aria-label={label === '금지 패턴' ? undefined : `+ ${label} 추가`}
             onClick={() => setDraft('')}
           >
             + 패턴 추가
