@@ -4,9 +4,11 @@
 **Requirements:** [inputs/requirements_v3.md](inputs/requirements_v3.md) (근무 지침 원문 + 근무자 명단)
 **Design handoff:** [inputs/design_handoff_nurse_duty_scheduler/](inputs/design_handoff_nurse_duty_scheduler/README.md) (최신, 의사 근무표 turn-6 포함, 가명본) · [v5](inputs/design-handoff_v5/README.md) (2026-09-30) · [v4](inputs/design-handoff_v4/README.md) · [v3](inputs/design-handoff_v3/README.md) · [v2](inputs/design-handoff_v2/README.md) · [v1](inputs/design-handoff_v1/README.md)
 **Decisions (audit):** [DECISIONS.md](DECISIONS.md)
-**Last updated:** 2026-10-20
+**Last updated:** 2026-10-21
 
 > 🔒 **개인정보:** 공개 저장소다. 간호사 이름·사번은 모두 가명이며, 실명 자료는 커밋하지 않는다([DECISIONS](DECISIONS.md) 2026-09-26).
+
+> 📝 **3-11 운영 피드백 7 (2026-10-21).** 의사 12건·간호사 1건(근무 신청 반영 필수). 질문 3건 답변 받음, 구현 중.
 
 > 🛠️ **3-10 운영 피드백 6 구현 (2026-10-20, 브랜치 `feature/3-10-feedback-6`).** 간호사 쪽 13건. 운영 11월 생성 불가능 원인은 「D·E·N 고르게」 필수(하나만 권고로 풀면 생성됨). Q1~Q4 답변대로 구현(6번 누적 OFF는 그대로, 확인 과제). 마이그레이션 0015(금지 권고 패턴).
 
@@ -238,6 +240,7 @@
 | 3-8 운영 피드백 4 (생성 중 신청·생성안 관리자 신청·확정 철회·조정 흐름·KTAS 팝업) | [08-feedback-4.md](03-operations/08-feedback-4.md) | HUMAN_APPROVED |
 | 3-9 운영 피드백 5 (검진 S 고정·연차 승인 생략·확정 달 휴가 부분 리롤·생성 결과 묶음·최대 인원·누적 OFF 범위·표시 정리) | [09-feedback-5.md](03-operations/09-feedback-5.md) | IMPLEMENTED |
 | 3-10 운영 피드백 6 (신청 권한·휴가 합계·조정 사유·누적 OFF 휴가 제외·리롤 수동 변경 유지·저장 전 비공개·권고 패턴·나이트 상하한·불가능 원인) | [10-feedback-6.md](03-operations/10-feedback-6.md) | IMPLEMENTED |
+| 3-11 운영 피드백 7 (의사 색·강조·격주 고정·신청 표시·원래 사람·규칙 심각도·재직 기간·금지 패턴·철회, 간호사 신청 필수) | [11-feedback-7.md](03-operations/11-feedback-7.md) | AI_PROPOSED |
 
 ---
 
