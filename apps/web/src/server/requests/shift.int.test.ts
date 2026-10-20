@@ -228,12 +228,6 @@ describe('3-10 관리자 입력과 간호사 신청', () => {
     expect(await saveShiftRequest(db, admin, { ...at('2026-11-14'), options: ['N'] }, T)).toMatchObject({
       ok: false,
     })
-    expect(await saveShiftRequest(db, admin, { ...at('2026-11-14'), options: ['E'] }, T)).toEqual({
-      ok: true,
-    })
-    expect(await saveShiftRequest(db, admin, { ...at('2026-11-13'), options: ['OFF'] }, T)).toEqual({
-      ok: true,
-    })
     // 휴가로도 덮지 못한다(신청 기간)
     expect(
       await saveLeave(
@@ -243,6 +237,12 @@ describe('3-10 관리자 입력과 간호사 신청', () => {
         T,
       ),
     ).toMatchObject({ ok: false, message: expect.stringContaining('신청 근무 또는 OFF만') })
+    expect(await saveShiftRequest(db, admin, { ...at('2026-11-14'), options: ['E'] }, T)).toEqual({
+      ok: true,
+    })
+    expect(await saveShiftRequest(db, admin, { ...at('2026-11-13'), options: ['OFF'] }, T)).toEqual({
+      ok: true,
+    })
     // 관리자가 바꾼 칸은 관리자 입력 → 관리자가 지울 수 있다
     expect(await deleteShiftRequest(db, admin, at('2026-11-13'), T)).toEqual({ ok: true })
   })

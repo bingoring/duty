@@ -104,7 +104,7 @@ describe('rerollFrom', { timeout: 120_000 }, () => {
     expect(await db.select().from(leaveRequests).where(eq(leaveRequests.userId, me.id))).toEqual([])
   })
 
-  it('3-10 8: 저장 전 편집(수간호사 S→D)과 저장된 관리자 수정은 그대로 두고 나머지를 다시 짠다', async () => {
+  it('3-10 8: 저장 전 편집(수간호사 칸)과 저장된 관리자 수정은 그대로 두고 나머지를 다시 짠다', async () => {
     const admin = await actor('00101')
     const me = await actor('00103')
     const other = await actor('00104')
@@ -124,13 +124,13 @@ describe('rerollFrom', { timeout: 120_000 }, () => {
         .map((c) => `${c.userId}|${c.date}`),
     )
 
-    // 2) 저장 전 편집: 수간호사 S → D
-    const s = cells.find((c) => c.userId === admin.id && c.code === 'S' && c.date >= '2026-10-21')!
+    // 2) 저장 전 편집: 수간호사 칸 바꾸기(시드의 수간호사는 평일 D → S)
+    const s = cells.find((c) => c.userId === admin.id && c.code === 'D' && c.date >= '2026-10-21')!
     const headEdit: CellEdit = {
       userId: admin.id,
       date: s.date,
-      before: { code: 'S' },
-      after: { code: 'D' },
+      before: { code: 'D' },
+      after: { code: 'S' },
       kind: 'manual',
     }
     const r2 = await rerollFrom(db, admin, {
@@ -157,7 +157,7 @@ describe('rerollFrom', { timeout: 120_000 }, () => {
           eq(scheduleCells.date, s.date),
         ),
       )
-    expect(head!.code).toBe('D')
+    expect(head!.code).toBe('S')
   })
 
   it('저장 전 편집이 DB와 다르면 리롤을 거부한다', async () => {
