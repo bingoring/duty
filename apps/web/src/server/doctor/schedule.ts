@@ -12,7 +12,9 @@ import {
   targetsFor,
   type Ym,
 } from './core'
-import { buildDoctorCalendar, type DoctorCalendar } from './view'
+import { assignDoctorColors } from '@/components/doctor/colors'
+import { shiftOrigins } from './swaps'
+import { buildDoctorCalendar, originPeople, type CalPerson, type DoctorCalendar } from './view'
 
 export type DoctorScheduleView = {
   year: number
@@ -29,6 +31,15 @@ export type DoctorScheduleView = {
   // 테스트 기간(관리자가 공개를 켜기 전): 간호사에게는 숨기고 의사 화면에는 표시
   testPeriod: boolean
   hidden: boolean
+  // 3-11 1: 의사 id → 색 번호 (모든 의사 달력이 같은 매핑)
+  colors: Record<string, number>
+  // 3-11 5: 바뀐 칸의 원래 사람 (`${date}:${slot}`)
+  origins: Record<string, CalPerson>
+}
+
+// 3-11 1: 의사별 고정 색 — 표 순서(재직 중 먼저)
+export async function loadDoctorColors(db: Db): Promise<Record<string, number>> {
+  return assignDoctorColors(await listDoctors(db, { includeInactive: true }))
 }
 
 const ymStr = (y: number, m: number) => `${y}-${String(m).padStart(2, '0')}`
@@ -56,7 +67,8 @@ export async function loadDoctorSchedule(
   const targets = plan
     ? targetsFor(
         a,
-        doctors.map((d) => d.id),
+        // 3-11 8: 재직 기간 비례 개수
+        all.filter((d) => doctors.some((x) => x.id === d.id)),
         params,
         plan.extras,
       )
@@ -66,6 +78,22 @@ export async function loadDoctorSchedule(
     const [by] = await db.select({ name: users.name }).from(users).where(eq(users.id, plan.confirmedBy))
     badge = `확정 · 담당 ${by?.name ?? ''}`.trim()
   } else if (confirmed) badge = '확정'
+  const calendar = buildDoctorCalendar({
+    ...a,
+    doctors,
+    shifts,
+    holidays: hol,
+    viewerId: a.viewerId,
+    targets,
+    base: { D: params.dPerMonth, N: params.nPerMonth },
+  })
+  const origins = confirmed
+    ? originPeople(
+        await shiftOrigins(db, plan.id),
+        calendar.weeks,
+        all.map((d) => ({ id: d.id, name: d.name })),
+      )
+    : {}
   return {
     year: a.year,
     month: a.month,
@@ -74,19 +102,13 @@ export async function loadDoctorSchedule(
     next: shift(a, 1),
     confirmed,
     badge,
-    calendar: buildDoctorCalendar({
-      ...a,
-      doctors,
-      shifts,
-      holidays: hol,
-      viewerId: a.viewerId,
-      targets,
-      base: { D: params.dPerMonth, N: params.nPerMonth },
-    }),
+    calendar,
     doctors,
     viewerId: a.viewerId,
     times: DOCTOR_TIMES,
     testPeriod: !params.published,
     hidden,
+    colors: assignDoctorColors(all),
+    origins,
   }
 }

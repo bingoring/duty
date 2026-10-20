@@ -97,3 +97,61 @@ test('의사 교환: 진하람 → 고은서에게 요청 → 배지 → 수락�
   await expect(go.getByRole('gridcell', { name: '26일 Day 진하람' })).toBeVisible()
   await go.close()
 })
+
+// 3-11 12·4: 본인 신청은 생성 전까지 칸에서 「철회」, 칩 앞 빨간 점(본인 신청)
+test('의사 신청: 제출한 신청을 칸의 「철회」로 지운다', async ({ page }) => {
+  await doctorLogin(page, DOC.go)
+  // 11월은 앞 테스트에서 확정되므로 12월
+  await page.goto('/doctor/requests?ym=2026-12')
+  await page.getByRole('button', { name: '3일', exact: true }).click()
+  await page.getByRole('button', { name: 'O', exact: true }).click()
+  await page.getByRole('button', { name: '신청 제출' }).click()
+  await expect(page.getByText('제출했습니다')).toBeVisible()
+  await expect(page.getByLabel('본인 신청').first()).toBeVisible()
+  await page.getByRole('button', { name: '3일 신청 철회' }).click()
+  await expect(page.getByText('신청을 철회했습니다')).toBeVisible()
+  await expect(page.getByRole('button', { name: '3일 신청 철회' })).toHaveCount(0)
+})
+
+// 3-11 1: 강조(hl)는 조정 화면에도 있고 메뉴로 옮겨 가도 유지된다
+test('의사 강조: 조정 화면에서 고른 의사가 근무표로 이어진다', async ({ page }) => {
+  await doctorLogin(page, DOC.no)
+  await page.goto('/doctor/adjust')
+  await page.getByRole('link', { name: '고은서', exact: true }).click()
+  await expect(page).toHaveURL(/hl=/)
+  await expect(page.getByRole('link', { name: '고은서', exact: true })).toHaveAttribute(
+    'aria-current',
+    'true',
+  )
+  await page.getByRole('link', { name: '근무표', exact: true }).click()
+  await expect(page).toHaveURL(/\/doctor\?hl=/)
+  await expect(page.getByRole('link', { name: '고은서', exact: true })).toHaveAttribute(
+    'aria-current',
+    'true',
+  )
+})
+
+// 3-11 6/7·10: 규칙 설정 오른쪽 「규칙 안내」 패널과 금지 패턴 목록 — 저장하면 의사 규칙 안내에 그대로
+test('의사 규칙 설정: 금지 패턴 N-O-D를 권고로 추가하면 규칙 안내에 보인다', async ({ page }) => {
+  await doctorLogin(page, DOC.admin)
+  await page.goto('/doctor/admin/rules')
+  const guide = page.getByRole('region', { name: '규칙 안내' })
+  await expect(guide.getByText('매일 Day 1명 · Night 1명')).toBeVisible()
+  await expect(guide.getByRole('radiogroup', { name: '금지 패턴 N-D 필수/권고' })).toBeVisible()
+  const patterns = page.getByRole('region', { name: '금지 패턴' })
+  await patterns.getByRole('button', { name: '패턴 하루 늘리기' }).click()
+  await patterns.getByLabel('패턴 1일째').selectOption('N')
+  await patterns.getByLabel('패턴 2일째').selectOption('O')
+  await patterns.getByLabel('패턴 3일째').selectOption('D')
+  await patterns.getByRole('button', { name: '패턴 추가' }).click()
+  await guide
+    .getByRole('radiogroup', { name: '금지 패턴 N-O-D 필수/권고' })
+    .getByRole('radio', { name: '권고' })
+    .click()
+  await page.getByRole('button', { name: '저장', exact: true }).click()
+  await expect(page.getByText(/저장했습니다/)).toBeVisible()
+  await page.goto('/doctor/rules')
+  const item = page.getByRole('listitem').filter({ hasText: '금지 패턴 N-O-D' })
+  await expect(item.getByText('권고')).toBeVisible()
+  await expect(page.getByText('의사 근무표에는 연차가 없습니다(필요하면 추가)')).toBeVisible()
+})

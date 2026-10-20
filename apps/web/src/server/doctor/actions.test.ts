@@ -16,6 +16,7 @@ describe('의사 서버 액션 가드', () => {
     'createDoctorAction',
     'changeDoctorLoginIdAction',
     'setDoctorRoleAction',
+    'setDoctorEmploymentAction',
     'reissueDoctorPasswordAction',
     'removeDoctorAction',
     'saveDoctorRulesAction',

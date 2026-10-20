@@ -8,13 +8,14 @@ import { groupSession } from '../auth/session'
 import { requestToday } from '../clock'
 import { getDb } from '../db/client'
 import { confirmDoctorCandidate, generateDoctorCandidate, setDoctorExtras } from './generate'
-import { saveDoctorPrefs, saveDoctorRequests, type DoctorActor } from './requests'
+import { saveDoctorPrefs, saveDoctorRequests, withdrawDoctorRequest, type DoctorActor } from './requests'
 import {
   changeDoctorLoginId,
   createDoctor,
   reissueDoctorPassword,
   removeDoctor,
   saveDoctorRules,
+  setDoctorEmployment,
   setDoctorRole,
 } from './staff'
 import {
@@ -65,6 +66,17 @@ export async function saveDoctorRequestsAction(input: unknown) {
   const p = RequestsInput.safeParse(input)
   if (!p.success) return BAD
   const r = await saveDoctorRequests(getDb(), a, p.data, await requestToday())
+  if (r.ok) refresh()
+  return r
+}
+
+// 3-11 12: 신청 철회 (그 날 신청 삭제). 관리자는 userId로 다른 의사 것도
+export async function withdrawDoctorRequestAction(input: unknown) {
+  const a = await doctor()
+  if (!a) return DENIED
+  const p = Ym.extend({ userId: Uuid, date: IsoDate }).safeParse(input)
+  if (!p.success) return BAD
+  const r = await withdrawDoctorRequest(getDb(), a, p.data)
   if (r.ok) refresh()
   return r
 }
@@ -181,7 +193,14 @@ export async function createDoctorAction(input: unknown) {
   const a = await doctorAdmin()
   if (!a) return DENIED
   const p = z
-    .object({ loginId: z.string().max(20), name: z.string().max(40), admin: z.boolean() })
+    .object({
+      loginId: z.string().max(20),
+      name: z.string().max(40),
+      admin: z.boolean(),
+      // 3-11 8: 입사일·퇴사 예정일(선택)
+      hireDate: IsoDate.nullable().optional(),
+      plannedEndDate: IsoDate.nullable().optional(),
+    })
     .safeParse(input)
   if (!p.success) return BAD
   const r = await createDoctor(getDb(), a, p.data)
@@ -195,6 +214,19 @@ export async function changeDoctorLoginIdAction(userId: unknown, loginId: unknow
   const p = z.object({ userId: Uuid, loginId: z.string().max(20) }).safeParse({ userId, loginId })
   if (!p.success) return BAD
   const r = await changeDoctorLoginId(getDb(), a, p.data.userId, p.data.loginId)
+  if (r.ok) refresh()
+  return r
+}
+
+// 3-11 8: 입사일·퇴사 예정일
+export async function setDoctorEmploymentAction(userId: unknown, input: unknown) {
+  const a = await doctorAdmin()
+  if (!a) return DENIED
+  const p = z
+    .object({ userId: Uuid, hireDate: IsoDate.nullable(), plannedEndDate: IsoDate.nullable() })
+    .safeParse({ userId, ...(input as object) })
+  if (!p.success) return BAD
+  const r = await setDoctorEmployment(getDb(), a, p.data.userId, p.data)
   if (r.ok) refresh()
   return r
 }

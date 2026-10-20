@@ -44,6 +44,28 @@
   --color-shift-s: #f7d9e3;
   --color-shift-leave: #d8e6c3;
 
+  /* 3-11 1: 의사별 고정 색 (표 순서대로 1→10, 연한 배경 + 읽히는 글자색) */
+  --color-doc-1: #f6d5d8;
+  --color-doc-1-ink: #7a1f2b;
+  --color-doc-2: #fbe3b8;
+  --color-doc-2-ink: #6b4300;
+  --color-doc-3: #dcedc0;
+  --color-doc-3-ink: #3d5410;
+  --color-doc-4: #c9e8e1;
+  --color-doc-4-ink: #0f5148;
+  --color-doc-5: #d2e4f7;
+  --color-doc-5-ink: #1a4a78;
+  --color-doc-6: #dcd9f4;
+  --color-doc-6-ink: #3a3480;
+  --color-doc-7: #ead6f2;
+  --color-doc-7-ink: #5e2a78;
+  --color-doc-8: #f6d3e6;
+  --color-doc-8-ink: #7a2357;
+  --color-doc-9: #e9dfcc;
+  --color-doc-9-ink: #5a4527;
+  --color-doc-10: #d9e1e6;
+  --color-doc-10-ink: #34444f;
+
   --radius-frame: 14px;
   --radius-card: 12px;
   --radius-control: 10px;

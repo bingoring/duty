@@ -3,6 +3,7 @@ import Link from 'next/link'
 import { PrintButton } from '@/components/schedule/PrintButton'
 import type { DoctorScheduleView } from '@/server/doctor/schedule'
 import { DoctorCalendarGrid, DoctorSidePanel } from './DoctorCalendar'
+import { DoctorHighlightChips, highlightHrefs } from './DoctorHighlight'
 
 const navBtn =
   'flex h-7 w-7 items-center justify-center rounded-[7px] border border-line bg-surface text-sm hover:bg-panel'
@@ -49,28 +50,16 @@ export function DoctorScheduleSection({
   highlight: string | null
 }) {
   const ym = `${view.year}-${String(view.month).padStart(2, '0')}`
-  const hlChip = (id: string | null, label: string) => (
-    <Link
-      key={id ?? 'all'}
-      href={hrefOf({ ym, hl: id })}
-      aria-current={highlight === id ? 'true' : undefined}
-      className={`rounded-full border px-2.5 py-[3px] text-xs font-semibold ${
-        highlight === id ? 'border-ink bg-ink text-white' : 'border-line bg-surface text-ink-2'
-      }`}
-    >
-      {label}
-    </Link>
-  )
   return (
     <div className="flex min-w-0 flex-col gap-3 px-4 py-[18px]">
       <h1 className="print-only text-sm font-bold">{view.title}</h1>
       <div className="flex items-center gap-3" data-print="hide">
         <div className="flex items-center gap-1.5">
-          <Link href={hrefOf({ ym: view.prev })} aria-label="이전 달" className={navBtn}>
+          <Link href={hrefOf({ ym: view.prev, hl: highlight })} aria-label="이전 달" className={navBtn}>
             ‹
           </Link>
           <h1 className="text-xl font-bold tracking-[-0.02em]">{view.title}</h1>
-          <Link href={hrefOf({ ym: view.next })} aria-label="다음 달" className={navBtn}>
+          <Link href={hrefOf({ ym: view.next, hl: highlight })} aria-label="다음 달" className={navBtn}>
             ›
           </Link>
         </div>
@@ -100,19 +89,23 @@ export function DoctorScheduleSection({
       ) : (
         <>
           <div className="flex flex-wrap items-center gap-2 text-xs" data-print="hide">
-            <span className="rounded-[5px] bg-shift-d px-2 py-[3px] font-bold">Day</span>
+            {/* 3-11 1: 칩 색은 의사별 색 — 강조 칩의 색 점이 범례 */}
+            <span className="font-bold">Day</span>
             <span className="text-ink-2">{view.times.D}</span>
-            <span className="rounded-[5px] bg-shift-n px-2 py-[3px] font-bold">Night</span>
+            <span className="font-bold">Night</span>
             <span className="text-ink-2">{view.times.N}</span>
             <span className="ml-2 rounded-full border border-line bg-surface px-1.5 text-[10px] font-bold">
               올데이
             </span>
             <span className="text-ink-2">같은 날 Day·Night를 한 사람이</span>
-            <span className="ml-auto flex flex-wrap items-center gap-1.5">
-              <span className="text-ink-2">강조</span>
-              {hlChip(null, '전체')}
-              {view.viewerId && hlChip(view.viewerId, '본인')}
-              {view.doctors.filter((d) => d.id !== view.viewerId).map((d) => hlChip(d.id, d.name))}
+            <span className="ml-auto">
+              <DoctorHighlightChips
+                doctors={view.doctors}
+                viewerId={view.viewerId}
+                highlight={highlight}
+                colors={view.colors}
+                hrefs={highlightHrefs(view.doctors, (hl) => hrefOf({ ym, hl }))}
+              />
             </span>
           </div>
           <div className="flex items-start gap-4">
@@ -122,6 +115,8 @@ export function DoctorScheduleSection({
                 weeks={view.calendar.weeks}
                 viewerId={view.viewerId}
                 highlight={highlight}
+                colors={view.colors}
+                origins={view.origins}
               />
             </div>
             <DoctorSidePanel cal={view.calendar} showNext={!!view.viewerId} />

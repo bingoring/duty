@@ -5,14 +5,22 @@ from __future__ import annotations
 import time
 from collections import Counter
 from datetime import date, timedelta
+from itertools import pairwise
 
 from fastapi.testclient import TestClient
 
 from solver.app import app
-from solver.doctor import solve_doctor
+from solver.doctor import DEFAULT_SEVERITY, solve_doctor
 
 client = TestClient(app)
 IDS = ("A", "B", "C", "K", "E")
+# 3-11 기본 금지 패턴 (packages/domain DEFAULT_DOCTOR_PATTERNS와 같다)
+DEFAULT_PATTERNS = (
+    {"pattern": ["AD", "D"], "severity": "hard"},
+    {"pattern": ["AD", "N"], "severity": "hard"},
+    {"pattern": ["N", "N"], "severity": "hard"},
+    {"pattern": ["N", "D"], "severity": "soft"},
+)
 
 
 def month(y: int, m: int) -> list[str]:
@@ -48,7 +56,9 @@ def request(days: list[str] | None = None, doctors: list[dict] | None = None, se
         "timeLimitSec": 5,
         "days": days,
         "doctors": doctors,
-        "prevLastNight": None,
+        "severity": dict(DEFAULT_SEVERITY),
+        "patterns": [dict(p) for p in DEFAULT_PATTERNS],
+        "prevShifts": [],
     }
 
 
@@ -70,6 +80,19 @@ def check_hard(req: dict, out: dict) -> None:
         assert nc[doc["id"]] == doc["nCount"]
 
 
+def slots(out: dict, i: str) -> list[tuple[bool, bool]]:
+    return [(s["day"] == i, s["night"] == i) for s in out["shifts"]]
+
+
+def check_patterns(req: dict, out: dict) -> None:
+    """필수 기본 패턴(올데이-D·올데이-N·N-N)이 이 달 안에서 안 나온다."""
+    for doc in req["doctors"]:
+        st = slots(out, doc["id"])
+        for (d0, n0), (d1, n1) in pairwise(st):
+            assert not (n0 and n1), "N-N"
+            assert not (d0 and n0 and d1), "올데이-D"
+
+
 def test_매일_D_N_한명씩_개수_정확():
     for days, doctors in ((month(2026, 10), None), (month(2026, 11), [doctor(i) for i in IDS])):
         req = request(days, doctors)
@@ -79,9 +102,12 @@ def test_매일_D_N_한명씩_개수_정확():
             "requestMiss",
             "requestMissMax",
             "allDayOut",
-            "nightToDay",
+            "pattern",
+            "fixedMiss",
+            "countDev",
             "tieBreak",
         }
+        check_patterns(req, out)
 
 
 def test_고정_조건_지킨다():
@@ -186,3 +212,126 @@ def test_31일_달을_2초_안에_푼다():
     out = solve_doctor(request())
     assert time.monotonic() - t0 < 2
     assert out["status"] == "OPTIMAL"
+
+
+# ── 3-11 ──
+def test_권고_N_D는_벌점으로_센다():
+    req = request()
+    out = solve_doctor(req)
+    check_hard(req, out)
+    nd = sum(1 for doc in req["doctors"] for (_, n0), (d1, _) in pairwise(slots(out, doc["id"])) if n0 and d1)
+    assert out["objective"]["terms"]["pattern"] == nd
+
+
+def test_필수_N_D와_3일_패턴():
+    req = request()
+    req["patterns"] = [
+        {"pattern": ["N", "D"], "severity": "hard"},
+        {"pattern": ["N", "O", "N"], "severity": "hard"},
+    ]
+    out = solve_doctor(req)
+    check_hard(req, out)
+    for doc in req["doctors"]:
+        st = slots(out, doc["id"])
+        for (_, n0), (d1, _) in pairwise(st):
+            assert not (n0 and d1)
+        for a, b, c in zip(st, st[1:], st[2:], strict=False):
+            assert not (a[1] and b == (False, False) and c[1])
+
+
+def test_전월_마지막_날과_이어서_본다():
+    req = request()
+    req["prevShifts"] = [{"date": "2026-09-30", "day": "C", "night": "A"}]
+    req["doctors"][0]["fixed"] = []
+    out = solve_doctor(req)
+    check_hard(req, out)
+    # 전월 말 A Night → 1일 A는 Night(N-N 필수) 불가
+    assert out["shifts"][0]["night"] != "A"
+
+
+def test_신청을_필수로():
+    req = request()
+    req["severity"]["REQUEST"] = "hard"
+    days = req["days"]
+    req["doctors"][2]["requests"] = [{"date": d, "options": ["O"]} for d in days[:8]]
+    out = solve_doctor(req)
+    check_hard(req, out)
+    assert all("C" not in (s["day"], s["night"]) for s in out["shifts"][:8])
+
+
+def test_필수_신청끼리_충돌하면_REQUEST():
+    req = request()
+    req["severity"]["REQUEST"] = "hard"
+    d = req["days"][3]
+    for doc in req["doctors"]:
+        doc["requests"] = [{"date": d, "options": ["O"]}]
+    out = solve_doctor(req)
+    assert out["status"] == "INFEASIBLE"
+    assert out["causes"] and all(c["kind"] == "REQUEST" and c["date"] == d for c in out["causes"])
+
+
+def test_필수_패턴과_고정이_부딪히면_원인에_PATTERN():
+    req = request()
+    d0, d1 = req["days"][10], req["days"][11]
+    req["doctors"][0]["fixed"] = [
+        {"date": d0, "shift": "N", "type": "require"},
+        {"date": d1, "shift": "N", "type": "require"},
+    ]
+    out = solve_doctor(req)
+    assert out["status"] == "INFEASIBLE"
+    kinds = {(c["kind"], c["userId"]) for c in out["causes"]}
+    assert ("PATTERN", "A") in kinds
+
+
+def test_개수를_권고로_하면_합이_안맞아도_푼다():
+    req = request()
+    req["severity"]["COUNT"] = "soft"
+    req["doctors"][0]["dCount"] = 9
+    out = solve_doctor(req)
+    assert out["status"] in ("OPTIMAL", "FEASIBLE")
+    assert out["objective"]["terms"]["countDev"] >= 2
+
+
+def test_고정_조건을_권고로_하면_충돌해도_푼다():
+    req = request()
+    req["severity"]["FIXED"] = "soft"
+    d = req["days"][5]
+    for doc in req["doctors"][:2]:
+        doc["fixed"] = [{"date": d, "shift": "D", "type": "require"}]
+    out = solve_doctor(req)
+    check_hard(req, out)
+    assert out["objective"]["terms"]["fixedMiss"] == 1
+
+
+def test_재직_기간_밖은_배정하지_않는다():
+    # 11월(30일): E는 16일 입사 → 3/3, 나머지 4명이 27을 나눈다(+1 셋)
+    days = month(2026, 11)
+    ds = [doctor(i) for i in IDS]
+    ds[4] |= {"dCount": 3, "nCount": 3, "employedFrom": "2026-11-16"}
+    for j in range(3):
+        ds[j]["dCount"] = 7
+        ds[j + 1]["nCount"] = 7
+    req = request(days, ds)
+    out = solve_doctor(req)
+    check_hard(req, out)
+    assert all("E" not in (s["day"], s["night"]) for s in out["shifts"] if s["date"] < "2026-11-16")
+
+
+def test_격주_고정_조건은_펼친_날짜로_온다():
+    # 격주(홀수 주) 계산은 도메인 expandFixedRules가 한다 — 솔버는 받은 날짜만 지킨다
+    req = request()
+    odd_sat = ["2026-10-03", "2026-10-17", "2026-10-31"]
+    req["doctors"][1]["fixed"] = [{"date": d, "shift": "N", "type": "require"} for d in odd_sat]
+    out = solve_doctor(req)
+    check_hard(req, out)
+    s = by_date(out)
+    assert all(s[d]["night"] == "B" for d in odd_sat)
+
+
+def test_HTTP_예전_요청도_받는다():
+    old = request()
+    for k in ("severity", "patterns", "prevShifts"):
+        del old[k]
+    res = client.post("/solve/doctor", json=old)
+    assert res.status_code == 200
+    assert res.json()["status"] in ("OPTIMAL", "FEASIBLE")

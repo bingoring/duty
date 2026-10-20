@@ -448,6 +448,14 @@ class Builder:
             if not self.diagnose:
                 self.objective_terms(n, off_short, miss_max)
             self.carry_range(n)
+            # 3-11 간호사 1: 근무 신청 반영이 필수면 신청 칸은 고른 근무 중 하나(O/N이면 O 또는 N)
+            if "REQUEST" in self.hard:
+                for q in n["requests"]:
+                    d = q["date"]
+                    if d not in self.work_days[nid] or (nid, d) in self.fixed:
+                        continue
+                    lits = [v for v in (self.token(nid, d, o) for o in q["options"]) if v is not self.false]
+                    self.m.add_bool_or(lits).only_enforce_if(self.guard(f"REQUEST:{nid}"))
             nights = sum(self.is_(nid, d, "N") for d in self.days)
             # H-OFF-EVE (3-8): OFF만 신청한 날의 전날 N 금지
             for d in n.get("noNightDates") or []:
@@ -584,7 +592,7 @@ class Builder:
         self.terms["offOver"].append(over)
 
         # 신청 (Q3): 한 사람에게 불충족이 몰리지 않게
-        if p["requests"] and n["requests"]:
+        if p["requests"] and n["requests"] and "REQUEST" not in self.hard:
             misses = []
             for q in n["requests"]:
                 d = q["date"]
@@ -782,6 +790,7 @@ def solve(req: dict) -> dict:
 
 # 3-10 13: 원인 증명이 안 될 때 풀어 볼 순서 — 기본이 권고인데 필수로 바뀌기 쉬운 규칙부터
 RELAX_ORDER = (
+    "REQUEST",
     "SHIFT_BALANCE",
     "NIGHT_RESTART",
     "STAFF_MAX",

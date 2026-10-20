@@ -7,7 +7,7 @@ import { loadDoctorSchedule } from '@/server/doctor/schedule'
 import { loadDoctorAdjust } from '@/server/doctor/swaps'
 import { parseYm } from '@/server/schedule/month'
 
-type Sp = { ym?: string | string[] }
+type Sp = { ym?: string | string[]; hl?: string | string[] }
 
 const navBtn =
   'flex h-7 w-7 items-center justify-center rounded-[7px] border border-line bg-surface text-sm hover:bg-panel'
@@ -22,16 +22,19 @@ export default async function DoctorAdjustPage({ searchParams }: { searchParams:
   const db = getDb()
   const adjust = await loadDoctorAdjust(db, { year, month }, actor, today)
   const view = await loadDoctorSchedule(db, { year, month, viewerId: session.user.id, today })
+  // 3-11 1: 강조(hl)는 의사 화면 사이를 따라다닌다
+  const hl = typeof sp.hl === 'string' && view.doctors.some((d) => d.id === sp.hl) ? sp.hl : null
+  const hlQ = hl ? `&hl=${hl}` : ''
 
   const header = (
     <div className="flex items-center gap-1.5">
-      <Link href={`/doctor/adjust?ym=${view.prev}`} aria-label="이전 달" className={navBtn}>
+      <Link href={`/doctor/adjust?ym=${view.prev}${hlQ}`} aria-label="이전 달" className={navBtn}>
         ‹
       </Link>
       <h1 className="text-xl font-bold tracking-[-0.02em] whitespace-nowrap">
         {year}년 {month}월 · 의사 근무 조정
       </h1>
-      <Link href={`/doctor/adjust?ym=${view.next}`} aria-label="다음 달" className={navBtn}>
+      <Link href={`/doctor/adjust?ym=${view.next}${hlQ}`} aria-label="다음 달" className={navBtn}>
         ›
       </Link>
     </div>
@@ -58,6 +61,9 @@ export default async function DoctorAdjustPage({ searchParams }: { searchParams:
       viewerId={session.user.id}
       admin={actor.role === 'admin'}
       marks={adjust.marks}
+      colors={view.colors}
+      origins={view.origins}
+      highlight={hl}
       swaps={adjust.swaps}
     />
   )

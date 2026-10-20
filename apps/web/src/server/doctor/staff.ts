@@ -4,6 +4,7 @@ import {
   DoctorRuleParamsSchema,
   EmployeeNoSchema,
   allDayRangeLabel,
+  isIsoDate,
   doctorPlanDates,
   fixedRuleLabel,
   type DoctorRuleParams,
@@ -41,7 +42,7 @@ export async function loadDoctorStaff(db: Db) {
     return {
       ...d,
       allDay: allDayRangeLabel(p),
-      fixed: p.fixedRules.filter((r) => r.enabled).map(fixedRuleLabel),
+      fixed: p.fixedRules.filter((r) => r.enabled).map((r) => fixedRuleLabel(r)),
     }
   })
 }
@@ -62,13 +63,26 @@ async function loginIdTaken(db: Db, loginId: string, except?: string) {
   return !!u
 }
 
+// 3-11 8: 입사일·퇴사 예정일 검사 (빈 값 = 제한 없음)
+export type DoctorEmploymentInput = { hireDate: string | null; plannedEndDate: string | null }
+function employmentError(e: DoctorEmploymentInput): string | null {
+  if ((e.hireDate && !isIsoDate(e.hireDate)) || (e.plannedEndDate && !isIsoDate(e.plannedEndDate)))
+    return '날짜 형식이 올바르지 않습니다.'
+  if (e.hireDate && e.plannedEndDate && e.plannedEndDate < e.hireDate)
+    return '퇴사 예정일은 입사일과 같거나 뒤여야 합니다.'
+  return null
+}
+
 export async function createDoctor(
   db: Db,
   actor: DoctorActor,
-  input: { loginId: string; name: string; admin: boolean },
+  input: { loginId: string; name: string; admin: boolean } & Partial<DoctorEmploymentInput>,
 ): Promise<{ ok: true; tempPassword: string } | Fail> {
   const denied = adminOnly(actor)
   if (denied) return denied
+  const emp = { hireDate: input.hireDate || null, plannedEndDate: input.plannedEndDate || null }
+  const empErr = employmentError(emp)
+  if (empErr) return fail(empErr)
   const id = EmployeeNoSchema.safeParse(input.loginId)
   const name = input.name.trim()
   if (!id.success || !/^\d{4,12}$/.test(id.data)) return fail('로그인 ID는 숫자 4~12자리로 입력해 주세요.')
@@ -93,6 +107,8 @@ export async function createDoctor(
         rotation: 'rotating',
         seniorityRank: Number(max) + 1,
         seniorityTier: 'senior',
+        hireDate: emp.hireDate,
+        plannedEndDate: emp.plannedEndDate,
       })
       .returning({ id: users.id })
     await tx.insert(credentials).values({ userId: u!.id, passwordHash, mustChangePassword: true })
@@ -135,6 +151,26 @@ export async function setDoctorRole(
   await db
     .update(users)
     .set({ role: admin ? 'admin' : 'nurse', updatedAt: new Date() })
+    .where(eq(users.id, userId))
+  return { ok: true }
+}
+
+// 3-11 8: 입사일·퇴사 예정일 — 재직 기간 밖 날에는 배정하지 않고, 그 달 개수는 재직 날짜 비율
+export async function setDoctorEmployment(
+  db: Db,
+  actor: DoctorActor,
+  userId: string,
+  input: DoctorEmploymentInput,
+): Promise<{ ok: true } | Fail> {
+  const denied = adminOnly(actor)
+  if (denied) return denied
+  const emp = { hireDate: input.hireDate || null, plannedEndDate: input.plannedEndDate || null }
+  const empErr = employmentError(emp)
+  if (empErr) return fail(empErr)
+  if (!(await doctorById(db, userId))) return fail('의사를 찾을 수 없습니다.')
+  await db
+    .update(users)
+    .set({ ...emp, updatedAt: new Date() })
     .where(eq(users.id, userId))
   return { ok: true }
 }
@@ -194,8 +230,11 @@ export async function saveDoctorRules(
     if (cur.version !== input.baseVersion)
       return fail('그사이 규칙이 바뀌었습니다. 새로고침 뒤 다시 저장해 주세요.')
     const keys = Object.keys(parsed.data) as (keyof DoctorRuleParams)[]
+    // 3-11: 필수/권고·금지 패턴은 객체라 값으로 비교한다
+    const same = (k: keyof DoctorRuleParams) =>
+      JSON.stringify(cur.params[k]) === JSON.stringify(parsed.data[k])
     const diff = keys
-      .filter((k) => cur.params[k] !== parsed.data[k])
+      .filter((k) => !same(k))
       .map((k) => ({ key: k, before: cur.params[k], after: parsed.data[k] }))
     if (diff.length === 0) return fail('바뀐 값이 없습니다.')
     const version = cur.version + 1

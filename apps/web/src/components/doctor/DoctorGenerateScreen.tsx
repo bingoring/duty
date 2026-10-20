@@ -8,7 +8,9 @@ import { useState, useTransition } from 'react'
 import { btnPrimary, btnSecondary } from '@/components/admin/ui'
 import { confirmDoctorAction, generateDoctorAction, setDoctorExtrasAction } from '@/server/doctor/actions'
 import type { DoctorCalendar } from '@/server/doctor/view'
+import type { DoctorColors } from './colors'
 import { DoctorCalendarGrid, DoctorSidePanel } from './DoctorCalendar'
+import { DoctorHighlightChips, highlightHrefs } from './DoctorHighlight'
 
 type Props = {
   ym: { year: number; month: number }
@@ -28,6 +30,10 @@ type Props = {
   calendar: DoctorCalendar | null
   requestCount: number
   fixedCount: number
+  // 3-11 1: 의사별 색 · 강조(hl)
+  colors: DoctorColors
+  highlight: string | null
+  viewerId: string
 }
 
 function Dot({ ok, warn }: { ok: boolean; warn?: boolean }) {
@@ -43,6 +49,7 @@ export function DoctorGenerateScreen(p: Props) {
   const router = useRouter()
   const [pending, start] = useTransition()
   const ymQ = `${p.ym.year}-${String(p.ym.month).padStart(2, '0')}`
+  const hlQ = p.highlight ? `&hl=${p.highlight}` : ''
   const [msg, setMsg] = useState<{ ok: boolean; text: string } | null>(null)
   const [extras, setExtras] = useState<DoctorExtras>(p.plan.extras)
   const confirmed = p.plan.status === 'CONFIRMED'
@@ -63,6 +70,8 @@ export function DoctorGenerateScreen(p: Props) {
   const c = p.picked?.check
   const has = (rule: string, list: 'hard' | 'soft' = 'hard') =>
     c ? c[list].filter((v) => v.rule === rule) : []
+  // 3-11 6·10: 규칙마다 필수/권고가 바뀌므로 둘 다 본다
+  const any = (rule: string) => [...has(rule, 'hard'), ...has(rule, 'soft')]
   const early = !confirmed && p.today < p.plan.negotiationEnd
 
   return (
@@ -74,7 +83,7 @@ export function DoctorGenerateScreen(p: Props) {
             {p.candidates.map((x) => (
               <Link
                 key={x.id}
-                href={`?ym=${ymQ}&c=${x.id}`}
+                href={`?ym=${ymQ}&c=${x.id}${hlQ}`}
                 aria-current={p.picked?.id === x.id ? 'true' : undefined}
                 className={`rounded-full border px-2.5 py-[3px] font-semibold ${
                   p.picked?.id === x.id ? 'border-ink bg-ink text-white' : 'border-line bg-surface text-ink-2'
@@ -86,8 +95,26 @@ export function DoctorGenerateScreen(p: Props) {
             ))}
           </div>
         )}
+        {p.calendar && (
+          <DoctorHighlightChips
+            doctors={p.doctors}
+            viewerId={p.viewerId}
+            highlight={p.highlight}
+            colors={p.colors}
+            hrefs={highlightHrefs(
+              p.doctors,
+              (hl) => `?ym=${ymQ}${p.picked ? `&c=${p.picked.id}` : ''}${hl ? `&hl=${hl}` : ''}`,
+            )}
+          />
+        )}
         {p.calendar ? (
-          <DoctorCalendarGrid month={p.ym.month} weeks={p.calendar.weeks} viewerId={null} />
+          <DoctorCalendarGrid
+            month={p.ym.month}
+            weeks={p.calendar.weeks}
+            viewerId={null}
+            highlight={p.highlight}
+            colors={p.colors}
+          />
         ) : (
           <div className="rounded-card border border-line bg-surface px-6 py-16 text-center text-sm text-ink-2">
             아직 생성안이 없습니다. 오른쪽 「생성」을 눌러 주세요.
@@ -129,7 +156,15 @@ export function DoctorGenerateScreen(p: Props) {
               ),
             )}
             <li>연속 휴무 제한 없음 · 연차 없음</li>
-            <li>N-O-D · 올데이-O-D 허용</li>
+            <li>
+              금지 패턴{' '}
+              {p.params.patterns
+                .map(
+                  (x) =>
+                    `${x.pattern.map((t) => (t === 'AD' ? '올데이' : t)).join('-')}(${x.severity === 'hard' ? '필수' : '권고'})`,
+                )
+                .join(' · ') || '없음'}
+            </li>
             <li>개인 올데이 범위·고정 조건 반영 · 신청 {p.requestCount}건</li>
           </ul>
           {!confirmed && (
@@ -143,7 +178,7 @@ export function DoctorGenerateScreen(p: Props) {
                     const r = await generateDoctorAction(p.ym)
                     if (!r.ok) return setMsg({ ok: false, text: r.message })
                     setMsg({ ok: true, text: `안 ${r.generationNo}을 만들었습니다.` })
-                    router.replace(`?ym=${ymQ}&c=${r.candidateId}`)
+                    router.replace(`?ym=${ymQ}&c=${r.candidateId}${hlQ}`)
                   })
                 }
               >
@@ -195,30 +230,28 @@ export function DoctorGenerateScreen(p: Props) {
               }
             />
             <Row
-              ok={has('ALLDAY_RANGE', 'soft').length === 0}
+              ok={any('ALLDAY_RANGE').length === 0}
               warn
               text={
-                has('ALLDAY_RANGE', 'soft').length
-                  ? `올데이 선호 미충족 ${has('ALLDAY_RANGE', 'soft').length}명`
+                any('ALLDAY_RANGE').length
+                  ? `올데이 선호 미충족 ${any('ALLDAY_RANGE').length}명`
                   : '올데이 선호 범위 충족'
               }
             />
             <Row
-              ok={has('REQUEST', 'soft').length === 0}
+              ok={any('REQUEST').length === 0}
               warn
               text={
-                has('REQUEST', 'soft').length
-                  ? `신청 미반영 ${has('REQUEST', 'soft').length}건 / ${p.requestCount}건`
+                any('REQUEST').length
+                  ? `신청 미반영 ${any('REQUEST').length}건 / ${p.requestCount}건`
                   : `신청 ${p.requestCount}건 모두 반영`
               }
             />
             <Row
-              ok={has('NIGHT_TO_DAY', 'soft').length === 0}
+              ok={any('PATTERN').length === 0}
               warn
               text={
-                has('NIGHT_TO_DAY', 'soft').length
-                  ? `Night 다음 날 Day ${has('NIGHT_TO_DAY', 'soft').length}회`
-                  : 'Night 다음 날 Day 없음'
+                any('PATTERN').length ? `금지 근무 패턴 ${any('PATTERN').length}건` : '금지 근무 패턴 없음'
               }
             />
             {[...c.hard, ...c.soft].length > 0 && (

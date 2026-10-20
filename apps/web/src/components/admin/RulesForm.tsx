@@ -309,6 +309,15 @@ export function RulesForm({
       </div>
 
       <aside className="flex flex-col gap-3">
+        {/* 3-11 간호사 1: 근무 신청 반영 — 필수면 신청 칸은 고른 근무 중 하나로 배정 */}
+        <div className="flex flex-col gap-1 rounded-xl border border-line bg-surface p-4 text-[13px]">
+          <div className="flex items-center justify-between font-bold">
+            근무 신청 반영 {severityButton('REQUEST', '근무 신청 반영')}
+          </div>
+          <span className="text-xs text-ink-2">
+            필수: 신청한 근무 중 하나로 배정(O/N이면 O 또는 N) · 권고: 되도록 반영
+          </span>
+        </div>
         <div className="flex flex-col gap-2.5 rounded-xl border border-line bg-surface p-4 text-[13px]">
           <div className="font-bold">켜고 끄는 규칙</div>
           {RULE_TOGGLE_DEFS.map((t) => (

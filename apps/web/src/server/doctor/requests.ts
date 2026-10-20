@@ -15,11 +15,14 @@ import {
 import { and, eq, inArray } from 'drizzle-orm'
 import type { Db } from '../db/client'
 import { doctorPrefs, doctorRequests, users } from '../db/schema'
+import { assignDoctorColors } from '@/components/doctor/colors'
+import { lockedForActor } from '@/components/doctor/request-marks'
 import {
   currentDoctorRules,
   ensureDoctorPlan,
   listDoctors,
   prefsOf,
+  redHolidays,
   targetsFor,
   type DoctorPlan,
   type Ym,
@@ -29,8 +32,20 @@ export type DoctorActor = { id: string; role: 'admin' | 'member' }
 type Deny = { ok: false; message: string }
 const deny = (message: string): Deny => ({ ok: false, message })
 
-export type MyRequest = { options: DoctorOption[]; comment: string | null; fixedException: boolean }
-export type OtherMark = { name: string; text: string; fixed: boolean }
+// 3-11 4: byAdmin = 관리자가 다른 의사 대신 넣은 신청 (파란 점). 본인이 넣은 것은 빨간 점
+export type MyRequest = {
+  options: DoctorOption[]
+  comment: string | null
+  fixedException: boolean
+  byAdmin: boolean
+}
+export type OtherMark = { userId: string; name: string; text: string; fixed: boolean; byAdmin: boolean }
+
+// 3-11 12: 철회 — 관리자는 확정 전까지 언제나, 의사는 생성 전(REQUESTING, 마감이 지나도)까지 본인 신청만
+export function canDoctorWithdraw(plan: Pick<DoctorPlan, 'status'>, actor: Pick<DoctorActor, 'role'>) {
+  if (plan.status === 'CONFIRMED') return false
+  return actor.role === 'admin' || plan.status === 'REQUESTING'
+}
 
 export type DoctorRequestsView = {
   year: number
@@ -44,6 +59,11 @@ export type DoctorRequestsView = {
   mine: Record<IsoDate, MyRequest>
   myFixed: FixedOnDate[]
   others: Record<IsoDate, OtherMark[]>
+  // 3-11: 보는 사람(관리자가 대신 볼 때 userId와 다르다) · 공휴일 · 의사별 색 · 철회 가능
+  actorId: string
+  holidays: Record<IsoDate, string>
+  colors: Record<string, number>
+  canWithdraw: boolean
   prefs: DoctorPrefs
   target: { D: number; N: number }
   perMonth: number
@@ -85,27 +105,36 @@ export async function loadDoctorRequests(
         options: r.options as DoctorOption[],
         comment: r.comment,
         fixedException: r.fixedException,
+        byAdmin: r.byAdmin,
       }
     else if (name.has(r.userId) && r.options.length)
       (others[r.date] ??= []).push({
+        userId: r.userId,
         name: name.get(r.userId)!,
         text: r.options.map(optText).join('/'),
         fixed: false,
+        byAdmin: r.byAdmin,
       })
   }
   // 다른 의사의 고정 조건도 그 날 칸에 「진하람 N · 고정」으로 보인다
   for (const d of doctors) {
     if (d.id === a.userId) continue
     for (const f of expandFixedRules(prefs.get(d.id)!.fixedRules, days, exceptionsOf(d.id)))
-      (others[f.date] ??= []).push({ name: d.name, text: fixedText(f), fixed: true })
+      (others[f.date] ??= []).push({
+        userId: d.id,
+        name: d.name,
+        text: fixedText(f),
+        fixed: true,
+        byAdmin: false,
+      })
   }
   const { params } = await currentDoctorRules(db)
-  const ids = doctors.map((d) => d.id)
-  const target = targetsFor(a, ids, params, plan.extras).get(a.userId) ?? {
+  const target = targetsFor(a, doctors, params, plan.extras).get(a.userId) ?? {
     D: params.dPerMonth,
     N: params.nPerMonth,
   }
   const myPrefs = prefs.get(a.userId) ?? (await prefsOf(db, [a.userId])).get(a.userId)!
+  const hol = await redHolidays(db, days[0]!, days.at(-1)!)
   return {
     year: a.year,
     month: a.month,
@@ -118,6 +147,10 @@ export async function loadDoctorRequests(
     mine,
     myFixed: expandFixedRules(myPrefs.fixedRules, days),
     others,
+    actorId: a.actor.id,
+    holidays: Object.fromEntries(hol.map((h) => [h.date, h.name])),
+    colors: assignDoctorColors(await listDoctors(db, { includeInactive: true })),
+    canWithdraw: canDoctorWithdraw(plan, a.actor),
     prefs: myPrefs,
     target,
     perMonth: params.dPerMonth,
@@ -151,6 +184,23 @@ export async function saveDoctorRequests(
   const month = new Set(monthDates(input.year, input.month))
   if (input.items.some((i) => !isIsoDate(i.date) || !month.has(i.date)))
     return deny('그 달의 날짜가 아닙니다.')
+  // 3-11 4: 관리자가 넣어 준 날은 그 의사가 바꿀 수 없다
+  if (actor.role !== 'admin' && input.items.length) {
+    const locked = await db
+      .select({ date: doctorRequests.date })
+      .from(doctorRequests)
+      .where(
+        and(
+          eq(doctorRequests.userId, input.userId),
+          eq(doctorRequests.byAdmin, true),
+          inArray(
+            doctorRequests.date,
+            input.items.map((i) => i.date),
+          ),
+        ),
+      )
+    if (locked.length) return deny('관리자가 넣은 신청입니다. 바꾸려면 관리자에게 요청해 주세요.')
+  }
   const prefs = (await prefsOf(db, [input.userId])).get(input.userId)!
   const fixed = expandFixedRules(prefs.fixedRules, [...month])
   const exceptions = new Set(input.exceptions)
@@ -191,6 +241,33 @@ export async function saveDoctorRequests(
       )
   })
   return { ok: true, saved: input.items.length }
+}
+
+// 3-11 12: 신청 철회 — 그 날 신청을 지운다. 의사는 본인 신청(관리자가 넣은 것 제외)만, 생성 전(REQUESTING)까지.
+// 관리자는 확정 전까지 누구의 신청이든 철회할 수 있다
+export async function withdrawDoctorRequest(
+  db: Db,
+  actor: DoctorActor,
+  input: Ym & { userId: string; date: IsoDate },
+): Promise<{ ok: true } | Deny> {
+  if (actor.role !== 'admin' && actor.id !== input.userId)
+    return deny('다른 의사의 신청은 철회할 수 없습니다.')
+  if (!isIsoDate(input.date) || !monthDates(input.year, input.month).includes(input.date))
+    return deny('그 달의 날짜가 아닙니다.')
+  const plan = await ensureDoctorPlan(db, input)
+  if (!canDoctorWithdraw(plan, actor))
+    return deny(
+      plan.status === 'CONFIRMED'
+        ? '확정된 달은 신청을 철회할 수 없습니다.'
+        : '근무표를 만들기 시작해 철회할 수 없습니다. 관리자에게 요청해 주세요.',
+    )
+  const where = and(eq(doctorRequests.userId, input.userId), eq(doctorRequests.date, input.date))
+  const [row] = await db.select().from(doctorRequests).where(where)
+  if (!row) return deny('철회할 신청이 없습니다.')
+  if (lockedForActor(row, actor))
+    return deny('관리자가 넣은 신청입니다. 철회하려면 관리자에게 요청해 주세요.')
+  await db.delete(doctorRequests).where(where)
+  return { ok: true }
 }
 
 export async function saveDoctorPrefs(

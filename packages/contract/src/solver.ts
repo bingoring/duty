@@ -36,6 +36,7 @@ export const SEVERITY_KEYS = [
   // 3-10 7: 누적 OFF 최소·최대는 필수/권고를 따로 정한다
   'OFF_CARRY_MIN',
   'OFF_CARRY_MAX',
+  'REQUEST',
 ] as const
 
 export const SolverCell = z.object({
@@ -216,6 +217,7 @@ export const CAUSE_GROUPS = [
   'STAFF_MAX',
   'OFF_CARRY_MIN',
   'OFF_CARRY_MAX',
+  'REQUEST',
 ] as const
 
 export const SolverCause = z.object({

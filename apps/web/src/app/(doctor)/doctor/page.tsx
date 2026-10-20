@@ -1,6 +1,7 @@
 import { DoctorScheduleSection, GroupTabs } from '@/components/doctor/DoctorScheduleSection'
 import { ScheduleGrid } from '@/components/schedule/ScheduleGrid'
 import { ScheduleHeader } from '@/components/schedule/ScheduleHeader'
+import { ShiftTimesLegend } from '@/components/schedule/ShiftTimesLegend'
 import { requireDoctor } from '@/server/auth/guards'
 import { requestToday } from '@/server/clock'
 import { getDb } from '@/server/db/client'
@@ -23,7 +24,7 @@ export default async function DoctorSchedulePage({ searchParams }: { searchParam
     <GroupTabs
       active={sp.view === 'nurse' ? 'nurse' : 'doctor'}
       nurseHref={`/doctor?view=nurse&ym=${ym}`}
-      doctorHref={`/doctor?ym=${ym}`}
+      doctorHref={`/doctor?ym=${ym}${typeof sp.hl === 'string' ? `&hl=${encodeURIComponent(sp.hl)}` : ''}`}
     />
   )
   if (sp.view === 'nurse') {
@@ -34,6 +35,7 @@ export default async function DoctorSchedulePage({ searchParams }: { searchParam
         <h1 className="print-only text-sm font-bold">{view.title}</h1>
         <ScheduleHeader view={view} hrefOf={(m) => `/doctor?view=nurse&ym=${m}`} tabs={tabs} />
         <ScheduleGrid view={view} />
+        <ShiftTimesLegend />
       </div>
     )
   }

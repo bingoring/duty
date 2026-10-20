@@ -1,6 +1,7 @@
 'use client'
 
 // 3-7a S-D3 의사 관리 — 의사 추가(임시 비밀번호), 「사번으로 변경」, 역할·임시 비밀번호·제거
+// 3-11 8: 재직 기간(입사일·퇴사 예정일) — 밖의 날에는 배정하지 않고 그 달 개수는 재직 날짜 비율
 import { useState, useTransition } from 'react'
 import { Dialog, Field, btnPrimary, btnSecondary, inputCls } from '@/components/admin/ui'
 import {
@@ -8,6 +9,7 @@ import {
   createDoctorAction,
   reissueDoctorPasswordAction,
   removeDoctorAction,
+  setDoctorEmploymentAction,
   setDoctorRoleAction,
 } from '@/server/doctor/actions'
 
@@ -19,15 +21,23 @@ export type StaffRow = {
   role: string
   allDay: string
   fixed: string[]
+  hireDate: string | null
+  plannedEndDate: string | null
 }
+
+type Employment = { hireDate: string | null; plannedEndDate: string | null }
 
 type Res = { ok: true; tempPassword?: string } | { ok: false; message: string }
 
-const COLS = '1.3fr .9fr .7fr .9fr 1.3fr 1.2fr'
+const COLS = '1.3fr .9fr .7fr 1.1fr .9fr 1.3fr 1.3fr'
+const periodLabel = (r: Employment) =>
+  r.hireDate || r.plannedEndDate ? `${r.hireDate ?? ''} ~ ${r.plannedEndDate ?? ''}` : '—'
 
 export function DoctorStaffScreen({ rows, me }: { rows: StaffRow[]; me: string }) {
   const [pending, start] = useTransition()
-  const [dialog, setDialog] = useState<null | { kind: 'add' } | { kind: 'id'; row: StaffRow }>(null)
+  const [dialog, setDialog] = useState<
+    null | { kind: 'add' } | { kind: 'id'; row: StaffRow } | { kind: 'period'; row: StaffRow }
+  >(null)
   const [temp, setTemp] = useState<{ name: string; password: string } | null>(null)
   const [error, setError] = useState<string | null>(null)
 
@@ -79,6 +89,7 @@ export function DoctorStaffScreen({ rows, me }: { rows: StaffRow[]; me: string }
           <span role="columnheader">로그인 ID</span>
           <span role="columnheader">성명</span>
           <span role="columnheader">역할</span>
+          <span role="columnheader">재직 기간</span>
           <span role="columnheader">올데이 선호</span>
           <span role="columnheader">고정 조건</span>
           <span role="columnheader" />
@@ -108,6 +119,16 @@ export function DoctorStaffScreen({ rows, me }: { rows: StaffRow[]; me: string }
             </span>
             <span role="cell" className={r.role === 'admin' ? 'font-semibold text-admin' : 'text-ink-2'}>
               {r.role === 'admin' ? '관리자' : '의사'}
+            </span>
+            <span role="cell" className="flex flex-col text-xs">
+              <span className={r.hireDate || r.plannedEndDate ? '' : 'text-ink-4'}>{periodLabel(r)}</span>
+              <button
+                type="button"
+                className="w-fit cursor-pointer font-semibold text-primary"
+                onClick={() => setDialog({ kind: 'period', row: r })}
+              >
+                재직 기간 변경
+              </button>
             </span>
             <span role="cell">{r.allDay}</span>
             <span role="cell" className="flex flex-wrap gap-1">
@@ -178,6 +199,20 @@ export function DoctorStaffScreen({ rows, me }: { rows: StaffRow[]; me: string }
           error={error}
         />
       )}
+      {dialog?.kind === 'period' && (
+        <EmploymentDialog
+          row={dialog.row}
+          pending={pending}
+          error={error}
+          onClose={() => setDialog(null)}
+          onSubmit={(v) =>
+            act(
+              () => setDoctorEmploymentAction(dialog.row.id, v),
+              () => setDialog(null),
+            )
+          }
+        />
+      )}
       {dialog?.kind === 'id' && (
         <LoginIdDialog
           row={dialog.row}
@@ -205,11 +240,12 @@ function AddDialog({
   pending: boolean
   error: string | null
   onClose: () => void
-  onSubmit: (v: { loginId: string; name: string; admin: boolean }) => void
+  onSubmit: (v: { loginId: string; name: string; admin: boolean } & Employment) => void
 }) {
   const [loginId, setLoginId] = useState('')
   const [name, setName] = useState('')
   const [admin, setAdmin] = useState(false)
+  const [period, setPeriod] = useState<Employment>({ hireDate: null, plannedEndDate: null })
   return (
     <Dialog title="의사 추가" onClose={onClose}>
       <Field label="로그인 ID (생년월일 6자리 또는 사번)" required>
@@ -226,6 +262,7 @@ function AddDialog({
       <label className="flex items-center gap-2">
         <input type="checkbox" checked={admin} onChange={(e) => setAdmin(e.target.checked)} /> 관리자
       </label>
+      <PeriodFields value={period} onChange={setPeriod} />
       <p className="text-xs text-ink-2">임시 비밀번호가 한 번만 표시됩니다. 첫 로그인 때 바꾸게 됩니다.</p>
       {error && <p className="text-danger">{error}</p>}
       <div className="flex justify-end gap-2">
@@ -236,7 +273,7 @@ function AddDialog({
           type="button"
           className={btnPrimary}
           disabled={pending || !loginId.trim() || !name.trim()}
-          onClick={() => onSubmit({ loginId: loginId.trim(), name: name.trim(), admin })}
+          onClick={() => onSubmit({ loginId: loginId.trim(), name: name.trim(), admin, ...period })}
         >
           추가
         </button>
@@ -280,6 +317,64 @@ function LoginIdDialog({
           onClick={() => onSubmit(id.trim())}
         >
           변경
+        </button>
+      </div>
+    </Dialog>
+  )
+}
+
+// 3-11 8: 입사일·퇴사 예정일 (비우면 제한 없음)
+function PeriodFields({ value, onChange }: { value: Employment; onChange: (v: Employment) => void }) {
+  return (
+    <div className="grid grid-cols-2 gap-3">
+      <Field label="입사일">
+        <input
+          type="date"
+          className={inputCls}
+          value={value.hireDate ?? ''}
+          onChange={(e) => onChange({ ...value, hireDate: e.target.value || null })}
+        />
+      </Field>
+      <Field label="퇴사 예정일">
+        <input
+          type="date"
+          className={inputCls}
+          value={value.plannedEndDate ?? ''}
+          onChange={(e) => onChange({ ...value, plannedEndDate: e.target.value || null })}
+        />
+      </Field>
+    </div>
+  )
+}
+
+function EmploymentDialog({
+  row,
+  pending,
+  error,
+  onClose,
+  onSubmit,
+}: {
+  row: StaffRow
+  pending: boolean
+  error: string | null
+  onClose: () => void
+  onSubmit: (v: Employment) => void
+}) {
+  const [v, setV] = useState<Employment>({ hireDate: row.hireDate, plannedEndDate: row.plannedEndDate })
+  return (
+    <Dialog title={`${row.name} · 재직 기간`} onClose={onClose}>
+      <p className="text-ink-2">
+        입사일 전·퇴사 예정일 뒤에는 근무를 넣지 않습니다. 그 달 일부만 재직하면 D·N 개수는 재직 날짜 비율로
+        줄고, 남는 만큼은 ±1 대상이 채웁니다.
+      </p>
+      <PeriodFields value={v} onChange={setV} />
+      {error && <p className="text-danger">{error}</p>}
+      <div className="flex justify-end gap-2">
+        <button type="button" className={btnSecondary} onClick={onClose}>
+          취소
+        </button>
+        <button type="button" className={btnPrimary} disabled={pending} onClick={() => onSubmit(v)}>
+          저장
         </button>
       </div>
     </Dialog>

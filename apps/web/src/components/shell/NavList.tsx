@@ -1,16 +1,29 @@
 'use client'
 
 import Link from 'next/link'
-import { usePathname } from 'next/navigation'
+import { usePathname, useSearchParams } from 'next/navigation'
 import { NAV_OF, isActive, type NavItemDef } from './nav-items'
 
 type Badge = { count: number; label: string }
 
-function NavItem({ item, pathname, badge }: { item: NavItemDef; pathname: string; badge?: Badge }) {
+// 3-11 1: 의사 달력 화면 사이에서는 강조(hl)를 이어 준다
+const HL_PAGES = new Set(['/doctor', '/doctor/requests', '/doctor/adjust', '/doctor/admin/generate'])
+
+function NavItem({
+  item,
+  pathname,
+  badge,
+  hl,
+}: {
+  item: NavItemDef
+  pathname: string
+  badge?: Badge
+  hl?: string | null
+}) {
   const active = isActive(pathname, item.href)
   return (
     <Link
-      href={item.href}
+      href={hl && HL_PAGES.has(item.href) ? `${item.href}?hl=${encodeURIComponent(hl)}` : item.href}
       aria-current={active ? 'page' : undefined}
       className={`flex items-center justify-between rounded-lg px-2.5 py-[9px] text-[13.5px] ${
         active ? 'bg-primary-soft font-bold text-primary' : 'text-nav-ink hover:bg-panel'
@@ -41,15 +54,24 @@ export function NavList({
   badges?: Record<string, Badge>
 }) {
   const pathname = usePathname()
+  const hl = useSearchParams().get('hl')
   const { main: MAIN_NAV, admin: ADMIN_NAV, settings: SETTINGS_NAV } = NAV_OF[group]
   return (
     <>
       {MAIN_NAV.map((item) => (
-        <NavItem key={item.href} item={item} pathname={pathname} badge={badges[item.href]} />
+        <NavItem
+          key={item.href}
+          item={item}
+          pathname={pathname}
+          badge={badges[item.href]}
+          hl={group === 'doctor' ? hl : null}
+        />
       ))}
       <div className="px-2.5 pt-3.5 pb-1 text-[11px] font-semibold tracking-[.06em] text-ink-3">관리자</div>
       {isAdmin ? (
-        ADMIN_NAV.map((item) => <NavItem key={item.href} item={item} pathname={pathname} />)
+        ADMIN_NAV.map((item) => (
+          <NavItem key={item.href} item={item} pathname={pathname} hl={group === 'doctor' ? hl : null} />
+        ))
       ) : (
         <div className="px-2.5 py-1.5 text-xs text-ink-4">권한 없음</div>
       )}
