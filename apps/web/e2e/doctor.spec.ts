@@ -1,5 +1,5 @@
 import { expect, test, type Page } from '@playwright/test'
-import { DEV_PASSWORD, login, loginAndWait } from './fixtures'
+import { DEV_PASSWORD, login, loginAndWait, waitHydrated } from './fixtures'
 
 // 3-7 의사 근무표 E2E (오늘 10/13 고정, 시드 = 가명 의사 5명 + 10월 확정본)
 const DOC = { admin: '800101', go: '810202', no: '820303', baek: '830404', jin: '840505' }
@@ -103,6 +103,7 @@ test('의사 신청: 제출한 신청을 칸의 「철회」로 지운다', asyn
   await doctorLogin(page, DOC.go)
   // 11월은 앞 테스트에서 확정되므로 12월
   await page.goto('/doctor/requests?ym=2026-12')
+  await waitHydrated(page)
   await page.getByRole('button', { name: '3일', exact: true }).click()
   await page.getByRole('button', { name: 'O', exact: true }).click()
   await page.getByRole('button', { name: '신청 제출' }).click()
@@ -117,6 +118,7 @@ test('의사 신청: 제출한 신청을 칸의 「철회」로 지운다', asyn
 test('의사 강조: 조정 화면에서 고른 의사가 근무표로 이어진다', async ({ page }) => {
   await doctorLogin(page, DOC.no)
   await page.goto('/doctor/adjust')
+  await waitHydrated(page)
   await page.getByRole('link', { name: '고은서', exact: true }).click()
   await expect(page).toHaveURL(/hl=/)
   await expect(page.getByRole('link', { name: '고은서', exact: true })).toHaveAttribute(
@@ -135,6 +137,7 @@ test('의사 강조: 조정 화면에서 고른 의사가 근무표로 이어진
 test('의사 규칙 설정: 금지 패턴 N-O-D를 권고로 추가하면 규칙 안내에 보인다', async ({ page }) => {
   await doctorLogin(page, DOC.admin)
   await page.goto('/doctor/admin/rules')
+  await waitHydrated(page)
   const guide = page.getByRole('region', { name: '규칙 안내' })
   await expect(guide.getByText('매일 Day 1명 · Night 1명')).toBeVisible()
   await expect(guide.getByRole('radiogroup', { name: '금지 패턴 N-D 필수/권고' })).toBeVisible()
