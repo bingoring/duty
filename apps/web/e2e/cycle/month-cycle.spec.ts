@@ -4,7 +4,7 @@ import { and, eq, ne } from 'drizzle-orm'
 import { adjustCheckInput } from '../../src/server/adjust/service'
 import { createDb } from '../../src/server/db/client'
 import { monthPlans, users } from '../../src/server/db/schema'
-import { ADMIN, loginAndWait, setToday, waitHydrated } from '../fixtures'
+import { ADMIN, E2E_TEMP_USER, loginAndWait, setToday, waitHydrated } from '../fixtures'
 import { findSafeEdit, findSwapPair, lab, mdOf } from '../search'
 
 // Build Spec 2-9 §1.1 — 11월 한 달 흐름. 쿠키로 "오늘"을 옮기며 화면 조작으로만 진행한다(DB는 편집 후보를 찾을 때 읽기만).
@@ -103,7 +103,8 @@ test('11월 한 달: 신청·휴가 → 생성·확정 → 교환·관리자 조
   const people = await db
     .select({ id: users.id, no: users.employeeNo, name: users.name })
     .from(users)
-    .where(ne(users.employeeNo, ADMIN.employeeNo))
+    // 첫 로그인 상태(임시 비밀번호·동의 전)로 만든 사람은 로그인할 수 없으니 교환 후보에서 뺀다 — 뽑히면 로그인에서 멈춘다
+    .where(and(ne(users.employeeNo, ADMIN.employeeNo), ne(users.employeeNo, E2E_TEMP_USER.employeeNo)))
   const byId = new Map(people.map((p) => [p.id, p]))
   const pair = findSwapPair(await adjustCheckInput(db, nov!), [...byId.keys()], '2026-11-01')
   const [S, T] = [byId.get(pair.a)!, byId.get(pair.b)!]
