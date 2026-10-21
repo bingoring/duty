@@ -10,7 +10,8 @@ export default async function DoctorRulesSettingsPage() {
   return (
     <div className="flex flex-col gap-4 px-7 py-6">
       <h1 className="text-[22px] font-bold tracking-[-0.02em]">규칙 설정 · 의사</h1>
-      <DoctorRulesForm key={version} params={params} version={version} />
+      {/* key를 버전으로 두면 저장 뒤 새로고침에 폼이 다시 만들어져 「저장했습니다」가 바로 사라진다(3-11) */}
+      <DoctorRulesForm params={params} version={version} />
     </div>
   )
 }
