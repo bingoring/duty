@@ -77,6 +77,7 @@ test('12월: 생성 → 결과·요약·격자 → 리롤 → 이전 안 → 입
   const me = await browser.newPage()
   await loginAndWait(me, NURSE.employeeNo)
   await me.goto('/?ym=2026-12')
+  await waitHydrated(me)
   const row = me.getByRole('grid').getByRole('row', { name: NURSE.name })
   await expect(row.locator('[data-date="2026-12-24"]')).toHaveAttribute('data-tip', /off[\s\S]*신청 반영/)
   await me.close()

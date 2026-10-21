@@ -8,6 +8,7 @@ export const E2E_TEMP_USER = { employeeNo: '00111', name: '문가을', tempPassw
 
 export async function login(page: Page, employeeNo: string, password = DEV_PASSWORD) {
   await page.goto('/login')
+  await waitHydrated(page)
   await page.getByLabel('사번').fill(employeeNo)
   await page.getByLabel('비밀번호').fill(password)
   await page.getByRole('button', { name: '로그인' }).click()
@@ -19,7 +20,8 @@ export async function loginAndWait(page: Page, employeeNo: string, password = DE
   await page.waitForURL('/')
 }
 
-// 대화형 폼이 하이드레이션을 마칠 때까지 기다린다(그 전에 입력하면 느린 CI에서 값이 사라진다)
+// 화면이 하이드레이션을 마칠 때까지 기다린다(그 전에 입력하면 느린 CI에서 값이 사라진다).
+// 3-11: 루트 레이아웃이 모든 화면의 body에 표시를 단다 — goto·reload 뒤에는 늘 부른다
 export async function waitHydrated(page: Page) {
   await page.locator('[data-hydrated]').first().waitFor()
 }

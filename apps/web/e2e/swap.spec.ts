@@ -68,6 +68,7 @@ test('교환 요청: 요청 보내기 → 상대 근무표 띠·메뉴 배지 �
     await expect(other.getByRole('status')).toContainText('모두 수락해 근무표에 반영했습니다')
 
     await other.goto('/?ym=2026-10')
+    await waitHydrated(other)
     const row = other.getByRole('grid').getByRole('row', { name: B.name })
     await expect(row.locator(`[data-date="${pair.date}"]`)).toHaveAttribute(
       'data-tip',
@@ -210,6 +211,7 @@ test('수간호사 교환: 간호사 D → OFF + 수간호사 S → D, 수간호
     await card.getByRole('button', { name: '수락' }).click()
     await expect(admin.getByRole('status')).toContainText('모두 수락해 근무표에 반영했습니다')
     await admin.goto('/?ym=2026-10')
+    await waitHydrated(admin)
     const row = admin.getByRole('grid').getByRole('row', { name: head.name })
     await expect(row.locator(`[data-date="${found.date}"]`)).toHaveAttribute(
       'data-tip',

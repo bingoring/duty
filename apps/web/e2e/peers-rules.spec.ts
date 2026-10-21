@@ -31,6 +31,7 @@ test('S6 동료 현황: 교대 근무자 10명, 근무표 순서, 내 행 "나",
 test('S7 규칙 안내: 목차 7개, 근무 카드, 규칙 값·태그', async ({ page }) => {
   await loginAndWait(page, NURSE.employeeNo)
   await page.goto('/rules')
+  await waitHydrated(page)
   const toc = page.getByRole('navigation', { name: '규칙 목차' })
   await expect(toc.getByRole('link')).toHaveCount(7)
   await expect(page.getByText('22:30 – 익일 07:30')).toBeVisible()
@@ -53,7 +54,9 @@ test('S7 규칙 안내: 목차 7개, 근무 카드, 규칙 값·태그', async (
   })
   await page.setViewportSize({ width: 1280, height: 760 })
   await page.goto('/rules')
+  await waitHydrated(page)
   await page.screenshot({ path: 'test-results/rules-1280x760.png' })
   await page.goto('/peers')
+  await waitHydrated(page)
   await page.screenshot({ path: 'test-results/peers-1280x720.png' })
 })

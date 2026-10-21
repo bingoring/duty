@@ -23,6 +23,7 @@ test('주말 통 OFF를 본인이 끄면 관리자 규칙 설정에 이름이 �
   await toggle.check()
   await expect(me.getByRole('status')).toContainText('받습니다')
   await admin.reload()
+  await waitHydrated(admin)
   await expect(admin.getByLabel('주말 통 OFF를 끈 사람')).toHaveText('본인이 끈 사람 없음')
   await Promise.all([me.close(), admin.close()])
 })

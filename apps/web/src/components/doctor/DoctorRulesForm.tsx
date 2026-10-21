@@ -13,7 +13,7 @@ import {
   type DoctorSeverity,
 } from '@duty/domain'
 import { useState, useTransition } from 'react'
-import { Field, btnPrimary, inputCls } from '@/components/admin/ui'
+import { Field, btnPrimary, inputCls, useHydrated } from '@/components/admin/ui'
 import { saveDoctorRulesAction } from '@/server/doctor/actions'
 import { doctorRuleItems, patternText, ruleTagCls, type DoctorRuleItem } from './rule-items'
 
@@ -69,6 +69,8 @@ export function DoctorRulesForm({ params, version }: { params: DoctorRuleParams;
   const [draft, setDraft] = useState<DoctorPatternToken[]>(['N', 'D'])
   const [pending, start] = useTransition()
   const [msg, setMsg] = useState<{ ok: boolean; text: string } | null>(null)
+  // E2E가 상호작용 전에 기다리는 표시(다른 화면과 같게)
+  const hydrated = useHydrated()
 
   const setSeverity = (it: DoctorRuleItem, s: DoctorSeverity) => {
     const t = it.toggle
@@ -84,6 +86,7 @@ export function DoctorRulesForm({ params, version }: { params: DoctorRuleParams;
 
   return (
     <form
+      data-hydrated={hydrated || undefined}
       className="grid items-start gap-5 text-[13px] lg:grid-cols-[460px_minmax(0,1fr)]"
       onSubmit={(e) => {
         e.preventDefault()

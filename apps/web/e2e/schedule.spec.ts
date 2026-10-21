@@ -1,5 +1,5 @@
 import { expect, test } from '@playwright/test'
-import { ADMIN, NURSE, loginAndWait as login } from './fixtures'
+import { ADMIN, NURSE, loginAndWait as login, waitHydrated } from './fixtures'
 
 // Build Spec 2-3 §5. 개발 시드의 종이 2026-10(가명) 확정 근무표를 쓴다
 test.describe('S3 근무표', () => {
@@ -8,6 +8,7 @@ test.describe('S3 근무표', () => {
   }) => {
     await login(page, NURSE.employeeNo)
     await page.goto('/?ym=2026-10')
+    await waitHydrated(page)
     await expect(page.getByRole('heading', { name: '2026년 10월 · 응급실 근무표' }).last()).toBeVisible()
     await expect(page.getByText('확정 · 담당 한수정')).toBeVisible()
     const rows = page.getByRole('grid').getByRole('row')
@@ -36,6 +37,7 @@ test.describe('S3 근무표', () => {
   test('월 이동과 근무표가 없는 달의 빈 상태', async ({ page }) => {
     await login(page, NURSE.employeeNo)
     await page.goto('/?ym=2026-10')
+    await waitHydrated(page)
     await page.getByRole('link', { name: '다음 달' }).click()
     await expect(page).toHaveURL('/?ym=2026-11')
     await expect(page.getByText('2026년 11월 근무표가 아직 확정되지 않았습니다.')).toBeVisible()
@@ -49,6 +51,7 @@ test.describe('S3 근무표', () => {
   test('잘못된 ym은 이번 달(고정된 오늘 2026-10-13)로 보여 준다', async ({ page }) => {
     await login(page, NURSE.employeeNo)
     await page.goto('/?ym=2026-13')
+    await waitHydrated(page)
     await expect(page.getByRole('heading', { name: '2026년 10월 · 응급실 근무표' }).last()).toBeVisible()
   })
 
@@ -62,12 +65,14 @@ test.describe('S3 근무표', () => {
     )
     await expect(page.getByLabel('내 요약').getByText('오늘 10/13 (화)')).toBeVisible()
     await page.goto('/?ym=2026-09')
+    await waitHydrated(page)
     await expect(page.locator('[data-today-head]')).toHaveCount(0)
   })
 
   test('넓은 화면에서는 격자가 폭을 채우고 칩·행이 커진다 (1280에서는 1c 수치 그대로)', async ({ page }) => {
     await login(page, NURSE.employeeNo)
     await page.goto('/?ym=2026-10')
+    await waitHydrated(page)
     const grid = page.getByRole('grid')
     const chip = grid.getByRole('row', { name: NURSE.name }).locator('[data-date="2026-10-01"] > span')
     const size = async () => ({
@@ -86,6 +91,7 @@ test.describe('S3 근무표', () => {
   test('인쇄 모드: 사이드바·카드·헤더 컨트롤을 숨기고 격자만', async ({ page }) => {
     await login(page, NURSE.employeeNo)
     await page.goto('/?ym=2026-10')
+    await waitHydrated(page)
     await page.emulateMedia({ media: 'print' })
     await expect(page.getByRole('navigation')).toBeHidden()
     await expect(page.getByLabel('내 요약')).toBeHidden()
@@ -118,6 +124,7 @@ test.describe('공통 셸 (핸드오프 v2)', () => {
   test('관리자 화면에서도 잔여 카드가 보인다', async ({ page }) => {
     await login(page, ADMIN.employeeNo)
     await page.goto('/admin/staff')
+    await waitHydrated(page)
     await expect(page.getByRole('navigation').getByLabel('내 휴가 잔여')).toBeVisible()
   })
 })

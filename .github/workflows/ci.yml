@@ -25,6 +25,17 @@ jobs:
       DATABASE_URL: postgres://duty:duty@localhost:5433/duty_test
     steps:
       - uses: actions/checkout@v7
+        with: { fetch-depth: 0 }
+      # 문서·waypoint 포인터만 바뀐 커밋은 E2E를 건너뛴다(배포도 deploy_docs_only라 앱이 바뀌지 않는다).
+      # 판단 기준은 deploy/deploy.sh의 RUNTIME과 같고, CI 설정(.github/)이 바뀌면 모두 돈다
+      - id: changes
+        run: |
+          if [ "${{ github.event_name }}" = pull_request ]; then BASE="${{ github.event.pull_request.base.sha }}"; else BASE="${{ github.event.before }}"; fi
+          RUNTIME='^(apps/|packages/|services/|deploy/(backup/|Caddyfile|deploy\.sh)|compose\.prod\.yaml|package\.json|pnpm-lock\.yaml|pnpm-workspace\.yaml|\.nvmrc|\.github/)'
+          if git cat-file -e "$BASE^{commit}" 2>/dev/null && ! git diff --name-only "$BASE" "$GITHUB_SHA" | grep -qE "$RUNTIME"; then
+            echo "docs_only=true" >> "$GITHUB_OUTPUT"
+            echo "문서만 바뀜 — E2E 건너뜀"
+          fi
       - uses: actions/setup-node@v7
         with:
           node-version-file: .nvmrc
@@ -50,7 +61,9 @@ jobs:
       - run: docker compose -f compose.prod.yaml config -q
         env: { DOMAIN: example.com, POSTGRES_PASSWORD: x, BACKUP_AGE_RECIPIENT: age1x }
       - run: pnpm --filter web exec playwright install --with-deps chromium
+        if: steps.changes.outputs.docs_only != 'true'
       - run: pnpm test:e2e
+        if: steps.changes.outputs.docs_only != 'true'
       - uses: actions/upload-artifact@v7
         if: failure()
         with:

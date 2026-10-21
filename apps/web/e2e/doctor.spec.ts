@@ -1,5 +1,5 @@
 import { expect, test, type Page } from '@playwright/test'
-import { DEV_PASSWORD, login, loginAndWait } from './fixtures'
+import { DEV_PASSWORD, login, loginAndWait, waitHydrated } from './fixtures'
 
 // 3-7 의사 근무표 E2E (오늘 10/13 고정, 시드 = 가명 의사 5명 + 10월 확정본)
 const DOC = { admin: '800101', go: '810202', no: '820303', baek: '830404', jin: '840505' }
@@ -22,8 +22,10 @@ test('의사: 주 단위 달력 · 올데이 · 집계, 「간호사」 탭은 �
   await expect(page.getByText('정하늘').first()).toBeVisible()
   // 간호사 화면에 오면 의사 홈으로
   await page.goto('/requests')
+  await waitHydrated(page)
   await page.waitForURL('/doctor')
   await page.goto('/admin/generate')
+  await waitHydrated(page)
   await page.waitForURL('/doctor')
 })
 
@@ -34,12 +36,14 @@ test('간호사: 근무표 「의사」 탭에서 의사 확정 근무표를 본
   await expect(page.getByRole('gridcell', { name: '1일 Night 노준호' })).toBeVisible()
   await expect(page.getByText('다음 근무')).toHaveCount(0)
   await page.goto('/doctor/requests')
+  await waitHydrated(page)
   await page.waitForURL('/')
 })
 
 test('의사 신청: 고정 조건과 부딪히면 묻고 그 날만 예외로 제출한다', async ({ page }) => {
   await doctorLogin(page, DOC.no)
   await page.goto('/doctor/requests?ym=2026-11')
+  await waitHydrated(page)
   await expect(page.getByText('신청 마감 10/20')).toBeVisible()
   await page.getByRole('button', { name: '1일', exact: true }).click()
   await page.getByRole('button', { name: 'D', exact: true }).click()
@@ -54,18 +58,21 @@ test('의사 관리자: 11월 생성 → 검사 결과 → 확정하면 근무�
   test.setTimeout(90_000)
   await doctorLogin(page, DOC.admin)
   await page.goto('/doctor/admin/generate?ym=2026-11')
+  await waitHydrated(page)
   await page.getByRole('button', { name: '생성', exact: true }).click()
   const result = page.getByRole('region', { name: '검사 결과' })
   await expect(result.getByText('매일 D1·N1')).toBeVisible({ timeout: 30_000 })
   await page.getByRole('button', { name: '이 안으로 확정' }).click()
   await expect(page.getByText(/확정했습니다/)).toBeVisible()
   await page.goto('/doctor?ym=2026-11')
+  await waitHydrated(page)
   await expect(page.getByText('확정 · 담당 허재민')).toBeVisible()
 })
 
 test('의사 관리: 생년월일 ID를 사번으로 변경하면 새 ID로 로그인한다', async ({ page, browser }) => {
   await doctorLogin(page, DOC.admin)
   await page.goto('/doctor/admin/staff')
+  await waitHydrated(page)
   const row = page.getByRole('row', { name: /830404/ })
   await row.getByRole('button', { name: '사번으로 변경' }).click()
   await page.getByRole('dialog').getByLabel('새 사번').fill('20269999')
@@ -80,6 +87,7 @@ test('의사 관리: 생년월일 ID를 사번으로 변경하면 새 ID로 로�
 test('의사 교환: 진하람 → 고은서에게 요청 → 배지 → 수락하면 바로 반영', async ({ page, browser }) => {
   await doctorLogin(page, DOC.jin)
   await page.goto('/doctor/adjust')
+  await waitHydrated(page)
   // 10/23(금) Day 진하람 ↔ 10/26(월) Day 고은서 — 고정 조건(토 Night 필수)과 무관한 칸
   await page.getByRole('gridcell', { name: '23일 Day 진하람' }).getByRole('button').click()
   await page.getByRole('gridcell', { name: '26일 Day 고은서' }).getByRole('button').click()
@@ -92,6 +100,7 @@ test('의사 교환: 진하람 → 고은서에게 요청 → 배지 → 수락�
   await doctorLogin(go, DOC.go)
   await expect(go.getByRole('link', { name: /근무 조정/ }).getByLabel('받은 교환 요청 1건')).toBeVisible()
   await go.goto('/doctor/adjust')
+  await waitHydrated(go)
   await go.getByRole('button', { name: '수락' }).click()
   await expect(go.getByRole('gridcell', { name: '23일 Day 고은서' })).toBeVisible()
   await expect(go.getByRole('gridcell', { name: '26일 Day 진하람' })).toBeVisible()
@@ -103,6 +112,7 @@ test('의사 신청: 제출한 신청을 칸의 「철회」로 지운다', asyn
   await doctorLogin(page, DOC.go)
   // 11월은 앞 테스트에서 확정되므로 12월
   await page.goto('/doctor/requests?ym=2026-12')
+  await waitHydrated(page)
   await page.getByRole('button', { name: '3일', exact: true }).click()
   await page.getByRole('button', { name: 'O', exact: true }).click()
   await page.getByRole('button', { name: '신청 제출' }).click()
@@ -117,6 +127,7 @@ test('의사 신청: 제출한 신청을 칸의 「철회」로 지운다', asyn
 test('의사 강조: 조정 화면에서 고른 의사가 근무표로 이어진다', async ({ page }) => {
   await doctorLogin(page, DOC.no)
   await page.goto('/doctor/adjust')
+  await waitHydrated(page)
   await page.getByRole('link', { name: '고은서', exact: true }).click()
   await expect(page).toHaveURL(/hl=/)
   await expect(page.getByRole('link', { name: '고은서', exact: true })).toHaveAttribute(
@@ -135,6 +146,7 @@ test('의사 강조: 조정 화면에서 고른 의사가 근무표로 이어진
 test('의사 규칙 설정: 금지 패턴 N-O-D를 권고로 추가하면 규칙 안내에 보인다', async ({ page }) => {
   await doctorLogin(page, DOC.admin)
   await page.goto('/doctor/admin/rules')
+  await waitHydrated(page)
   const guide = page.getByRole('region', { name: '규칙 안내' })
   await expect(guide.getByText('매일 Day 1명 · Night 1명')).toBeVisible()
   await expect(guide.getByRole('radiogroup', { name: '금지 패턴 N-D 필수/권고' })).toBeVisible()
@@ -151,6 +163,7 @@ test('의사 규칙 설정: 금지 패턴 N-O-D를 권고로 추가하면 규칙
   await page.getByRole('button', { name: '저장', exact: true }).click()
   await expect(page.getByText(/저장했습니다/)).toBeVisible()
   await page.goto('/doctor/rules')
+  await waitHydrated(page)
   const item = page.getByRole('listitem').filter({ hasText: '금지 패턴 N-O-D' })
   await expect(item.getByText('권고')).toBeVisible()
   await expect(page.getByText('의사 근무표에는 연차가 없습니다(필요하면 추가)')).toBeVisible()

@@ -3,6 +3,7 @@ import { ADMIN, E2E_TEMP_USER, NURSE, login, loginAndWait, waitHydrated } from '
 
 test('미인증 사용자는 로그인으로 이동하고, 로그인 후 원래 경로로 돌아간다', async ({ page }) => {
   await page.goto('/requests')
+  await waitHydrated(page)
   await expect(page).toHaveURL(/\/login\?next=%2Frequests/)
   await page.getByLabel('사번').fill(NURSE.employeeNo)
   await page.getByLabel('비밀번호').fill('duty-dev-1234')
@@ -37,6 +38,7 @@ test('간호사가 관리자 화면에 들어가면 403', async ({ page }) => {
   await login(page, NURSE.employeeNo)
   await expect(page).toHaveURL('/')
   const res = await page.goto('/admin/staff')
+  await waitHydrated(page)
   expect(res?.status()).toBe(403)
   await expect(page.getByRole('heading', { name: '권한이 없습니다' })).toBeVisible()
 })
@@ -49,6 +51,7 @@ test('틀린 비밀번호는 같은 오류 문구를 보여 준다', async ({ pa
 
 test('"비밀번호를 잊으셨나요?"는 관리자 재발급 안내를 보여 준다', async ({ page }) => {
   await page.goto('/login')
+  await waitHydrated(page)
   await page.getByRole('button', { name: '비밀번호를 잊으셨나요?' }).click()
   await expect(page.getByRole('status')).toHaveText('관리자(수간호사)에게 비밀번호 재발급을 요청해 주세요.')
 })
@@ -61,12 +64,14 @@ test('첫 로그인: 동의(거부하면 로그아웃) → 비밀번호 → 초�
   await login(page, E2E_TEMP_USER.employeeNo, E2E_TEMP_USER.tempPassword)
   await expect(page).toHaveURL('/consent')
   await page.goto('/requests')
+  await waitHydrated(page)
   await expect(page).toHaveURL('/consent')
   // R-CONSENT-3: 거부 → 로그아웃
   await page.getByRole('button', { name: '동의하지 않음' }).click()
   await expect(page).toHaveURL('/login?consent=declined')
   await expect(page.getByText('동의하지 않으면 근무표를 사용할 수 없습니다.')).toBeVisible()
   await page.goto('/')
+  await waitHydrated(page)
   await expect(page).toHaveURL(/\/login/)
 
   // R-CONSENT-2: 두 항목 모두 동의해야 계속
@@ -92,6 +97,7 @@ test('첫 로그인: 동의(거부하면 로그아웃) → 비밀번호 → 초�
   // R-ONB-4: 미리 채운 값 확인·수정
   await expect(page).toHaveURL('/onboarding')
   await page.goto('/requests')
+  await waitHydrated(page)
   await expect(page).toHaveURL('/onboarding')
   await waitHydrated(page)
   await expect(page.getByRole('heading', { name: '내 정보를 확인해 주세요' })).toBeVisible()
@@ -120,6 +126,7 @@ test('첫 로그인: 동의(거부하면 로그아웃) → 비밀번호 → 초�
 
   // 내 설정에서 스스로 바꾸기 → 새 비밀번호로 다시 로그인 (2-9 커버리지 보강)
   await page.goto('/settings')
+  await waitHydrated(page)
   await page.getByLabel('현재 비밀번호').fill('my-new-pass-1')
   await page.getByLabel('새 비밀번호', { exact: true }).fill('my-new-pass-2')
   await page.getByLabel('새 비밀번호 확인').fill('my-new-pass-2')
@@ -134,6 +141,7 @@ test('첫 로그인: 동의(거부하면 로그아웃) → 비밀번호 → 초�
 
 test('개인정보 처리 안내는 로그인 없이 본다 (R-CONSENT-6)', async ({ page }) => {
   await page.goto('/login')
+  await waitHydrated(page)
   await page.getByRole('link', { name: '개인정보 처리 안내' }).click()
   await expect(page).toHaveURL('/privacy')
   await expect(page.getByRole('heading', { name: '민감정보 처리 동의 (필수, 별도)' })).toBeVisible()
@@ -145,11 +153,13 @@ test('로그아웃하면 다시 로그인해야 한다', async ({ page }) => {
   await page.getByRole('button', { name: '로그아웃' }).click()
   await expect(page).toHaveURL('/login')
   await page.goto('/')
+  await waitHydrated(page)
   await expect(page).toHaveURL(/\/login/)
 })
 
 test('로그인 화면 스크린샷 (1d와 수동 비교용)', async ({ page }) => {
   await page.goto('/login')
+  await waitHydrated(page)
   await page.screenshot({ path: 'test-results/login-1280x720.png', caret: 'initial' })
   await login(page, ADMIN.employeeNo)
   await expect(page).toHaveURL('/')
