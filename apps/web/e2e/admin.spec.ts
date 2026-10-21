@@ -83,6 +83,7 @@ test.describe('S11 규칙 설정', () => {
 
     // S7 규칙 안내에 바로 반영된다 (2-10 R-GUIDE-1)
     await page.goto('/rules')
+    await waitHydrated(page)
     await expect(
       page.getByRole('region', { name: '휴식 · 금지 패턴' }).getByText(/최대 16일까지 배정합니다/),
     ).toBeVisible()
@@ -131,6 +132,7 @@ test.describe('S11 규칙 설정', () => {
     await expect(section.getByRole('row', { name: '2026-10-14 병원 휴무 테스트' })).toBeVisible()
 
     await page.goto('/?ym=2026-10')
+    await waitHydrated(page)
     const head = page.getByRole('grid').locator('div', { hasText: /^14$/ })
     await expect(head.first()).toHaveClass(/bg-weekend-head/)
 
@@ -145,6 +147,7 @@ test.describe('S11 규칙 설정', () => {
   test('간호사는 관리자 화면에서 403', async ({ page }) => {
     await loginAndWait(page, NURSE.employeeNo)
     const res = await page.goto('/admin/rules')
+    await waitHydrated(page)
     expect(res?.status()).toBe(403)
   })
 })
@@ -186,8 +189,10 @@ test('간호사 관리에서 ⠿ 손잡이로 순서를 바꾸면 근무표·동
   await page.getByRole('button', { name: `${NURSE.name} 순서 옮기기 (↑↓)` }).press('ArrowUp')
   await expect(page.getByRole('status')).toContainText('순서를 저장했습니다')
   await page.goto('/?ym=2026-10')
+  await waitHydrated(page)
   await expect(page.getByRole('grid').getByRole('row').nth(1)).toHaveAttribute('aria-label', NURSE.name)
   await page.goto('/peers?ym=2026-10')
+  await waitHydrated(page)
   const peers = page
     .getByRole('table', { name: '동료 현황' })
     .getByRole('row')
@@ -202,5 +207,6 @@ test('간호사 관리에서 ⠿ 손잡이로 순서를 바꾸면 근무표·동
     .dragTo(page.getByRole('row', { name: NURSE.name }))
   await expect(page.getByRole('status')).toContainText('순서를 저장했습니다')
   await page.goto('/?ym=2026-10')
+  await waitHydrated(page)
   await expect(page.getByRole('grid').getByRole('row').nth(1)).toHaveAttribute('aria-label', '박서연')
 })

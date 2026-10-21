@@ -123,6 +123,7 @@ test.describe('S4-A 확정된 달 휴가', () => {
     await expect(admin.getByRole('status')).toContainText('1건을 저장했습니다')
 
     await admin.goto('/?ym=2026-10')
+    await waitHydrated(admin)
     const row = admin.getByRole('grid').getByRole('row', { name: CHAE.name })
     await expect(row.locator('[data-date="2026-10-02"]')).toHaveAttribute('data-tip', /10\/2 \(금\) · 병가/)
 

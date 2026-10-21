@@ -128,6 +128,7 @@ test('11월 한 달: 신청·휴가 → 생성·확정 → 교환·관리자 조
     await card.getByRole('button', { name: '수락' }).click()
     await expect(t.getByRole('status')).toContainText('모두 수락해 근무표에 반영했습니다')
     await t.goto('/?ym=2026-11')
+    await waitHydrated(t)
     await expect(
       t.getByRole('grid').getByRole('row', { name: T.name }).locator(`[data-date="${pair.date}"]`),
     ).toHaveAttribute('data-tip', new RegExp(`${lab(pair.ca)}[\\s\\S]*교환 반영`))
@@ -200,6 +201,7 @@ test('11월 한 달: 신청·휴가 → 생성·확정 → 교환·관리자 조
     const accOff = (await nov.locator('[data-col="acc"]').textContent())!.trim()
     const nLeft = (await nov.locator('[data-col="n-left"]').textContent())!.trim()
     await me.goto('/?ym=2026-12')
+    await waitHydrated(me)
     const dec = me.getByRole('grid').getByRole('row', { name: A.name })
     await expect(dec.locator('[data-col="carry-off"]')).toHaveText(
       accOff.replace(/^\+/, '').replace('−', '-'),

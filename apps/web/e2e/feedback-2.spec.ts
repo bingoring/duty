@@ -106,6 +106,7 @@ test('KTAS 수료일을 넣으면 유효기간이 보이고 만료 6개월 이�
   await expect(pop).toContainText('2026-12-31에 만료됩니다')
   await pop.getByRole('button', { name: '확인' }).click()
   await me.reload()
+  await waitHydrated(me)
   await expect(me.getByRole('dialog', { name: 'KTAS 갱신 안내' })).toHaveCount(0)
   await me.close()
 
