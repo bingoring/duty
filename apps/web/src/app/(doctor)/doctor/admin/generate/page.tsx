@@ -66,8 +66,9 @@ export default async function DoctorGeneratePage({
           신청 마감 {formatMD(v.plan.requestDeadline)} · 조정 ~{formatMD(v.plan.negotiationEnd)}
         </span>
       </div>
+      {/* status는 key에 넣지 않는다: 확정 뒤 refresh()로 다시 마운트되면 「확정했습니다」 안내가 사라진다 */}
       <DoctorGenerateScreen
-        key={`${v.plan.id}:${v.picked?.id ?? ''}:${v.plan.status}`}
+        key={`${v.plan.id}:${v.picked?.id ?? ''}`}
         ym={ym}
         today={today}
         plan={{
