@@ -108,3 +108,26 @@ test('의사 신청·교환: 휴대폰에서 한 열, 날짜를 누르면 신청
   await waitHydrated(page)
   await noHorizontalOverflow(page)
 })
+
+test('의사 관리자: 휴대폰에서는 대신 신청 없이 자기 신청만(다른 의사는 보기 전용)', async ({ page }) => {
+  const { db, close } = createDb(url)
+  const [go] = await db.select({ id: users.id }).from(users).where(eq(users.employeeNo, '810202'))
+  await close()
+  await login(page, '800101', DEV_PASSWORD)
+  await page.waitForURL('/doctor')
+  await page.goto('/doctor/requests')
+  await waitHydrated(page)
+  await expect(page.getByLabel('의사 선택')).toHaveCount(0)
+  await page.getByRole('button', { name: '20일', exact: true }).click()
+  const own = page.getByRole('dialog', { name: /신청$/ })
+  await expect(own.getByRole('button', { name: 'D', exact: true })).toBeEnabled()
+  await own.getByRole('button', { name: '완료' }).click()
+  // 주소로 다른 의사를 열어도 휴대폰에서는 고칠 수 없다
+  await page.goto(`/doctor/requests?user=${go!.id}`)
+  await waitHydrated(page)
+  await expect(page.getByText('대신 신청은 PC에서')).toBeVisible()
+  await page.getByRole('button', { name: '20일', exact: true }).click()
+  await expect(
+    page.getByRole('dialog', { name: /신청$/ }).getByRole('button', { name: 'D', exact: true }),
+  ).toBeDisabled()
+})

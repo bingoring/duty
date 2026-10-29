@@ -99,6 +99,9 @@ export function DoctorRequestsScreen({
   }
   const [sel, setSel] = useState(view.days[0]!)
   const [sheet, setSheet] = useState(false)
+  // 3-12: 대신 신청은 PC에서 — 휴대폰에서 관리자가 다른 의사를 열면 보기 전용
+  const proxyReadOnly = mobile && admin && view.userId !== view.actorId
+  const editable = view.editable && !proxyReadOnly
   const closeSheet = useCallback(() => setSheet(false), [])
   const [msg, setMsg] = useState<{ ok: boolean; text: string } | null>(null)
   const [conflicts, setConflicts] = useState<Conflict[] | null>(null)
@@ -187,7 +190,7 @@ export function DoctorRequestsScreen({
               key={o}
               type="button"
               aria-pressed={on}
-              disabled={!view.editable || lockedOf(sel)}
+              disabled={!editable || lockedOf(sel)}
               onClick={() => toggle(o)}
               className={`h-9 cursor-pointer rounded-lg text-[13px] font-bold text-ink disabled:cursor-default ${OPT_BG[o]} ${
                 on ? 'border-2 border-ink' : 'border border-line opacity-50'
@@ -217,7 +220,7 @@ export function DoctorRequestsScreen({
         <textarea
           maxLength={200}
           rows={2}
-          disabled={!view.editable || lockedOf(sel)}
+          disabled={!editable || lockedOf(sel)}
           value={cur.comment}
           onChange={(e) => setCur({ comment: e.target.value })}
           className="resize-none rounded-lg border border-line bg-surface px-2.5 py-2 text-[13px] font-normal text-ink disabled:opacity-60"
@@ -253,7 +256,12 @@ export function DoctorRequestsScreen({
         <span className="text-xs text-ink-2">
           조정 ~{formatMD(view.plan.negotiationEnd)} · 일찍 확정되면 조기 배포
         </span>
-        {admin && (
+        {proxyReadOnly && (
+          <span role="note" className="w-full rounded-lg bg-admin-soft px-3 py-1.5 text-xs text-admin">
+            {view.people.find((p) => p.id === view.userId)?.name} 선생님 신청 보기 · 대신 신청은 PC에서
+          </span>
+        )}
+        {admin && !mobile && (
           <label className="ml-auto flex items-center gap-2 text-xs font-semibold text-ink-2">
             의사
             <select
@@ -327,7 +335,9 @@ export function DoctorRequestsScreen({
                 dim={!!highlight && highlight !== view.userId}
                 highlight={highlight}
                 onWithdraw={
-                  view.mine[d] && view.canWithdraw && !lockedOf(d) && !pending ? () => withdraw(d) : undefined
+                  view.mine[d] && view.canWithdraw && !proxyReadOnly && !lockedOf(d) && !pending
+                    ? () => withdraw(d)
+                    : undefined
                 }
               />
             ) : (
@@ -352,7 +362,7 @@ export function DoctorRequestsScreen({
           <button
             type="button"
             className={btnPrimary}
-            disabled={!view.editable || changed.length === 0 || pending}
+            disabled={!editable || changed.length === 0 || pending}
             onClick={() => submit([])}
           >
             신청 제출
