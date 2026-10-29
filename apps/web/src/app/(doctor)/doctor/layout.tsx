@@ -1,6 +1,7 @@
 import { AppShell } from '@/components/shell/AppShell'
 import { requireDoctor } from '@/server/auth/guards'
 import { requestToday } from '@/server/clock'
+import { requestDevice } from '@/server/request-device'
 import { getDb } from '@/server/db/client'
 import { pendingDoctorSwapCount } from '@/server/doctor/swaps'
 
@@ -9,7 +10,7 @@ export default async function DoctorLayout({ children }: { children: React.React
   const session = await requireDoctor()
   const swapCount = await pendingDoctorSwapCount(getDb(), session.user.id, await requestToday())
   return (
-    <AppShell session={session} leaveBalance={null} swapCount={swapCount}>
+    <AppShell session={session} device={await requestDevice()} leaveBalance={null} swapCount={swapCount}>
       {children}
     </AppShell>
   )

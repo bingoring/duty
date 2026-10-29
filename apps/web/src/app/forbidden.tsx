@@ -4,6 +4,7 @@ import { getSession } from '@/server/auth/session'
 import { getDb } from '@/server/db/client'
 import { projectedLeaveBalance } from '@/server/requests/balance'
 import { requestToday } from '@/server/clock'
+import { requestDevice } from '@/server/request-device'
 
 // forbidden 파일은 앱 루트에만 둘 수 있어 셸 레이아웃 밖에서 렌더링된다 → 세션을 읽어 셸을 직접 그린다.
 export default async function Forbidden() {
@@ -23,7 +24,7 @@ export default async function Forbidden() {
   if (!session) return body
   const leaveBalance = await projectedLeaveBalance(getDb(), session.user.id, await requestToday())
   return (
-    <AppShell session={session} leaveBalance={leaveBalance}>
+    <AppShell session={session} device={await requestDevice()} leaveBalance={leaveBalance}>
       {body}
     </AppShell>
   )
