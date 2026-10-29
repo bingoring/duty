@@ -1,0 +1,96 @@
+<style>
+  .phones { display:flex; gap:32px; flex-wrap:wrap; justify-content:center; }
+  .phone { width:300px; height:640px; border:10px solid #1b1f1e; border-radius:36px; background:#f6f4ef; overflow:hidden; display:flex; flex-direction:column; font-family:Pretendard, -apple-system, sans-serif; color:#1b1f1e; position:relative; }
+  .ph-top { padding:14px 16px 6px; display:flex; justify-content:space-between; align-items:center; }
+  .ph-top b { font-size:17px; } .ph-top span { font-size:12px; color:#6b7270; }
+  .body { flex:1; overflow:hidden; padding:0 14px; }
+  .chip { display:inline-flex; align-items:center; justify-content:center; min-width:28px; height:22px; border-radius:6px; font-weight:700; font-size:11px; }
+  .D{background:#fbe7b5}.E{background:#cfe8e3}.N{background:#d9d6f2}.O{background:#eeece6;color:#6b7270;font-weight:600}.S{background:#f7d9e3}.L{background:#eeece6;color:#1b1f1e}
+  .sec { font-size:11px; color:#6b7270; margin:8px 2px 6px; }
+  .card { background:#fff; border-radius:12px; padding:10px 12px; margin-bottom:8px; font-size:12px; }
+  .card .t { font-weight:700; font-size:13px; margin-bottom:3px; display:flex; justify-content:space-between; }
+  .card .t small { font-weight:400; color:#9aa09d; }
+  .warn { color:#8a1f12; background:#fdecea; border-radius:6px; padding:4px 7px; font-size:11px; margin:5px 0; }
+  .cand { font-size:11px; color:#6b7270; margin-bottom:7px; }
+  .btns { display:flex; gap:6px; }
+  .btns button { flex:1; border-radius:8px; padding:8px 0; font-weight:700; font-size:12px; border:1px solid #d9d5cc; background:#fff; }
+  .btns .pri { background:#1b1f1e; color:#fff; border-color:#1b1f1e; }
+  .pc { background:#fff; border-radius:12px; font-size:12px; }
+  .pc div { display:flex; justify-content:space-between; padding:9px 12px; border-bottom:1px solid #eeece6; }
+  .pc div:last-child { border:0; }
+  .pc span { color:#9aa09d; font-size:11px; }
+  .tabs { display:flex; border-top:1px solid #e4e1da; background:#fff; padding:6px 0 14px; }
+  .tabs div { flex:1; text-align:center; font-size:10px; color:#9aa09d; position:relative; }
+  .tabs div i { display:block; font-style:normal; font-size:17px; margin-bottom:2px; }
+  .tabs .on { color:#0f6e63; font-weight:700; }
+  .badge { position:absolute; top:-2px; left:58%; background:#c8321e; color:#fff; border-radius:8px; font-size:9px; padding:1px 5px; }
+  .seg { margin:0 14px 8px; display:flex; background:#eeece6; border-radius:10px; padding:3px; font-size:12px; }
+  .seg div { flex:1; text-align:center; padding:6px 0; border-radius:8px; color:#6b7270; }
+  .seg .on { background:#fff; color:#1b1f1e; font-weight:700; }
+  .days { display:flex; gap:6px; margin:0 14px 8px; }
+  .days div { min-width:38px; text-align:center; padding:6px 0; border-radius:10px; background:#fff; font-size:11px; color:#6b7270; }
+  .days div b { display:block; font-size:15px; color:#1b1f1e; }
+  .days .on { background:#1b1f1e; color:#fff; } .days .on b { color:#fff; }
+  .dim { position:absolute; inset:0; background:rgba(27,31,30,.35); }
+  .sheet { position:absolute; left:0; right:0; bottom:0; background:#fff; border-radius:18px 18px 0 0; padding:10px 16px 18px; }
+  .grab { width:36px; height:4px; background:#d9d5cc; border-radius:2px; margin:0 auto 10px; }
+  .sheet h4 { margin:0 0 2px; font-size:15px; }
+  .sub { font-size:11px; color:#6b7270; margin-bottom:8px; }
+  .tg { display:flex; gap:6px; }
+  .tg span { flex:1; text-align:center; padding:9px 0; border-radius:10px; font-weight:700; font-size:13px; border:2px solid transparent; }
+  .tg .now { border-color:#c9c5bc; border-style:dashed; }
+  .tg .on { border-color:#1f5aa6; }
+  .res { font-size:11px; margin:8px 0; padding:7px 9px; border-radius:8px; background:#fdecea; color:#8a1f12; }
+  .fix { font-size:11px; margin-bottom:8px; padding:7px 9px; border-radius:8px; background:#ddefeb; color:#0b564d; }
+  .lnk { font-size:11px; color:#1f5aa6; margin-bottom:8px; }
+  .reason { width:100%; box-sizing:border-box; border:1px solid #d9d5cc; border-radius:8px; padding:7px 9px; font-size:11px; color:#9aa09d; }
+</style>
+
+<h2>관리자: 휴대폰에서는 「승인」과 「급한 변경」만</h2>
+<p class="subtitle">관리자에게는 아래 탭에 「관리」가 하나 더 생깁니다. 휴대폰에서 하는 일은 휴가 승인과 확정된 근무표의 급한 변경 두 가지이고, 생성·규칙 설정·간호사 관리 같은 큰 화면은 「PC에서 이용해 주세요」로 안내합니다.</p>
+
+<div class="phones" style="margin-top:12px">
+  <div class="phone">
+    <div class="ph-top"><b>관리</b><span>수간호사</span></div>
+    <div class="body">
+      <div class="sec">승인 대기 휴가 2</div>
+      <div class="card">
+        <div class="t">윤채원 · 병가 <small>11/2 (월) · 확정된 달</small></div>
+        <div class="warn">11/2 D 인원 1명 · 최소 2명</div>
+        <div class="cand">대체 후보: 오민지 (OFF, KTAS) · 배지현 (OFF, KTAS)</div>
+        <div class="btns"><button>반려</button><button class="pri">승인 · 대체 지정</button></div>
+      </div>
+      <div class="card">
+        <div class="t">홍다은 · 경조 <small>12/9–12/11 · 신청 중</small></div>
+        <div class="cand">본인·배우자 부모 사망</div>
+        <div class="btns"><button>반려</button><button class="pri">승인</button></div>
+      </div>
+      <div class="sec">PC에서 이용해 주세요</div>
+      <div class="pc">
+        <div>듀티 생성 · 생성안 검토<span>PC ›</span></div>
+        <div>근무 조정 (전체 격자 편집·다시 생성)<span>PC ›</span></div>
+        <div>규칙 설정<span>PC ›</span></div>
+        <div>간호사 관리<span>PC ›</span></div>
+      </div>
+    </div>
+    <div class="tabs"><div><i>▦</i>근무표</div><div><i>✎</i>신청</div><div><i>⇄</i>교환</div><div class="on"><i>✓</i>관리<span class="badge">2</span></div><div><i>≡</i>더보기</div></div>
+  </div>
+
+  <div class="phone">
+    <div class="ph-top"><b>10월 근무표</b><span>‹ 10월 ›</span></div>
+    <div class="seg"><div>내 근무</div><div class="on">전체</div></div>
+    <div class="days"><div>월<b>26</b></div><div>화<b>27</b></div><div class="on">수<b>28</b></div><div>목<b>29</b></div><div>금<b>30</b></div></div>
+    <div class="dim"></div>
+    <div class="sheet">
+      <div class="grab"></div>
+      <h4>박서연 · 10/28 (수) 근무 변경</h4>
+      <div class="sub">관리자만 보이는 편집 · 전날 off · 다음날 D</div>
+      <div class="tg"><span class="D">D</span><span class="E now">E</span><span class="N">N</span><span class="O on">OFF</span><span class="S">S</span></div>
+      <div class="res">E → OFF 하면 28일 E 인원 2명 → 1명 (최소 2명)</div>
+      <div class="fix">대체 후보 배지현 (OFF → E, KTAS) · 눌러서 함께 바꾸기</div>
+      <div class="lnk">휴가로 바꾸기 (연차·병가·경조…) ›</div>
+      <input class="reason" placeholder="변경 사유 (간호사에게 보입니다)">
+      <div class="btns" style="margin-top:10px"><button>취소</button><button class="pri">저장 · 바로 공개</button></div>
+    </div>
+  </div>
+</div>

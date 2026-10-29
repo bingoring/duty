@@ -1,0 +1,85 @@
+<style>
+  .phones { display:flex; gap:32px; flex-wrap:wrap; justify-content:center; }
+  .phone { width:300px; height:620px; border:10px solid #1b1f1e; border-radius:36px; background:#f6f4ef; overflow:hidden; display:flex; flex-direction:column; font-family:Pretendard, -apple-system, sans-serif; color:#1b1f1e; }
+  .ph-top { padding:14px 16px 8px; display:flex; justify-content:space-between; align-items:center; }
+  .ph-top b { font-size:17px; } .ph-top span { font-size:12px; color:#6b7270; }
+  .seg { margin:0 14px 8px; display:flex; background:#eeece6; border-radius:10px; padding:3px; font-size:12px; }
+  .seg div { flex:1; text-align:center; padding:6px 0; border-radius:8px; color:#6b7270; }
+  .seg .on { background:#fff; color:#1b1f1e; font-weight:700; }
+  .body { flex:1; overflow:hidden; padding:0 14px; }
+  .chip { display:inline-flex; align-items:center; justify-content:center; min-width:26px; height:22px; border-radius:5px; font-weight:700; font-size:11px; }
+  .D{background:#fbe7b5}.E{background:#cfe8e3}.N{background:#d9d6f2}.O{background:#eeece6;color:#6b7270;font-weight:600}.S{background:#f7d9e3}
+  .tabs { display:flex; border-top:1px solid #e4e1da; background:#fff; padding:6px 0 14px; }
+  .tabs div { flex:1; text-align:center; font-size:10px; color:#9aa09d; }
+  .tabs div i { display:block; font-style:normal; font-size:18px; margin-bottom:2px; }
+  .tabs .on { color:#0f6e63; font-weight:700; }
+  /* grid */
+  .grid { display:grid; grid-template-columns:58px repeat(6, 34px); font-size:11px; background:#fff; border-radius:10px; overflow:hidden; }
+  .grid div { height:30px; display:flex; align-items:center; justify-content:center; border-bottom:1px solid #eeece6; }
+  .grid .nm { justify-content:flex-start; padding-left:8px; font-weight:600; background:#fff; position:sticky; left:0; box-shadow:2px 0 0 #eeece6; }
+  .grid .hd { color:#6b7270; font-size:10px; height:34px; flex-direction:column; }
+  .grid .today { background:#ddefeb; }
+  .grid .me { background:#f2f8f6; }
+  .hint { font-size:11px; color:#9aa09d; margin-top:6px; text-align:right; }
+  /* day view */
+  .days { display:flex; gap:6px; overflow:hidden; margin-bottom:10px; }
+  .days div { min-width:38px; text-align:center; padding:6px 0; border-radius:10px; background:#fff; font-size:11px; color:#6b7270; }
+  .days div b { display:block; font-size:15px; color:#1b1f1e; }
+  .days .on { background:#1b1f1e; color:#fff; } .days .on b { color:#fff; }
+  .blk { background:#fff; border-radius:12px; padding:10px 12px; margin-bottom:8px; }
+  .blk h4 { margin:0 0 6px; font-size:12px; display:flex; gap:6px; align-items:center; }
+  .blk h4 small { color:#9aa09d; font-weight:400; }
+  .ppl { font-size:13px; line-height:1.7; }
+  .ppl .me { font-weight:800; color:#0f6e63; }
+</style>
+
+<h2>「전체」를 눌렀을 때: 동료 근무 보기</h2>
+<p class="subtitle">근무표 탭의 「전체」 화면입니다. 휴대폰 폭에는 한 달 × 11명 표가 다 들어가지 않아, 표를 옆으로 미는 방식(A)과 날짜별로 누가 서는지 보는 방식(B)을 비교합니다.</p>
+
+<div class="options">
+  <div class="option" data-choice="grid" onclick="toggleSelect(this)">
+    <div class="letter">A</div>
+    <div class="content"><h3>A. 지금 표를 옆으로 밀기</h3><p>이름 열은 고정, 날짜는 좌우로 밉니다. 내 행은 맨 위에 붙습니다. 데스크톱 표와 같은 모양이라 익숙합니다.</p></div>
+  </div>
+  <div class="option" data-choice="day" onclick="toggleSelect(this)">
+    <div class="letter">B</div>
+    <div class="content"><h3>B. 날짜별 누가 서나</h3><p>위에서 날짜를 고르면 D·E·N·OFF별로 사람이 나옵니다. 「이 날 누구랑 서지?」에 바로 답합니다.</p></div>
+  </div>
+</div>
+
+<div class="phones" style="margin-top:24px">
+  <div class="phone">
+    <div class="ph-top"><b>10월 근무표</b><span>‹ 10월 ›</span></div>
+    <div class="seg"><div>내 근무</div><div class="on">전체</div></div>
+    <div class="body">
+      <div class="grid">
+        <div class="nm hd">이름</div><div class="hd">26<br>월</div><div class="hd">27<br>화</div><div class="hd today">28<br>수</div><div class="hd">29<br>목</div><div class="hd">30<br>금</div><div class="hd">31<br>토</div>
+        <div class="nm me">정하늘 (나)</div><div class="me"><span class="chip D">D</span></div><div class="me"><span class="chip D">D</span></div><div class="today"><span class="chip E">E</span></div><div class="me"><span class="chip N">N</span></div><div class="me"><span class="chip N">N</span></div><div class="me"><span class="chip O">off</span></div>
+        <div class="nm">한수정</div><div><span class="chip S">S</span></div><div><span class="chip S">S</span></div><div class="today"><span class="chip S">S</span></div><div><span class="chip S">S</span></div><div><span class="chip S">S</span></div><div><span class="chip O">off</span></div>
+        <div class="nm">박서연</div><div><span class="chip O">off</span></div><div><span class="chip E">E</span></div><div class="today"><span class="chip E">E</span></div><div><span class="chip D">D</span></div><div><span class="chip D">D</span></div><div><span class="chip E">E</span></div>
+        <div class="nm">오민지</div><div><span class="chip N">N</span></div><div><span class="chip O">off</span></div><div class="today"><span class="chip E">E</span></div><div><span class="chip E">E</span></div><div><span class="chip O">off</span></div><div><span class="chip D">D</span></div>
+        <div class="nm">강도윤</div><div><span class="chip E">E</span></div><div><span class="chip N">N</span></div><div class="today"><span class="chip N">N</span></div><div><span class="chip N">N</span></div><div><span class="chip O">off</span></div><div><span class="chip O">off</span></div>
+        <div class="nm">윤채원</div><div><span class="chip D">D</span></div><div><span class="chip D">D</span></div><div class="today"><span class="chip D">D</span></div><div><span class="chip O">off</span></div><div><span class="chip E">E</span></div><div><span class="chip E">E</span></div>
+        <div class="nm">임소라</div><div><span class="chip O">off</span></div><div><span class="chip E">E</span></div><div class="today"><span class="chip D">D</span></div><div><span class="chip D">D</span></div><div><span class="chip E">E</span></div><div><span class="chip N">N</span></div>
+        <div class="nm">배지현</div><div><span class="chip E">E</span></div><div><span class="chip O">off</span></div><div class="today"><span class="chip O">off</span></div><div><span class="chip E">E</span></div><div><span class="chip N">N</span></div><div><span class="chip N">N</span></div>
+        <div class="nm">서예린</div><div><span class="chip N">N</span></div><div><span class="chip N">N</span></div><div class="today"><span class="chip N">N</span></div><div><span class="chip O">off</span></div><div><span class="chip O">off</span></div><div><span class="chip D">D</span></div>
+        <div class="nm">홍다은</div><div><span class="chip D">D</span></div><div><span class="chip O">off</span></div><div class="today"><span class="chip O">off</span></div><div><span class="chip N">N</span></div><div><span class="chip N">N</span></div><div><span class="chip N">N</span></div>
+      </div>
+      <div class="hint">← 날짜는 옆으로 밀기 →</div>
+    </div>
+    <div class="tabs"><div class="on"><i>▦</i>근무표</div><div><i>✎</i>신청</div><div><i>⇄</i>교환</div><div><i>≡</i>더보기</div></div>
+  </div>
+
+  <div class="phone">
+    <div class="ph-top"><b>10월 근무표</b><span>‹ 10월 ›</span></div>
+    <div class="seg"><div>내 근무</div><div class="on">전체</div></div>
+    <div class="body">
+      <div class="days"><div>월<b>26</b></div><div>화<b>27</b></div><div class="on">수<b>28</b></div><div>목<b>29</b></div><div>금<b>30</b></div><div>토<b>31</b></div></div>
+      <div class="blk"><h4><span class="chip D">D</span>07:00–15:30 <small>3명</small></h4><div class="ppl">윤채원 · 임소라 · 한수정(S)</div></div>
+      <div class="blk"><h4><span class="chip E">E</span>14:30–23:00 <small>3명</small></h4><div class="ppl"><span class="me">정하늘(나)</span> · 박서연 · 오민지</div></div>
+      <div class="blk"><h4><span class="chip N">N</span>22:30–07:30 <small>2명</small></h4><div class="ppl">강도윤 · 서예린</div></div>
+      <div class="blk"><h4><span class="chip O">off</span>쉬는 사람 <small>2명</small></h4><div class="ppl">배지현 · 홍다은</div></div>
+    </div>
+    <div class="tabs"><div class="on"><i>▦</i>근무표</div><div><i>✎</i>신청</div><div><i>⇄</i>교환</div><div><i>≡</i>더보기</div></div>
+  </div>
+</div>

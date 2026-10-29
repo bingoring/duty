@@ -4,9 +4,11 @@
 **Requirements:** [inputs/requirements_v3.md](inputs/requirements_v3.md) (근무 지침 원문 + 근무자 명단)
 **Design handoff:** [inputs/design_handoff_nurse_duty_scheduler/](inputs/design_handoff_nurse_duty_scheduler/README.md) (최신, 의사 근무표 turn-6 포함, 가명본) · [v5](inputs/design-handoff_v5/README.md) (2026-09-30) · [v4](inputs/design-handoff_v4/README.md) · [v3](inputs/design-handoff_v3/README.md) · [v2](inputs/design-handoff_v2/README.md) · [v1](inputs/design-handoff_v1/README.md)
 **Decisions (audit):** [DECISIONS.md](DECISIONS.md)
-**Last updated:** 2026-10-21
+**Last updated:** 2026-10-29
 
 > 🔒 **개인정보:** 공개 저장소다. 간호사 이름·사번은 모두 가명이며, 실명 자료는 커밋하지 않는다([DECISIONS](DECISIONS.md) 2026-09-26).
+
+> 📝 **3-12 모바일 대응 설계 READY (2026-10-29).** 768px 미만에서 아래 탭(근무표·신청·교환·관리·더보기). 근무표 = 오늘 내 근무 카드 + 내 근무 달력, 「전체」 = 날짜별 명단. 신청·교환은 시트로 데스크톱과 같은 기능(동료 신청 보기, 여러 명 교환). 관리자는 휴가 승인·급한 변경만, 생성·규칙·관리는 PC 안내. PWA 홈 화면 추가. 시안 [inputs/design-mobile](inputs/design-mobile/). 구현 착수 승인 대기.
 
 > 🚀 **3-10·3-11 운영 반영 (2026-10-21, PR #9·#10 → 배포 `3c10661`, 마이그레이션 0015·0016 확인).** 3-10만 머지됐을 때 main E2E(한 달 주기)가 신청 OFF 미반영으로 실패해 배포가 건너뛰어졌다 — 금지 권고 패턴 벌점(1500)이 신청 불충족(300)보다 커서. 3-11의 신청 반영 기본 필수로 해소. **3-11:** 의사 12건·간호사 1건(근무 신청 반영 기본 필수). 마이그레이션 0016(의사 퇴사 예정일).
 
@@ -241,6 +243,7 @@
 | 3-9 운영 피드백 5 (검진 S 고정·연차 승인 생략·확정 달 휴가 부분 리롤·생성 결과 묶음·최대 인원·누적 OFF 범위·표시 정리) | [09-feedback-5.md](03-operations/09-feedback-5.md) | IMPLEMENTED |
 | 3-10 운영 피드백 6 (신청 권한·휴가 합계·조정 사유·누적 OFF 휴가 제외·리롤 수동 변경 유지·저장 전 비공개·권고 패턴·나이트 상하한·불가능 원인) | [10-feedback-6.md](03-operations/10-feedback-6.md) | IMPLEMENTED |
 | 3-11 운영 피드백 7 (의사 색·강조·격주 고정·신청 표시·원래 사람·규칙 심각도·재직 기간·금지 패턴·철회, 간호사 신청 필수) | [11-feedback-7.md](03-operations/11-feedback-7.md) | IMPLEMENTED |
+| 3-12 모바일 대응 (아래 탭·내 근무 달력·날짜별 명단·신청/교환 시트·관리자 승인과 급한 변경·홈 화면 추가) | [12-mobile.md](03-operations/12-mobile.md) | READY |
 
 ---
 

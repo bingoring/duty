@@ -1,0 +1,100 @@
+<style>
+  .phones { display:flex; gap:32px; flex-wrap:wrap; justify-content:center; }
+  .phone { width:300px; height:620px; border:10px solid #1b1f1e; border-radius:36px; background:#f6f4ef; overflow:hidden; display:flex; flex-direction:column; font-family:Pretendard, -apple-system, sans-serif; color:#1b1f1e; position:relative; }
+  .ph-top { padding:14px 16px 8px; display:flex; justify-content:space-between; align-items:center; }
+  .ph-top b { font-size:17px; }
+  .ph-top span { font-size:12px; color:#6b7270; }
+  .today { margin:4px 14px 10px; background:#1b1f1e; color:#fff; border-radius:16px; padding:14px 16px; }
+  .today small { font-size:11px; opacity:.7; }
+  .today .big { font-size:30px; font-weight:800; margin-right:8px; }
+  .today .t { font-size:13px; opacity:.85; }
+  .today .next { margin-top:8px; font-size:11px; opacity:.75; }
+  .seg { margin:0 14px 8px; display:flex; background:#eeece6; border-radius:10px; padding:3px; font-size:12px; }
+  .seg div { flex:1; text-align:center; padding:6px 0; border-radius:8px; color:#6b7270; }
+  .seg .on { background:#fff; color:#1b1f1e; font-weight:700; }
+  .body { flex:1; overflow:hidden; padding:0 14px; }
+  .row { display:flex; align-items:center; gap:10px; padding:7px 4px; border-bottom:1px solid #eeece6; font-size:13px; }
+  .row .d { width:52px; color:#6b7270; font-size:12px; }
+  .row .d.red { color:#c8321e; }
+  .row.now { background:#ddefeb; border-radius:8px; border-bottom-color:transparent; }
+  .chip { display:inline-flex; align-items:center; justify-content:center; min-width:34px; height:24px; border-radius:6px; font-weight:700; font-size:12px; }
+  .D{background:#fbe7b5}.E{background:#cfe8e3}.N{background:#d9d6f2}.O{background:#eeece6;color:#6b7270;font-weight:600}.S{background:#f7d9e3}
+  .row .who { margin-left:auto; color:#9aa09d; font-size:11px; }
+  .tabs { display:flex; border-top:1px solid #e4e1da; background:#fff; padding:6px 0 14px; }
+  .tabs div { flex:1; text-align:center; font-size:10px; color:#9aa09d; }
+  .tabs div i { display:block; font-style:normal; font-size:18px; margin-bottom:2px; }
+  .tabs .on { color:#0f6e63; font-weight:700; }
+  .cal { display:grid; grid-template-columns:repeat(7,1fr); gap:3px; font-size:10px; text-align:center; }
+  .cal .h { color:#9aa09d; padding:2px 0; }
+  .cal .c { background:#fff; border-radius:6px; padding:3px 0 4px; height:40px; display:flex; flex-direction:column; align-items:center; gap:2px; }
+  .cal .c .n { color:#6b7270; }
+  .cal .c .chip { min-width:26px; height:18px; font-size:10px; }
+  .cal .c.now { outline:2px solid #0f6e63; }
+  .cal .c.red .n { color:#c8321e; }
+  .cal .blank { background:transparent; }
+  .legend { font-size:11px; color:#6b7270; margin-top:8px; }
+</style>
+
+<h2>휴대폰 첫 화면: 내 근무 먼저</h2>
+<p class="subtitle">두 안 모두 맨 위에 「오늘 내 근무」 카드, 아래에 탭 메뉴(근무표 · 신청 · 교환 · 더보기)가 있습니다. 차이는 한 달 내 근무를 <b>목록</b>으로 보느냐 <b>달력</b>으로 보느냐입니다. 「전체」를 누르면 동료 근무표로 바뀝니다.</p>
+
+<div class="options">
+  <div class="option" data-choice="list" onclick="toggleSelect(this)">
+    <div class="letter">A</div>
+    <div class="content">
+      <h3>A. 날짜 목록</h3>
+      <p>오늘부터 아래로 내려가며 하루 한 줄. 같은 날 같이 서는 사람도 보입니다.</p>
+    </div>
+  </div>
+  <div class="option" data-choice="calendar" onclick="toggleSelect(this)">
+    <div class="letter">B</div>
+    <div class="content">
+      <h3>B. 월 달력</h3>
+      <p>한 달이 한 화면에 칸으로. 날짜를 누르면 그날 같이 서는 사람이 아래에 펼쳐집니다.</p>
+    </div>
+  </div>
+</div>
+
+<div class="phones" style="margin-top:24px">
+  <!-- A -->
+  <div class="phone">
+    <div class="ph-top"><b>10월 근무표</b><span>‹ 10월 ›</span></div>
+    <div class="today">
+      <small>오늘 10/28 (수)</small><div><span class="big">E</span><span class="t">14:30–23:00</span></div>
+      <div class="next">내일 N 22:30– · 이번 달 OFF 9 · 누적 OFF +4</div>
+    </div>
+    <div class="seg"><div class="on">내 근무</div><div>전체</div></div>
+    <div class="body">
+      <div class="row now"><span class="d">28 수</span><span class="chip E">E</span><span class="who">박서연 · 오민지</span></div>
+      <div class="row"><span class="d">29 목</span><span class="chip N">N</span><span class="who">강도윤 · 서예린</span></div>
+      <div class="row"><span class="d">30 금</span><span class="chip N">N</span><span class="who">강도윤 · 서예린</span></div>
+      <div class="row"><span class="d">31 토</span><span class="chip O">off</span><span class="who"></span></div>
+      <div class="row" style="color:#9aa09d;font-size:11px;border:none;padding-top:12px">11월 (신청 중)</div>
+      <div class="row"><span class="d red">1 일</span><span class="chip O">off</span><span class="who">신청함</span></div>
+      <div class="row"><span class="d">2 월</span><span class="chip" style="background:#fff;border:1px dashed #c9c5bc;color:#9aa09d">미정</span></div>
+    </div>
+    <div class="tabs"><div class="on"><i>▦</i>근무표</div><div><i>✎</i>신청</div><div><i>⇄</i>교환</div><div><i>≡</i>더보기</div></div>
+  </div>
+
+  <!-- B -->
+  <div class="phone">
+    <div class="ph-top"><b>10월 근무표</b><span>‹ 10월 ›</span></div>
+    <div class="today">
+      <small>오늘 10/28 (수)</small><div><span class="big">E</span><span class="t">14:30–23:00</span></div>
+      <div class="next">내일 N 22:30– · 이번 달 OFF 9 · 누적 OFF +4</div>
+    </div>
+    <div class="seg"><div class="on">내 근무</div><div>전체</div></div>
+    <div class="body">
+      <div class="cal">
+        <div class="h" style="color:#c8321e">일</div><div class="h">월</div><div class="h">화</div><div class="h">수</div><div class="h">목</div><div class="h">금</div><div class="h">토</div>
+        <div class="c blank"></div><div class="c blank"></div><div class="c blank"></div><div class="c blank"></div>
+        <div class="c"><span class="n">1</span><span class="chip N">N</span></div><div class="c"><span class="n">2</span><span class="chip N">N</span></div><div class="c"><span class="n">3</span><span class="chip O">off</span></div>
+        <div class="c red"><span class="n">4</span><span class="chip O">off</span></div><div class="c"><span class="n">5</span><span class="chip D">D</span></div><div class="c"><span class="n">6</span><span class="chip D">D</span></div><div class="c"><span class="n">7</span><span class="chip E">E</span></div><div class="c"><span class="n">8</span><span class="chip E">E</span></div><div class="c"><span class="n">9</span><span class="chip O">off</span></div><div class="c"><span class="n">10</span><span class="chip D">D</span></div>
+        <div class="c red"><span class="n">…</span></div><div class="c"><span class="n">…</span></div><div class="c"><span class="n">…</span></div><div class="c"><span class="n">…</span></div><div class="c"><span class="n">…</span></div><div class="c"><span class="n">…</span></div><div class="c"><span class="n">…</span></div>
+        <div class="c red"><span class="n">25</span><span class="chip O">off</span></div><div class="c"><span class="n">26</span><span class="chip D">D</span></div><div class="c"><span class="n">27</span><span class="chip D">D</span></div><div class="c now"><span class="n">28</span><span class="chip E">E</span></div><div class="c"><span class="n">29</span><span class="chip N">N</span></div><div class="c"><span class="n">30</span><span class="chip N">N</span></div><div class="c"><span class="n">31</span><span class="chip O">off</span></div>
+      </div>
+      <div class="legend">28일 E · 같이 서는 사람: 박서연 · 오민지</div>
+    </div>
+    <div class="tabs"><div class="on"><i>▦</i>근무표</div><div><i>✎</i>신청</div><div><i>⇄</i>교환</div><div><i>≡</i>더보기</div></div>
+  </div>
+</div>

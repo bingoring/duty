@@ -1,0 +1,90 @@
+<style>
+  .phones { display:flex; gap:32px; flex-wrap:wrap; justify-content:center; }
+  .phone { width:300px; height:620px; border:10px solid #1b1f1e; border-radius:36px; background:#f6f4ef; overflow:hidden; display:flex; flex-direction:column; font-family:Pretendard, -apple-system, sans-serif; color:#1b1f1e; position:relative; }
+  .ph-top { padding:14px 16px 6px; display:flex; justify-content:space-between; align-items:center; }
+  .ph-top b { font-size:17px; } .ph-top span { font-size:12px; color:#6b7270; }
+  .note { margin:0 14px 8px; font-size:11px; color:#0f6e63; background:#ddefeb; border-radius:8px; padding:6px 10px; }
+  .body { flex:1; overflow:hidden; padding:0 14px; }
+  .chip { display:inline-flex; align-items:center; justify-content:center; min-width:28px; height:22px; border-radius:6px; font-weight:700; font-size:11px; }
+  .D{background:#fbe7b5}.E{background:#cfe8e3}.N{background:#d9d6f2}.O{background:#eeece6;color:#6b7270;font-weight:600}
+  .sec { font-size:11px; color:#6b7270; margin:10px 2px 6px; display:flex; justify-content:space-between; }
+  .card { background:#fff; border-radius:12px; padding:10px 12px; margin-bottom:8px; font-size:12px; }
+  .card .t { font-weight:700; font-size:13px; margin-bottom:4px; }
+  .card .sw { display:flex; align-items:center; gap:6px; margin:4px 0; }
+  .card .c { color:#6b7270; font-size:11px; margin:4px 0 8px; }
+  .btns { display:flex; gap:6px; }
+  .btns button { flex:1; border-radius:8px; padding:8px 0; font-weight:700; font-size:12px; border:1px solid #d9d5cc; background:#fff; }
+  .btns .pri { background:#1b1f1e; color:#fff; border-color:#1b1f1e; }
+  .st { font-size:11px; color:#9aa09d; }
+  .fab { position:absolute; right:18px; bottom:76px; background:#0f6e63; color:#fff; border-radius:24px; padding:11px 16px; font-weight:700; font-size:13px; box-shadow:0 6px 16px rgba(0,0,0,.18); }
+  .tabs { display:flex; border-top:1px solid #e4e1da; background:#fff; padding:6px 0 14px; }
+  .tabs div { flex:1; text-align:center; font-size:10px; color:#9aa09d; position:relative; }
+  .tabs div i { display:block; font-style:normal; font-size:18px; margin-bottom:2px; }
+  .tabs .on { color:#0f6e63; font-weight:700; }
+  .badge { position:absolute; top:-2px; left:56%; background:#c8321e; color:#fff; border-radius:8px; font-size:9px; padding:1px 5px; }
+  .dim { position:absolute; inset:0; background:rgba(27,31,30,.35); }
+  .sheet { position:absolute; left:0; right:0; bottom:0; background:#fff; border-radius:18px 18px 0 0; padding:10px 16px 18px; }
+  .grab { width:36px; height:4px; background:#d9d5cc; border-radius:2px; margin:0 auto 10px; }
+  .sheet h4 { margin:0 0 8px; font-size:15px; }
+  .grp { font-size:11px; color:#6b7270; margin:6px 0 4px; }
+  .ppl { display:flex; gap:6px; flex-wrap:wrap; }
+  .ppl span { border:1.5px solid #d9d5cc; border-radius:16px; padding:5px 10px; font-size:12px; }
+  .ppl span.on { border-color:#1b1f1e; background:#1b1f1e; color:#fff; }
+  .prev { background:#f6f4ef; border-radius:10px; padding:8px 10px; margin-top:10px; font-size:12px; }
+  .ok { color:#0f6e63; font-weight:700; font-size:11px; margin-top:4px; }
+  .memo { width:100%; box-sizing:border-box; border:1px solid #d9d5cc; border-radius:8px; padding:7px 9px; font-size:11px; color:#9aa09d; margin-top:8px; }
+</style>
+
+<h2>교환 탭</h2>
+<p class="subtitle">왼쪽: 받은 요청·보낸 요청 목록(받은 요청은 탭에 빨간 배지). 오른쪽: 「교환 요청」 → 날짜 고르기 → 함께 바꿀 동료를 한 명 이상 고르고, 「변경 후」 칩을 맞바꿔 정한 뒤 보내기(데스크톱의 n인 재배정과 같음).</p>
+
+<div class="phones" style="margin-top:12px">
+  <div class="phone">
+    <div class="ph-top"><b>근무 교환</b><span>10월</span></div>
+    <div class="note">협의 수정 기간 · 10/16 – 10/31</div>
+    <div class="body">
+      <div class="sec"><span>받은 요청 1</span></div>
+      <div class="card">
+        <div class="t">박서연 → 나 · 10/30 (금)</div>
+        <div class="sw">나 <span class="chip N">N</span> → <span class="chip D">D</span> &nbsp; 박서연 <span class="chip D">D</span> → <span class="chip N">N</span></div>
+        <div class="c">「그날 저녁 일정이 있어서 바꿔 줄 수 있을까?」</div>
+        <div class="btns"><button>거절</button><button class="pri">수락</button></div>
+      </div>
+      <div class="sec"><span>보낸 요청 1</span></div>
+      <div class="card">
+        <div class="t">나 → 오민지 · 10/31 (토)</div>
+        <div class="sw">나 <span class="chip O">off</span> → <span class="chip D">D</span> &nbsp; 오민지 <span class="chip D">D</span> → <span class="chip O">off</span></div>
+        <div class="st">답 기다리는 중 · <u>철회</u></div>
+      </div>
+    </div>
+    <div class="fab">＋ 교환 요청</div>
+    <div class="tabs"><div><i>▦</i>근무표</div><div><i>✎</i>신청</div><div class="on"><i>⇄</i>교환<span class="badge">1</span></div><div><i>≡</i>더보기</div></div>
+  </div>
+
+  <div class="phone">
+    <div class="ph-top"><b>근무 교환</b><span>10월</span></div>
+    <div class="dim"></div>
+    <div class="sheet">
+      <div class="grab"></div>
+      <h4>10/29 (목) · 함께 바꿀 동료 고르기</h4>
+      <div class="grp">여러 명 고를 수 있어요 (나는 항상 포함)</div>
+      <div class="grp"><span class="chip D">D</span></div>
+      <div class="ppl"><span>윤채원</span><span>임소라</span></div>
+      <div class="grp"><span class="chip E">E</span></div>
+      <div class="ppl"><span class="on">박서연 ✓</span><span>오민지</span></div>
+      <div class="grp"><span class="chip O">off</span></div>
+      <div class="ppl"><span class="on">배지현 ✓</span><span>홍다은</span></div>
+      <div class="prev">
+        <div class="grp" style="margin-top:0">변경 후 · 칩 두 개를 차례로 눌러 맞바꾸기</div>
+        <div class="sw" style="display:grid;grid-template-columns:56px 34px 14px 34px;gap:6px;align-items:center">
+          <span>나</span><span class="chip N">N</span><span>→</span><span class="chip E" style="outline:2px solid #1f5aa6">E</span>
+          <span>박서연</span><span class="chip E">E</span><span>→</span><span class="chip O" style="outline:2px solid #1f5aa6">off</span>
+          <span>배지현</span><span class="chip O">off</span><span>→</span><span class="chip N" style="outline:2px solid #1f5aa6">N</span>
+        </div>
+        <div class="ok">✓ 규칙 검사 통과 · 그날 D·E·N 인원 그대로</div>
+      </div>
+      <div class="memo">메시지 (선택) · 박서연·배지현 모두 수락하면 바로 반영</div>
+      <div class="btns" style="margin-top:10px"><button>취소</button><button class="pri">요청 보내기</button></div>
+    </div>
+  </div>
+</div>
