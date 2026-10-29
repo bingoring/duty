@@ -5,6 +5,8 @@ import { requireNurse } from '@/server/auth/guards'
 import { getDb } from '@/server/db/client'
 import { parseYm } from '@/server/schedule/month'
 import { requestToday } from '@/server/clock'
+import { PcOnly } from '@/components/mobile/PcOnly'
+import { requestDevice } from '@/server/request-device'
 
 // S9 근무 조정 (Build Spec 2-7 관리자 편집·월 마감, 2-8 간호사 교환 요청). 기본 달 = 이번 달(간호사는 협의 기간인 달)
 export default async function AdjustPage({
@@ -19,6 +21,8 @@ export default async function AdjustPage({
   const focusDate = one(sp.focus)
   const shift = one(sp.shift)
   const role = session.user.role === 'admin' ? 'admin' : 'nurse'
+  // 3-12: 관리자 전체 격자 편집은 휴대폰에서 PC 안내(급한 변경은 3차 PR의 근무표 시트)
+  if (role === 'admin' && (await requestDevice()) === 'mobile') return <PcOnly group="nurse" />
   const db = getDb()
   const ym = sp.ym
     ? parseYm(sp.ym, today)

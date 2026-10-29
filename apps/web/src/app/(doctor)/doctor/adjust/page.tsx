@@ -6,6 +6,8 @@ import { getDb } from '@/server/db/client'
 import { loadDoctorSchedule } from '@/server/doctor/schedule'
 import { loadDoctorAdjust } from '@/server/doctor/swaps'
 import { parseYm } from '@/server/schedule/month'
+import { PcOnly } from '@/components/mobile/PcOnly'
+import { requestDevice } from '@/server/request-device'
 
 type Sp = { ym?: string | string[]; hl?: string | string[] }
 
@@ -19,6 +21,8 @@ export default async function DoctorAdjustPage({ searchParams }: { searchParams:
   const sp = await searchParams
   const { year, month } = parseYm(sp.ym, today)
   const actor = { id: session.user.id, role: session.user.role === 'admin' ? 'admin' : 'member' } as const
+  // 3-12: 관리자 직접 편집은 휴대폰에서 PC 안내
+  if (actor.role === 'admin' && (await requestDevice()) === 'mobile') return <PcOnly group="doctor" />
   const db = getDb()
   const adjust = await loadDoctorAdjust(db, { year, month }, actor, today)
   const view = await loadDoctorSchedule(db, { year, month, viewerId: session.user.id, today })
