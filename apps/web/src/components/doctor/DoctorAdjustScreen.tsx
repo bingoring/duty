@@ -54,6 +54,8 @@ export function DoctorAdjustScreen(props: {
   colors: DoctorColors
   origins: Record<string, CalPerson>
   highlight: string | null
+  // 3-12: 휴대폰이면 한 열(교환 목록은 달력 아래)
+  mobile?: boolean
 }) {
   const { year, month, today, weeks, doctors, viewerId, admin, swaps } = props
   const router = useRouter()
@@ -174,7 +176,7 @@ export function DoctorAdjustScreen(props: {
   return (
     <div
       data-hydrated={hydrated || undefined}
-      className="grid min-w-0 grid-cols-[minmax(0,1fr)_280px] gap-3 px-4 py-[18px]"
+      className={`grid min-w-0 gap-3 px-4 py-[18px] ${props.mobile ? 'grid-cols-1' : 'grid-cols-[minmax(0,1fr)_280px]'}`}
     >
       <div className="flex min-w-0 flex-col gap-3">
         <div className="flex flex-wrap items-center gap-3">
