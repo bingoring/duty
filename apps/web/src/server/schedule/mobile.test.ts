@@ -12,7 +12,8 @@ function heads(year: number, month: number, today: IsoDate | null): DayHead[] {
       date,
       day: Number(date.slice(8)),
       weekday: weekdayKo(date),
-      red: dow === 0,
+      // 실제 DayHead처럼 주말(토·일)이 red
+      red: dow === 0 || dow === 6,
       color: dow === 0 ? 'sun' : dow === 6 ? 'sat' : 'plain',
       today: date === today,
     }
@@ -108,7 +109,14 @@ describe('3-12 모바일 근무표: 내 달력', () => {
   })
   it('내 칸 chip·label, 오늘 표시는 DayHead.today', () =>
     expect(find(myMonth(oct), '2026-10-28')).toMatchObject({ chip: 'e', label: 'E', today: true, day: 28 }))
-  it('일요일은 red', () => expect(find(myMonth(oct), '2026-10-25')?.red).toBe(true))
+  it('일요일은 red, 토요일은 아니다(시안)', () => {
+    expect(find(myMonth(oct), '2026-10-25')?.red).toBe(true)
+    expect(find(myMonth(oct), '2026-10-24')?.red).toBe(false)
+  })
+  it('평일 공휴일은 red', () => {
+    const days = octDays.map((d) => (d.date === '2026-10-09' ? { ...d, red: true } : d))
+    expect(find(myMonth(view(days, oct.rows, CARDS)), '2026-10-09')?.red).toBe(true)
+  })
   it('내 행이 없으면 chip null', () => expect(find(myMonth(withoutMe), '2026-10-28')?.chip).toBeNull())
 })
 

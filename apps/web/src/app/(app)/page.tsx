@@ -16,6 +16,11 @@ import { parseYm } from '@/server/schedule/month'
 import { buildScheduleView } from '@/server/schedule/view'
 import { requestToday } from '@/server/clock'
 import { loadDoctorSchedule } from '@/server/doctor/schedule'
+import { MobileSchedule, type RosterSet } from '@/components/mobile/MobileSchedule'
+import { doctorRosters } from '@/server/doctor/mobile'
+import { requestDevice } from '@/server/request-device'
+import { dayRosters, myMonth } from '@/server/schedule/mobile'
+import { loadTodayCard } from '@/server/schedule/mobile-home'
 
 // S3 근무표 — 홈 (Build Spec 2-3). 서버 컴포넌트로 렌더링한다(클라이언트 JS는 인쇄 버튼, 2-7 바뀐 근무 안내의 「확인」, 강조 열 해제뿐)
 export default async function SchedulePage({
@@ -26,6 +31,8 @@ export default async function SchedulePage({
     focus?: string | string[]
     view?: string | string[]
     hl?: string | string[]
+    tab?: string | string[]
+    date?: string | string[]
   }>
 }) {
   const session = await requireNurse()
@@ -39,6 +46,49 @@ export default async function SchedulePage({
       ? sp.focus
       : null
   const db = getDb()
+  if ((await requestDevice()) === 'mobile') {
+    // 3-12 모바일: 오늘 카드 + 내 근무 달력 / 전체(날짜별 명단, 의사표가 공개됐으면 의사도)
+    const view = buildScheduleView(await loadMonthView(db, { year, month, viewerId: session.user.id, today }))
+    const card = await loadTodayCard(db, { viewerId: session.user.id, today, shown: { year, month, view } })
+    const dv = await loadDoctorSchedule(db, { year, month, viewerId: null, today, forNurse: true })
+    const groups: RosterSet[] = [{ key: 'nurse', label: '간호사', rosters: dayRosters(view) }]
+    if (!dv.hidden) groups.push({ key: 'doctor', label: '의사', rosters: doctorRosters(dv) })
+    const date =
+      typeof sp.date === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(sp.date) && sp.date.startsWith(ym)
+        ? sp.date
+        : today.startsWith(ym)
+          ? today
+          : `${ym}-01`
+    const tab = sp.tab === 'all' ? 'all' : 'mine'
+    const notices = await loadNotices(db, session.user.id)
+    const q = (m: string, t: string) => `/?ym=${m}${t === 'all' ? '&tab=all' : ''}`
+    return (
+      <>
+        <div className="px-4 pt-3 empty:hidden">
+          <NoticeBar
+            items={notices.items}
+            more={notices.more}
+            seenUpTo={notices.seenUpTo}
+            swaps={await pendingReceivedCount(db, session.user.id, today)}
+            proposals={await pendingProposalCount(db, session.user.id)}
+          />
+        </div>
+        <MobileSchedule
+          title={`${month}월 근무표`}
+          prevHref={q(view.prev, tab)}
+          nextHref={q(view.next, tab)}
+          card={card}
+          mine={myMonth(view)}
+          groups={groups}
+          tab={tab}
+          date={date}
+          mineHref={q(ym, 'mine')}
+          allHref={`${q(ym, 'all')}&date=${date}`}
+          footer={<ShiftTimesLegend />}
+        />
+      </>
+    )
+  }
   // 3-7b: 「의사」 탭 — 의사 확정 근무표만 읽기 전용
   const tabs = (
     <GroupTabs

@@ -51,7 +51,8 @@ export function myMonth(view: ScheduleView): MyMonth {
       return {
         date: d.date,
         day: d.day,
-        red: d.red,
+        // 달력 숫자는 일요일·공휴일만 빨강(DayHead.red는 토요일도 포함)
+        red: d.color === 'sun' || (d.red && d.color !== 'sat'),
         today: d.today,
         chip: c?.chip ?? null,
         label: c?.label ?? '',
