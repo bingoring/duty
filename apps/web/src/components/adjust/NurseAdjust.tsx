@@ -22,6 +22,7 @@ import type { GridCellView } from '@/server/schedule/view'
 import { CellTip } from '../schedule/CellTip'
 import { OUTLINE } from '../schedule/ScheduleGrid'
 import { useHydrated } from '../admin/ui'
+import { swapCodes } from './swap-codes'
 
 // S9 근무 조정 · 간호사 시점 (Build Spec 2-8 frontend-components, 핸드오프 v5 3a)
 const CHIP: Record<string, string> = {
@@ -360,19 +361,6 @@ function Cell({
       {chip}
     </div>
   )
-}
-
-// 두 칸의 근무를 맞바꾼다. 수간호사가 받은 OFF는 S, 교대 근무자가 받은 S는 OFF. 수간호사가 E·N을 받으면 null
-function swapCodes(
-  codes: SwapCode[],
-  a: number,
-  b: number,
-  isHead: (i: number) => boolean,
-): SwapCode[] | null {
-  const next = [...codes]
-  ;[next[a], next[b]] = [next[b]!, next[a]!]
-  const fixed = next.map((c, k) => (isHead(k) ? (c === 'OFF' ? 'S' : c) : c === 'S' ? 'OFF' : c))
-  return fixed.some((c, k) => isHead(k) && c !== 'S' && c !== 'D') ? null : fixed
 }
 
 export function SwapPopup(props: {
