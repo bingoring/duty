@@ -40,7 +40,16 @@ function row(
     bo: '0',
     cells: days.map((d) => {
       const [label, chip] = set[d.date] ?? ['', null]
-      return { date: d.date, label, chip, outline: null, checkupHalf: false, weekend: d.red, today: d.today, title: '' }
+      return {
+        date: d.date,
+        label,
+        chip,
+        outline: null,
+        checkupHalf: false,
+        weekend: d.red,
+        today: d.today,
+        title: '',
+      }
     }),
   }
 }
@@ -95,7 +104,11 @@ const oct = view(
 )
 const novDays = heads(2026, 11, null)
 const nov = view(novDays, [row('u1', '정하늘', 'me', novDays, { '2026-11-01': ['off', 'off'] })], null)
-const withoutMe = view(octDays, oct.rows.filter((r) => r.kind !== 'me'), null)
+const withoutMe = view(
+  octDays,
+  oct.rows.filter((r) => r.kind !== 'me'),
+  null,
+)
 const emptyView = view(octDays, [], null)
 
 const find = (m: MyMonth, date: IsoDate) => m.weeks.flat().find((d) => d?.date === date)
@@ -123,9 +136,24 @@ describe('3-12 모바일 근무표: 내 달력', () => {
 describe('3-12 모바일 근무표: 날짜별 명단', () => {
   it('D·E·N·OFF 묶음과 나 표시, 빈 묶음은 뺀다', () =>
     expect(dayRosters(oct)['2026-10-28']).toEqual([
-      { key: 'D', label: 'D', time: '07:00–15:30', people: [{ id: 'u2', name: '윤채원', me: false, note: '' }] },
-      { key: 'E', label: 'E', time: '14:30–23:00', people: [{ id: 'u1', name: '정하늘', me: true, note: '' }] },
-      { key: 'OFF', label: '쉬는 사람', time: '', people: [{ id: 'u3', name: '배지현', me: false, note: '' }] },
+      {
+        key: 'D',
+        label: 'D',
+        time: '07:00–15:30',
+        people: [{ id: 'u2', name: '윤채원', me: false, note: '' }],
+      },
+      {
+        key: 'E',
+        label: 'E',
+        time: '14:30–23:00',
+        people: [{ id: 'u1', name: '정하늘', me: true, note: '' }],
+      },
+      {
+        key: 'OFF',
+        label: '쉬는 사람',
+        time: '',
+        people: [{ id: 'u3', name: '배지현', me: false, note: '' }],
+      },
     ]))
   it('휴가는 LEAVE 묶음에 휴가 이름, OFF보다 앞', () => {
     const g = dayRosters(oct)['2026-10-29']!
@@ -150,7 +178,9 @@ describe('3-12 모바일 근무표: 오늘 카드', () => {
   it('월말인데 다음 달 근무표가 없으면 내일 없음', () =>
     expect(todayCard({ cur: oct, next: null, today: '2026-10-31' }).tomorrow).toBeNull())
   it('내일 휴가는 이름만', () =>
-    expect(todayCard({ cur: withLeaveTomorrow(), next: null, today: '2026-10-28' }).tomorrow).toBe('내일 연차'))
+    expect(todayCard({ cur: withLeaveTomorrow(), next: null, today: '2026-10-28' }).tomorrow).toBe(
+      '내일 연차',
+    ))
   it('근무표가 없으면 empty', () =>
     expect(todayCard({ cur: emptyView, next: null, today: '2026-10-28' })).toEqual({
       dateLabel: '오늘 10/28 (수)',

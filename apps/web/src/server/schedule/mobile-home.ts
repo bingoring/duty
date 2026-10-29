@@ -14,7 +14,8 @@ export async function loadTodayCard(
   const ym = parseYm(undefined, a.today)
   const read = async (y: { year: number; month: number }) =>
     buildScheduleView(await loadMonthView(db, { ...y, viewerId: a.viewerId, today: a.today }))
-  const cur = a.shown && a.shown.year === ym.year && a.shown.month === ym.month ? a.shown.view : await read(ym)
+  const cur =
+    a.shown && a.shown.year === ym.year && a.shown.month === ym.month ? a.shown.view : await read(ym)
   const monthEnd = addDays(a.today, 1).slice(0, 7) !== a.today.slice(0, 7)
   const next = monthEnd ? await read(shiftYm(ym, 1)) : null
   return todayCard({ cur, next, today: a.today })

@@ -26,5 +26,7 @@ export function proxy(request: NextRequest) {
 export const config = {
   // /privacy: 로그인 없이 보는 개인정보 처리 안내(2-11 R-CONSENT-6)
   // 3-12: 홈 화면 추가 파일(manifest·아이콘)은 브라우저가 쿠키 없이 가져온다
-  matcher: ['/((?!_next/|api/|login|privacy|fonts/|favicon.ico|manifest.webmanifest|pwa-icon|icon|apple-icon).*)'],
+  matcher: [
+    '/((?!_next/|api/|login|privacy|fonts/|favicon.ico|manifest.webmanifest|pwa-icon|icon|apple-icon).*)',
+  ],
 }

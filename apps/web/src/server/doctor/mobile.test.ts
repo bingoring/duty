@@ -62,8 +62,18 @@ describe('3-12 모바일 의사 근무표', () => {
   it('날짜별 명단: D·N 한 명씩, 올데이는 한 묶음, 빈 날은 []', () => {
     const r = doctorRosters(view('a'))
     expect(r['2026-10-13']).toEqual([
-      { key: 'D', label: 'D', time: DOCTOR_TIMES.D, people: [{ id: 'a', name: '가의사', me: true, note: '' }] },
-      { key: 'N', label: 'N', time: DOCTOR_TIMES.N, people: [{ id: 'b', name: '나의사', me: false, note: '' }] },
+      {
+        key: 'D',
+        label: 'D',
+        time: DOCTOR_TIMES.D,
+        people: [{ id: 'a', name: '가의사', me: true, note: '' }],
+      },
+      {
+        key: 'N',
+        label: 'N',
+        time: DOCTOR_TIMES.N,
+        people: [{ id: 'b', name: '나의사', me: false, note: '' }],
+      },
     ])
     expect(r['2026-10-14']).toEqual([
       {
@@ -89,5 +99,9 @@ describe('3-12 모바일 의사 근무표', () => {
   it('오늘 쉬는 날', () => expect(doctorTodayCard(view('c'), TODAY)).toMatchObject({ code: '쉼', time: '' }))
 
   it('확정 전 달이면 empty', () =>
-    expect(doctorTodayCard(view('a', false), TODAY)).toMatchObject({ empty: true, code: '—', tomorrow: null }))
+    expect(doctorTodayCard(view('a', false), TODAY)).toMatchObject({
+      empty: true,
+      code: '—',
+      tomorrow: null,
+    }))
 })

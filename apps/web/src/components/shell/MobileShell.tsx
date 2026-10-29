@@ -15,7 +15,9 @@ export function MobileShell(props: {
     <div className="min-h-dvh bg-app">
       {props.persistent && <SessionKeeper />}
       <ViewportSync device="mobile" />
-      <main className="min-w-0 overflow-x-auto pb-[calc(64px+env(safe-area-inset-bottom))]">{props.children}</main>
+      <main className="min-w-0 overflow-x-auto pb-[calc(64px+env(safe-area-inset-bottom))]">
+        {props.children}
+      </main>
       <BottomTabs tabs={mobileTabs(props.group, props.isAdmin)} badges={props.badges} />
     </div>
   )

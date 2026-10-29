@@ -36,10 +36,12 @@
 ### Task 1: 기기 판정과 proxy
 
 **Files:**
+
 - Create: `apps/web/src/server/device.ts`, `apps/web/src/server/device.test.ts`
 - Modify: `apps/web/src/proxy.ts`
 
 **Interfaces:**
+
 - Produces:
   - `export type Device = 'mobile' | 'desktop'`
   - `export const VIEWPORT_COOKIE = 'duty_vp'`, `export const DEVICE_HEADER = 'x-device'`
@@ -87,10 +89,12 @@ UA 상수는 테스트 파일에 실제 문자열로 둔다(Playwright `devices[
 ### Task 2: 모바일 셸·아래 탭·뷰포트 보정, 로그인 한 열
 
 **Files:**
+
 - Create: `apps/web/src/components/shell/mobile-tabs.ts`, `mobile-tabs.test.ts`, `MobileShell.tsx`, `BottomTabs.tsx`, `ViewportSync.tsx`
 - Modify: `apps/web/src/components/shell/AppShell.tsx`, `apps/web/src/app/(app)/layout.tsx`, `apps/web/src/app/(doctor)/doctor/layout.tsx`, `apps/web/src/components/auth/AuthFrame.tsx`, `apps/web/src/components/auth/LoginHero.tsx`
 
 **Interfaces:**
+
 - Consumes: `Device`, `requestDevice`, `VIEWPORT_COOKIE` (Task 1); `isActive` (`nav-items.ts`)
 - Produces:
   - `export type MobileTab = { href: string; label: '근무표' | '신청' | '교환' | '관리' | '더보기'; icon: string; badge?: 'swap' | 'proposal' }`
@@ -101,11 +105,24 @@ UA 상수는 테스트 파일에 실제 문자열로 둔다(Playwright `devices[
 - [ ] **Step 1: 실패하는 테스트** (`mobile-tabs.test.ts`)
 
 ```ts
-it('간호사', () => expect(mobileTabs('nurse', false).map((t) => t.href)).toEqual(['/', '/requests', '/adjust', '/more']))
+it('간호사', () =>
+  expect(mobileTabs('nurse', false).map((t) => t.href)).toEqual(['/', '/requests', '/adjust', '/more']))
 it('간호사 관리자: 교환 대신 관리', () =>
   expect(mobileTabs('nurse', true).map((t) => t.label)).toEqual(['근무표', '신청', '관리', '더보기']))
-it('의사', () => expect(mobileTabs('doctor', false).map((t) => t.href)).toEqual(['/doctor', '/doctor/requests', '/doctor/adjust', '/doctor/more']))
-it('의사 관리자', () => expect(mobileTabs('doctor', true).map((t) => t.href)).toEqual(['/doctor', '/doctor/requests', '/doctor/manage', '/doctor/more']))
+it('의사', () =>
+  expect(mobileTabs('doctor', false).map((t) => t.href)).toEqual([
+    '/doctor',
+    '/doctor/requests',
+    '/doctor/adjust',
+    '/doctor/more',
+  ]))
+it('의사 관리자', () =>
+  expect(mobileTabs('doctor', true).map((t) => t.href)).toEqual([
+    '/doctor',
+    '/doctor/requests',
+    '/doctor/manage',
+    '/doctor/more',
+  ]))
 it('배지: 교환 = swap, 간호사 신청 = proposal', () => {
   expect(mobileTabs('nurse', false).find((t) => t.label === '교환')?.badge).toBe('swap')
   expect(mobileTabs('nurse', false).find((t) => t.label === '신청')?.badge).toBe('proposal')
@@ -135,10 +152,12 @@ it('배지: 교환 = swap, 간호사 신청 = proposal', () => {
 ### Task 3: 홈 화면 추가(PWA)
 
 **Files:**
+
 - Create: `apps/web/src/app/manifest.ts`, `apps/web/src/app/manifest.test.ts`, `apps/web/src/app/icon.tsx`, `apps/web/src/app/apple-icon.tsx`
 - Modify: `apps/web/src/app/layout.tsx`
 
 **Interfaces:**
+
 - Consumes: Task 1의 matcher 제외
 - Produces: `/manifest.webmanifest`, `/icon/192`·`/icon/512`(또는 Next가 정하는 경로), `/apple-icon`
 
@@ -147,7 +166,15 @@ it('배지: 교환 = swap, 간호사 신청 = proposal', () => {
 ```ts
 it('홈 화면 추가 정보', () => {
   const m = manifest()
-  expect(m).toMatchObject({ name: '벌써 근무표짤 때가 됐어?', short_name: '근무표', display: 'standalone', start_url: '/', theme_color: '#0f6e63', background_color: '#f6f4ef', lang: 'ko' })
+  expect(m).toMatchObject({
+    name: '벌써 근무표짤 때가 됐어?',
+    short_name: '근무표',
+    display: 'standalone',
+    start_url: '/',
+    theme_color: '#0f6e63',
+    background_color: '#f6f4ef',
+    lang: 'ko',
+  })
   expect(m.icons?.map((i) => i.sizes)).toEqual(expect.arrayContaining(['192x192', '512x512']))
   expect(m.icons?.some((i) => i.purpose === 'maskable')).toBe(true)
 })
@@ -170,23 +197,44 @@ it('홈 화면 추가 정보', () => {
 ### Task 4: 모바일 근무표 데이터 묶기(순수 함수)
 
 **Files:**
+
 - Create: `apps/web/src/server/schedule/mobile.ts`, `mobile.test.ts`, `apps/web/src/server/doctor/mobile.ts`, `apps/web/src/server/doctor/mobile.test.ts`
 
 **Interfaces:**
+
 - Consumes: `ScheduleView`, `GridRow`, `DayHead` (`server/schedule/view.ts`), `DoctorScheduleView` (`server/doctor/schedule.ts`), `CalDay` (`server/doctor/view.ts`), `SHIFT_TIMES`(`@duty/domain`), `DOCTOR_TIMES`
 - Produces (`server/schedule/mobile.ts`, 의사 쪽도 같은 타입을 import해서 쓴다):
 
 ```ts
 export type MobileChip = 'd' | 'e' | 'n' | 's' | 'off' | 'leave' | 'allday'
-export type MyDay = { date: IsoDate; day: number; red: boolean; today: boolean; chip: MobileChip | null; label: string }
+export type MyDay = {
+  date: IsoDate
+  day: number
+  red: boolean
+  today: boolean
+  chip: MobileChip | null
+  label: string
+}
 export type MyMonth = { weeks: (MyDay | null)[][] } // 일요일 시작, 앞뒤 빈칸 null
 export type RosterPerson = { id: string; name: string; me: boolean; note: string } // note: 휴가 이름·「S」 등, 없으면 ''
-export type RosterGroup = { key: 'D' | 'E' | 'N' | 'S' | 'ALLDAY' | 'OFF' | 'LEAVE'; label: string; time: string; people: RosterPerson[] }
+export type RosterGroup = {
+  key: 'D' | 'E' | 'N' | 'S' | 'ALLDAY' | 'OFF' | 'LEAVE'
+  label: string
+  time: string
+  people: RosterPerson[]
+}
 export type DayRosters = Record<IsoDate, RosterGroup[]>
-export type TodayCard = { dateLabel: string; code: string; time: string; tomorrow: string | null; summary: string | null; empty: boolean }
+export type TodayCard = {
+  dateLabel: string
+  code: string
+  time: string
+  tomorrow: string | null
+  summary: string | null
+  empty: boolean
+}
 
-export function myMonth(view: ScheduleView): MyMonth            // 'me' 행이 없으면 모든 칸 chip null
-export function dayRosters(view: ScheduleView): DayRosters       // 빈 그룹은 뺀다, 순서 D·E·N·S·LEAVE·OFF
+export function myMonth(view: ScheduleView): MyMonth // 'me' 행이 없으면 모든 칸 chip null
+export function dayRosters(view: ScheduleView): DayRosters // 빈 그룹은 뺀다, 순서 D·E·N·S·LEAVE·OFF
 export function todayCard(a: { cur: ScheduleView; next: ScheduleView | null; today: IsoDate }): TodayCard
 // server/doctor/mobile.ts
 export function doctorMyMonth(view: DoctorScheduleView): MyMonth
@@ -197,19 +245,45 @@ export function doctorTodayCard(view: DoctorScheduleView, today: IsoDate): Today
 - [ ] **Step 1: 실패하는 테스트** — 손으로 만든 작은 `ScheduleView`(3명 × 10월 28~31일 + 11월 1일짜리 다음 달)로:
 
 ```ts
-it('내 달력: 10월 1일은 목요일 → 첫 주 앞 4칸 null', () => { const w = myMonth(oct).weeks; expect(w[0].slice(0, 4)).toEqual([null, null, null, null]); expect(w[0][4]?.date).toBe('2026-10-01') })
-it('내 달력: 내 칸 chip·label, 오늘 표시는 DayHead.today', () => expect(find(myMonth(oct), '2026-10-28')).toMatchObject({ chip: 'e', label: 'E', today: true }))
+it('내 달력: 10월 1일은 목요일 → 첫 주 앞 4칸 null', () => {
+  const w = myMonth(oct).weeks
+  expect(w[0].slice(0, 4)).toEqual([null, null, null, null])
+  expect(w[0][4]?.date).toBe('2026-10-01')
+})
+it('내 달력: 내 칸 chip·label, 오늘 표시는 DayHead.today', () =>
+  expect(find(myMonth(oct), '2026-10-28')).toMatchObject({ chip: 'e', label: 'E', today: true }))
 it('내 행이 없으면 chip null', () => expect(find(myMonth(withoutMe), '2026-10-28')?.chip).toBeNull())
-it('날짜별 명단: D·E·N·OFF 묶음과 나 표시', () => expect(dayRosters(oct)['2026-10-28']).toEqual([
-  { key: 'D', label: 'D', time: '07:00–15:30', people: [{ id: 'u2', name: '윤채원', me: false, note: '' }] },
-  { key: 'E', label: 'E', time: '14:30–23:00', people: [{ id: 'u1', name: '정하늘', me: true, note: '' }] },
-  { key: 'OFF', label: '쉬는 사람', time: '', people: [{ id: 'u3', name: '배지현', me: false, note: '' }] },
-]))
-it('휴가는 LEAVE 묶음에 휴가 이름', () => expect(dayRosters(oct)['2026-10-29'].find((g) => g.key === 'LEAVE')?.people[0].note).toBe('연차'))
-it('오늘 카드', () => expect(todayCard({ cur: oct, next: null, today: '2026-10-28' })).toEqual({ dateLabel: '오늘 10/28 (수)', code: 'E', time: '14:30–23:00', tomorrow: '내일 N 22:30–', summary: '이번 달 OFF 9 · 누적 OFF +4', empty: false }))
-it('월말 내일은 다음 달에서', () => expect(todayCard({ cur: oct, next: nov, today: '2026-10-31' }).tomorrow).toBe('내일 off'))
-it('월말인데 다음 달 근무표가 없으면 내일 없음', () => expect(todayCard({ cur: oct, next: null, today: '2026-10-31' }).tomorrow).toBeNull())
-it('근무표가 없으면 empty', () => expect(todayCard({ cur: emptyView, next: null, today: '2026-10-28' })).toMatchObject({ empty: true, code: '—' }))
+it('날짜별 명단: D·E·N·OFF 묶음과 나 표시', () =>
+  expect(dayRosters(oct)['2026-10-28']).toEqual([
+    {
+      key: 'D',
+      label: 'D',
+      time: '07:00–15:30',
+      people: [{ id: 'u2', name: '윤채원', me: false, note: '' }],
+    },
+    { key: 'E', label: 'E', time: '14:30–23:00', people: [{ id: 'u1', name: '정하늘', me: true, note: '' }] },
+    { key: 'OFF', label: '쉬는 사람', time: '', people: [{ id: 'u3', name: '배지현', me: false, note: '' }] },
+  ]))
+it('휴가는 LEAVE 묶음에 휴가 이름', () =>
+  expect(dayRosters(oct)['2026-10-29'].find((g) => g.key === 'LEAVE')?.people[0].note).toBe('연차'))
+it('오늘 카드', () =>
+  expect(todayCard({ cur: oct, next: null, today: '2026-10-28' })).toEqual({
+    dateLabel: '오늘 10/28 (수)',
+    code: 'E',
+    time: '14:30–23:00',
+    tomorrow: '내일 N 22:30–',
+    summary: '이번 달 OFF 9 · 누적 OFF +4',
+    empty: false,
+  }))
+it('월말 내일은 다음 달에서', () =>
+  expect(todayCard({ cur: oct, next: nov, today: '2026-10-31' }).tomorrow).toBe('내일 off'))
+it('월말인데 다음 달 근무표가 없으면 내일 없음', () =>
+  expect(todayCard({ cur: oct, next: null, today: '2026-10-31' }).tomorrow).toBeNull())
+it('근무표가 없으면 empty', () =>
+  expect(todayCard({ cur: emptyView, next: null, today: '2026-10-28' })).toMatchObject({
+    empty: true,
+    code: '—',
+  }))
 ```
 
 의사 쪽은 `DoctorScheduleView` 작은 픽스처로: 내 D·N·올데이 chip, `doctorRosters`가 D/N 각 1명 또는 ALLDAY 1명, `doctorTodayCard`의 오늘·다음 근무(`calendar.next` 사용).
@@ -227,10 +301,12 @@ it('근무표가 없으면 empty', () => expect(todayCard({ cur: emptyView, next
 ### Task 5: 모바일 근무표 화면(간호사·의사)
 
 **Files:**
+
 - Create: `apps/web/src/components/mobile/MobileSchedule.tsx`, `apps/web/src/server/schedule/mobile-home.ts`
 - Modify: `apps/web/src/app/(app)/page.tsx`, `apps/web/src/app/(doctor)/doctor/page.tsx`
 
 **Interfaces:**
+
 - Consumes: Task 4 전부, `requestDevice`, `loadMonthView`, `buildScheduleView`, `loadDoctorSchedule`, `shiftYm`(`server/schedule/month`)
 - Produces:
   - `export async function loadTodayCard(db: Db, a: { viewerId: string; today: IsoDate; shown?: { year: number; month: number; view: ScheduleView } }): Promise<TodayCard>` — `shown`이 오늘 달이면 다시 읽지 않는다. 오늘이 그 달 말일일 때만 다음 달을 읽는다.
@@ -266,10 +342,12 @@ it('근무표가 없으면 empty', () => expect(todayCard({ cur: emptyView, next
 ### Task 6: 더보기, 관리(PC 안내), 관리자 화면 PC 안내
 
 **Files:**
+
 - Create: `apps/web/src/components/mobile/PcOnly.tsx`, `apps/web/src/app/(app)/more/page.tsx`, `apps/web/src/app/(doctor)/doctor/more/page.tsx`, `apps/web/src/app/(app)/manage/page.tsx`, `apps/web/src/app/(doctor)/doctor/manage/page.tsx`, `apps/web/src/app/(doctor)/doctor/admin/layout.tsx`
 - Modify: `apps/web/src/app/(app)/admin/layout.tsx`, `apps/web/src/app/(app)/adjust/page.tsx`, `apps/web/src/app/(doctor)/doctor/adjust/page.tsx`, `apps/web/src/app/page-guards.test.ts`
 
 **Interfaces:**
+
 - Consumes: `requestDevice`, `LeaveBalanceCard`, `projectedLeaveBalance`, `logoutAction`, 가드들
 - Produces: `PcOnly({ group: 'nurse' | 'doctor' })` — 제목 「PC에서 이용해 주세요」, 설명 「이 화면은 정보가 많아 PC에서 이용해 주세요.」, 목록(듀티 생성 · 생성안 검토 / 근무 조정 (전체 격자 편집·다시 생성) / 규칙 설정 / 간호사 관리 또는 의사 관리), 홈으로 링크
 
@@ -287,10 +365,12 @@ it('근무표가 없으면 empty', () => expect(todayCard({ cur: emptyView, next
 ### Task 7: 모바일 E2E
 
 **Files:**
+
 - Modify: `apps/web/playwright.config.ts`
 - Create: `apps/web/e2e/mobile/shell.spec.ts`
 
 **Interfaces:**
+
 - Consumes: `NURSE`, `ADMIN`, `loginAndWait`, `waitHydrated`, `setToday` (`e2e/fixtures.ts`), `E2E_TODAY = '2026-10-13'`
 
 - [ ] **Step 1: 설정** — `chromium` 프로젝트 `testIgnore: ['cycle/**', 'mobile/**']`. 새 프로젝트 `{ name: 'mobile', testMatch: 'mobile/**/*.spec.ts', dependencies: ['chromium'], use: { ...devices['Pixel 7'], ...channel } }`(크로미움 기반, 모바일 UA·터치). `cycle-reset`의 `dependencies`를 `['chromium', 'mobile']`로.
@@ -301,16 +381,24 @@ test('간호사: 아래 탭, 오늘 카드, 내 달력, 같이 서는 사람', a
   await loginAndWait(page, NURSE.employeeNo)
   await waitHydrated(page)
   const tabs = page.getByRole('navigation', { name: '아래 탭' })
-  for (const t of ['근무표', '신청', '교환', '더보기']) await expect(tabs.getByRole('link', { name: t })).toBeVisible()
+  for (const t of ['근무표', '신청', '교환', '더보기'])
+    await expect(tabs.getByRole('link', { name: t })).toBeVisible()
   await expect(page.getByText('오늘 10/13 (화)')).toBeVisible()
   await expect(page.locator('body')).not.toHaveCSS('overflow-x', 'scroll')
   expect(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth)).toBe(true)
 })
-test('전체: 날짜별 명단에서 나 강조', async ({ page }) => { /* /?tab=all&date=2026-10-13 → 「쉬는 사람」 등 묶음과 정하늘 강조 */ })
-test('관리자: 관리 탭, 듀티 생성은 PC 안내', async ({ page }) => { /* ADMIN 로그인 → 탭에 관리, /admin/generate → 「PC에서 이용해 주세요」 */ })
-test('로그인 화면 한 열', async ({ page }) => { /* /login → 폭 넘침 없음, 사번·비밀번호 입력 보임 */ })
+test('전체: 날짜별 명단에서 나 강조', async ({ page }) => {
+  /* /?tab=all&date=2026-10-13 → 「쉬는 사람」 등 묶음과 정하늘 강조 */
+})
+test('관리자: 관리 탭, 듀티 생성은 PC 안내', async ({ page }) => {
+  /* ADMIN 로그인 → 탭에 관리, /admin/generate → 「PC에서 이용해 주세요」 */
+})
+test('로그인 화면 한 열', async ({ page }) => {
+  /* /login → 폭 넘침 없음, 사번·비밀번호 입력 보임 */
+})
 test('홈 화면 추가 파일은 로그인 없이 200', async ({ request }) => {
-  for (const p of ['/manifest.webmanifest', '/apple-icon']) expect((await request.get(p, { maxRedirects: 0 })).status()).toBe(200)
+  for (const p of ['/manifest.webmanifest', '/apple-icon'])
+    expect((await request.get(p, { maxRedirects: 0 })).status()).toBe(200)
 })
 ```
 

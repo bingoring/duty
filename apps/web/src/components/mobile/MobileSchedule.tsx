@@ -78,7 +78,12 @@ export function MobileSchedule(props: {
         ))}
       </div>
       {props.tab === 'mine' ? (
-        <MineCalendar mine={props.mine} rosters={props.groups[0]?.rosters ?? {}} date={date} onPick={setDate} />
+        <MineCalendar
+          mine={props.mine}
+          rosters={props.groups[0]?.rosters ?? {}}
+          date={date}
+          onPick={setDate}
+        />
       ) : (
         <AllDay mine={props.mine} groups={props.groups} date={date} onPick={setDate} />
       )}
@@ -103,7 +108,9 @@ function TodayCardView({ card }: { card: TodayCard }) {
             {card.time && <span className="text-[13px] opacity-85">{card.time}</span>}
           </div>
           {(card.tomorrow || card.summary) && (
-            <div className="mt-2 text-xs opacity-75">{[card.tomorrow, card.summary].filter(Boolean).join(' · ')}</div>
+            <div className="mt-2 text-xs opacity-75">
+              {[card.tomorrow, card.summary].filter(Boolean).join(' · ')}
+            </div>
           )}
         </>
       )}
@@ -132,7 +139,11 @@ function MineCalendar(props: {
   const picked = props.mine.weeks.flat().find((d) => d?.date === props.date) ?? null
   return (
     <div className="flex flex-col gap-2">
-      <div role="grid" aria-label="내 근무 달력" className="grid grid-cols-7 gap-[3px] text-center text-[11px]">
+      <div
+        role="grid"
+        aria-label="내 근무 달력"
+        className="grid grid-cols-7 gap-[3px] text-center text-[11px]"
+      >
         {WEEK.map((w, i) => (
           <div key={w} className={`py-0.5 ${i === 0 ? 'text-danger' : 'text-ink-3'}`}>
             {w}
@@ -184,13 +195,19 @@ function AllDay(props: { mine: MyMonth; groups: RosterSet[]; date: IsoDate; onPi
   const strip = useRef<HTMLDivElement>(null)
   const days = props.mine.weeks.flat().filter((d): d is MyDay => d !== null)
   useEffect(() => {
-    strip.current?.querySelector('[aria-pressed="true"]')?.scrollIntoView({ inline: 'center', block: 'nearest' })
+    strip.current
+      ?.querySelector('[aria-pressed="true"]')
+      ?.scrollIntoView({ inline: 'center', block: 'nearest' })
   }, [props.date])
   const set = props.groups[group] ?? props.groups[0]
   const groups = set?.rosters[props.date] ?? []
   return (
     <div className="flex flex-col gap-2">
-      <div ref={strip} aria-label="날짜" className="-mx-4 flex gap-1.5 overflow-x-auto px-4 pb-1 [scrollbar-width:none]">
+      <div
+        ref={strip}
+        aria-label="날짜"
+        className="-mx-4 flex gap-1.5 overflow-x-auto px-4 pb-1 [scrollbar-width:none]"
+      >
         {days.map((d) => {
           const on = d.date === props.date
           return (
@@ -205,7 +222,9 @@ function AllDay(props: { mine: MyMonth; groups: RosterSet[]; date: IsoDate; onPi
               } ${d.today && !on ? 'outline-2 outline-primary' : ''}`}
             >
               {WEEK[new Date(`${d.date}T00:00:00Z`).getUTCDay()]}
-              <b className={`text-[15px] ${on ? 'text-white' : d.red ? 'text-danger' : 'text-ink'}`}>{d.day}</b>
+              <b className={`text-[15px] ${on ? 'text-white' : d.red ? 'text-danger' : 'text-ink'}`}>
+                {d.day}
+              </b>
             </button>
           )
         })}

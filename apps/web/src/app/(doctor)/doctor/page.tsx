@@ -43,7 +43,9 @@ export default async function DoctorSchedulePage({ searchParams }: { searchParam
             viewerId: session.user.id,
             today,
           })
-    const nurses = buildScheduleView(await loadMonthView(db, { year, month, viewerId: session.user.id, today }))
+    const nurses = buildScheduleView(
+      await loadMonthView(db, { year, month, viewerId: session.user.id, today }),
+    )
     const date =
       typeof sp.date === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(sp.date) && sp.date.startsWith(ym)
         ? sp.date

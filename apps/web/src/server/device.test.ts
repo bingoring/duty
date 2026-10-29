@@ -32,7 +32,15 @@ describe('3-12 기기 판정', () => {
 
   it('matcher가 홈 화면 추가 파일을 로그인 검사에서 뺀다', () => {
     const re = new RegExp(`^${config.matcher[0]}$`)
-    for (const p of ['/manifest.webmanifest', '/pwa-icon/192', '/pwa-icon/512', '/icon', '/apple-icon', '/login', '/privacy'])
+    for (const p of [
+      '/manifest.webmanifest',
+      '/pwa-icon/192',
+      '/pwa-icon/512',
+      '/icon',
+      '/apple-icon',
+      '/login',
+      '/privacy',
+    ])
       expect(re.test(p), p).toBe(false)
     for (const p of ['/', '/requests', '/doctor', '/more']) expect(re.test(p), p).toBe(true)
   })

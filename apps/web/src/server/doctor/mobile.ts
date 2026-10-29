@@ -1,5 +1,12 @@
 import { DOCTOR_TIMES, formatMD, weekdayKo, type IsoDate } from '@duty/domain'
-import { toWeeks, type DayRosters, type MyDay, type MyMonth, type RosterGroup, type TodayCard } from '../schedule/mobile'
+import {
+  toWeeks,
+  type DayRosters,
+  type MyDay,
+  type MyMonth,
+  type RosterGroup,
+  type TodayCard,
+} from '../schedule/mobile'
 import type { DoctorScheduleView } from './schedule'
 import type { CalDay, CalPerson } from './view'
 
@@ -38,7 +45,8 @@ export function doctorRosters(view: DoctorScheduleView): DayRosters {
   const out: DayRosters = {}
   for (const c of days(view)) {
     const groups: RosterGroup[] = []
-    if (c.allDay && c.day) groups.push({ key: 'ALLDAY', label: '올데이', time: ALLDAY_TIME, people: [p(c.day)] })
+    if (c.allDay && c.day)
+      groups.push({ key: 'ALLDAY', label: '올데이', time: ALLDAY_TIME, people: [p(c.day)] })
     else {
       if (c.day) groups.push({ key: 'D', label: 'D', time: DOCTOR_TIMES.D, people: [p(c.day)] })
       if (c.night) groups.push({ key: 'N', label: 'N', time: DOCTOR_TIMES.N, people: [p(c.night)] })

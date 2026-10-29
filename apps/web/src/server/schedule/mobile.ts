@@ -4,7 +4,14 @@ import type { GridCellView, GridRow, ScheduleView } from './view'
 // 3-12 모바일 근무표. 데스크톱 격자와 같은 ScheduleView를 내 달력·날짜별 명단·오늘 카드로 다시 묶는다(순수 함수)
 
 export type MobileChip = 'd' | 'e' | 'n' | 's' | 'off' | 'leave' | 'allday'
-export type MyDay = { date: IsoDate; day: number; red: boolean; today: boolean; chip: MobileChip | null; label: string }
+export type MyDay = {
+  date: IsoDate
+  day: number
+  red: boolean
+  today: boolean
+  chip: MobileChip | null
+  label: string
+}
 // 일요일 시작, 앞뒤 빈칸 null
 export type MyMonth = { weeks: (MyDay | null)[][] }
 export type RosterPerson = { id: string; name: string; me: boolean; note: string }

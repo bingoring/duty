@@ -19,11 +19,18 @@ export default defineConfig({
   projects: [
     {
       name: 'chromium',
-      testIgnore: 'cycle/**',
+      testIgnore: ['cycle/**', 'mobile/**'],
       use: { ...devices['Desktop Chrome'], ...channel, viewport: { width: 1280, height: 720 } },
     },
+    // 3-12 휴대폰(크로미움 기반 Pixel 7: 모바일 UA·터치·412px). 서버가 UA로 모바일 화면을 고른다
+    {
+      name: 'mobile',
+      testMatch: 'mobile/**/*.spec.ts',
+      dependencies: ['chromium'],
+      use: { ...devices['Pixel 7'], ...channel },
+    },
     // 2-9 한 달 흐름: 다른 스펙이 모두 끝난 뒤 DB를 시드 상태로 되돌리고 돈다(11월을 확정·마감하므로)
-    { name: 'cycle-reset', testMatch: 'cycle/reset.setup.ts', dependencies: ['chromium'] },
+    { name: 'cycle-reset', testMatch: 'cycle/reset.setup.ts', dependencies: ['chromium', 'mobile'] },
     {
       name: 'cycle',
       testMatch: 'cycle/**/*.spec.ts',
