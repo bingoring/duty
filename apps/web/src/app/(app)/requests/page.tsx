@@ -6,6 +6,8 @@ import { loadRequestsRaw } from '@/server/requests/load'
 import { listLeaveProposals } from '@/server/requests/proposals'
 import { parseYm, shiftYm, ymOf } from '@/server/schedule/month'
 import { requestToday } from '@/server/clock'
+import { MobileRequests } from '@/components/mobile/MobileRequests'
+import { requestDevice } from '@/server/request-device'
 
 // S4 근무 신청 + S5 휴가 팝오버 + S4-A 휴가 승인 (Build Spec 2-5). 기본 대상 월 = 오늘의 다음 달
 export default async function RequestsPage({
@@ -24,6 +26,19 @@ export default async function RequestsPage({
   const view = buildRequestsView(await loadRequestsRaw(getDb(), { ym, viewer, today }), viewer)
   // 3-5: 휴가 변경 요청(간호사: 받은 요청, 관리자: 보낸 요청)
   const proposals = await listLeaveProposals(getDb(), viewer)
+  // 3-12 모바일: 달력 + 날짜 시트(저장은 데스크톱 신청 팝오버 그대로)
+  if ((await requestDevice()) === 'mobile')
+    return (
+      <MobileRequests
+        key={ymOf(ym)}
+        view={view}
+        viewerId={viewer.id}
+        today={today}
+        prevHref={`/requests?ym=${ymOf(shiftYm(ym, -1))}`}
+        nextHref={`/requests?ym=${ymOf(shiftYm(ym, 1))}`}
+        proposals={proposals}
+      />
+    )
   return (
     <RequestsScreen
       view={view}
