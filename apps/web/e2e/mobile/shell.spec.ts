@@ -44,6 +44,18 @@ test('전체: 날짜별 명단에서 나 강조, 날짜를 바꾸면 명단이 �
   await noHorizontalOverflow(page)
 })
 
+test('달을 넘기면 그 달 1일이 골라지고, 바뀐 근무 링크(?focus=)는 그 날을 고른다', async ({ page }) => {
+  await loginAndWait(page, NURSE.employeeNo)
+  await page.goto('/?ym=2026-10&tab=all&date=2026-10-13')
+  await waitHydrated(page)
+  await page.getByRole('link', { name: '다음 달' }).click()
+  await page.waitForURL(/ym=2026-11/)
+  await expect(page.getByRole('button', { name: '1일', exact: true })).toHaveAttribute('aria-pressed', 'true')
+  await page.goto('/?ym=2026-10&focus=2026-10-20')
+  await waitHydrated(page)
+  await expect(page.getByRole('button', { name: /^20일 / })).toHaveAttribute('aria-pressed', 'true')
+})
+
 test('더보기: 휴가 잔여·메뉴·로그아웃', async ({ page }) => {
   await loginAndWait(page, NURSE.employeeNo)
   await page.getByRole('navigation', { name: '아래 탭' }).getByRole('link', { name: '더보기' }).click()

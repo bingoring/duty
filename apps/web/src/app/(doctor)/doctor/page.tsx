@@ -56,6 +56,7 @@ export default async function DoctorSchedulePage({ searchParams }: { searchParam
     const q = (m: string, t: string) => `/doctor?ym=${m}${t === 'all' ? '&tab=all' : ''}`
     return (
       <MobileSchedule
+        key={ym}
         title={`${month}월 근무표`}
         prevHref={q(view.prev, tab)}
         nextHref={q(view.next, tab)}

@@ -56,9 +56,7 @@ export default async function SchedulePage({
     const date =
       typeof sp.date === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(sp.date) && sp.date.startsWith(ym)
         ? sp.date
-        : today.startsWith(ym)
-          ? today
-          : `${ym}-01`
+        : (focus ?? (today.startsWith(ym) ? today : `${ym}-01`))
     const tab = sp.tab === 'all' ? 'all' : 'mine'
     const notices = await loadNotices(db, session.user.id)
     const q = (m: string, t: string) => `/?ym=${m}${t === 'all' ? '&tab=all' : ''}`
@@ -74,6 +72,7 @@ export default async function SchedulePage({
           />
         </div>
         <MobileSchedule
+          key={ym}
           title={`${month}월 근무표`}
           prevHref={q(view.prev, tab)}
           nextHref={q(view.next, tab)}
