@@ -8,6 +8,7 @@ import { ktasReminder } from '@/server/ktas/reminder'
 import { pendingProposalCount } from '@/server/requests/proposals'
 import { pendingReceivedCount } from '@/server/swaps/service'
 import { requestToday } from '@/server/clock'
+import { requestDevice } from '@/server/request-device'
 
 export default async function AppLayout({ children }: { children: React.ReactNode }) {
   const session = await requireNurse()
@@ -24,6 +25,7 @@ export default async function AppLayout({ children }: { children: React.ReactNod
   return (
     <AppShell
       session={session}
+      device={await requestDevice()}
       leaveBalance={leaveBalance}
       swapCount={swapCount}
       proposalCount={proposalCount}

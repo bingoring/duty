@@ -15,13 +15,18 @@ describe('페이지 가드', () => {
   it.each(pages(root).map((p) => [path.relative(root, p), p]))('%s', (rel, p) => {
     const src = readFileSync(p, 'utf8')
     // 3-7a: 간호사 화면은 간호사 직군만
-    const guard = rel.startsWith('admin/') ? 'await requireAdmin()' : /await require(Nurse|Admin)\(/
+    const guard =
+      rel.startsWith('admin/') || rel.startsWith('manage/')
+        ? 'await requireAdmin()'
+        : /await require(Nurse|Admin)\(/
     if (typeof guard === 'string') expect(src).toContain(guard)
     else expect(src).toMatch(guard)
   })
   it.each(pages(doctorRoot).map((p) => [path.relative(doctorRoot, p), p]))('의사 %s', (rel, p) => {
     const src = readFileSync(p, 'utf8')
-    if (rel.startsWith('doctor/admin/')) expect(src).toContain('await requireDoctorAdmin()')
+    // 3-12: 모바일 관리 탭도 관리자만
+    if (rel.startsWith('doctor/admin/') || rel.startsWith('doctor/manage/'))
+      expect(src).toContain('await requireDoctorAdmin()')
     else expect(src).toMatch(/await requireDoctor(Admin)?\(/)
   })
 })
