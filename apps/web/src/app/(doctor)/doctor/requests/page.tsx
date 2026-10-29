@@ -4,6 +4,7 @@ import { requestToday } from '@/server/clock'
 import { getDb } from '@/server/db/client'
 import { loadDoctorRequests, type DoctorActor } from '@/server/doctor/requests'
 import { parseYm, shiftYm, ymOf } from '@/server/schedule/month'
+import { requestDevice } from '@/server/request-device'
 
 type Sp = { ym?: string | string[]; user?: string | string[]; hl?: string | string[] }
 
@@ -28,6 +29,7 @@ export default async function DoctorRequestsPage({ searchParams }: { searchParam
       view={view}
       today={today}
       admin={actor.role === 'admin'}
+      mobile={(await requestDevice()) === 'mobile'}
       highlight={hl}
       prev={ymOf(shiftYm(ym, -1))}
       next={ymOf(shiftYm(ym, 1))}

@@ -52,6 +52,7 @@ export function RequestPopover({
   isAdmin,
   proposal = false,
   own = true,
+  variant = 'popover',
   onClose,
 }: {
   userId: string
@@ -66,6 +67,8 @@ export function RequestPopover({
   proposal?: boolean
   // 3-9 14: 관리자가 남의 칸을 열었는지(남이 직접 넣은 신청은 지우지 못한다)
   own?: boolean
+  // 3-12: 모바일은 아래 시트 안에 같은 내용을 넣는다(겉틀 폭·테두리만 다름)
+  variant?: 'popover' | 'sheet'
   onClose: () => void
 }) {
   const initialMode: Mode =
@@ -143,7 +146,11 @@ export function RequestPopover({
 
   if (leave) {
     return (
-      <Shell title={`${formatMD(cell.date)} (${weekdayKo(cell.date)}) · ${userName}`} onClose={onClose}>
+      <Shell
+        variant={variant}
+        title={`${formatMD(cell.date)} (${weekdayKo(cell.date)}) · ${userName}`}
+        onClose={onClose}
+      >
         <div className="flex flex-col gap-1">
           <div className="font-bold">{leave.kindLabel}</div>
           <div className="text-ink-2">
@@ -190,7 +197,11 @@ export function RequestPopover({
 
   if (lockedForNurse) {
     return (
-      <Shell title={`${formatMD(cell.date)} (${weekdayKo(cell.date)}) · 신청`} onClose={onClose}>
+      <Shell
+        variant={variant}
+        title={`${formatMD(cell.date)} (${weekdayKo(cell.date)}) · 신청`}
+        onClose={onClose}
+      >
         <div className="font-bold text-admin">{cell.label}</div>
         {cell.comment && (
           <div className="rounded-md bg-panel px-2 py-1.5 text-xs text-ink-2">{cell.comment}</div>
@@ -211,6 +222,7 @@ export function RequestPopover({
 
   return (
     <Shell
+      variant={variant}
       title={`${formatMD(cell.date)} (${weekdayKo(cell.date)}) · 신청`}
       note={head ? '평일 기본 S · OFF 또는 D 하나' : '근무는 복수 선택 · or'}
       onClose={onClose}
@@ -406,11 +418,13 @@ export function RequestPopover({
 }
 
 function Shell({
+  variant,
   title,
   note,
   onClose,
   children,
 }: {
+  variant: 'popover' | 'sheet'
   title: string
   note?: string
   onClose: () => void
@@ -420,7 +434,11 @@ function Shell({
     <div
       role="dialog"
       aria-label={title}
-      className="flex w-[340px] flex-col gap-2.5 rounded-xl border border-ink bg-surface p-3.5 text-[13px] shadow-popover"
+      className={
+        variant === 'sheet'
+          ? 'flex w-full flex-col gap-2.5 text-[13px]'
+          : 'flex w-[340px] flex-col gap-2.5 rounded-xl border border-ink bg-surface p-3.5 text-[13px] shadow-popover'
+      }
       onKeyDown={(e) => e.key === 'Escape' && onClose()}
     >
       <div className="flex items-center justify-between">

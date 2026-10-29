@@ -20,7 +20,8 @@ import {
 } from '@duty/domain'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
-import { useOptimistic, useState, useTransition } from 'react'
+import { useCallback, useOptimistic, useState, useTransition } from 'react'
+import { BottomSheet } from '../mobile/BottomSheet'
 import { btnPrimary, btnSecondary, Dialog, inputCls, useHydrated } from '@/components/admin/ui'
 import {
   saveDoctorPrefsAction,
@@ -65,7 +66,10 @@ export function DoctorRequestsScreen({
   prev,
   next,
   highlight = null,
+  mobile = false,
 }: {
+  // 3-12: 휴대폰이면 한 열, 고른 날짜의 신청 카드는 아래 시트
+  mobile?: boolean
   view: DoctorRequestsView
   today: string
   admin: boolean
@@ -94,6 +98,11 @@ export function DoctorRequestsScreen({
     })
   }
   const [sel, setSel] = useState(view.days[0]!)
+  const [sheet, setSheet] = useState(false)
+  // 3-12: 대신 신청은 PC에서 — 휴대폰에서 관리자가 다른 의사를 열면 보기 전용
+  const proxyReadOnly = mobile && admin && view.userId !== view.actorId
+  const editable = view.editable && !proxyReadOnly
+  const closeSheet = useCallback(() => setSheet(false), [])
   const [msg, setMsg] = useState<{ ok: boolean; text: string } | null>(null)
   const [conflicts, setConflicts] = useState<Conflict[] | null>(null)
   const [pending, start] = useTransition()
@@ -167,6 +176,61 @@ export function DoctorRequestsScreen({
   const status =
     view.plan.status === 'CONFIRMED' ? '확정됨' : today > view.plan.requestDeadline ? '신청 마감됨' : null
   const sameDay = view.others[sel] ?? []
+  const dayCard = (
+    <div className={`${card} border-ink`}>
+      <div className="text-[13px]">
+        <span className="font-bold">{dateLabel(sel)} 신청</span>
+        <span className="text-ink-2"> · 복수 선택 · or</span>
+      </div>
+      <div className="grid grid-cols-4 gap-1.5">
+        {DOCTOR_OPTION_VALUES.map((o) => {
+          const on = cur.options.includes(o)
+          return (
+            <button
+              key={o}
+              type="button"
+              aria-pressed={on}
+              disabled={!editable || lockedOf(sel)}
+              onClick={() => toggle(o)}
+              className={`h-9 cursor-pointer rounded-lg text-[13px] font-bold text-ink disabled:cursor-default ${OPT_BG[o]} ${
+                on ? 'border-2 border-ink' : 'border border-line opacity-50'
+              }`}
+              style={o === 'ALLDAY' ? { background: ALLDAY_BG } : undefined}
+            >
+              {DOCTOR_OPTION_LABEL[o]}
+            </button>
+          )
+        })}
+      </div>
+      {lockedOf(sel) && (
+        <div role="note" className="rounded-md bg-admin-soft px-2 py-1.5 text-xs text-admin">
+          관리자가 넣은 신청입니다 · 바꾸려면 관리자에게 요청
+        </div>
+      )}
+      {curConflicts.length > 0 && (
+        <div role="alert" className="rounded-md bg-danger-bg px-2 py-1.5 text-xs text-danger-ink">
+          고정 조건 「{curConflicts.join(', ')}」과 부딪힙니다
+          {view.mine[sel]?.fixedException
+            ? ' · 이 날은 조건 예외로 저장됨'
+            : ' · 제출할 때 예외 여부를 묻습니다'}
+        </div>
+      )}
+      <label className="flex flex-col gap-1 text-xs font-semibold text-ink-2">
+        코멘트 (관리자만 열람)
+        <textarea
+          maxLength={200}
+          rows={2}
+          disabled={!editable || lockedOf(sel)}
+          value={cur.comment}
+          onChange={(e) => setCur({ comment: e.target.value })}
+          className="resize-none rounded-lg border border-line bg-surface px-2.5 py-2 text-[13px] font-normal text-ink disabled:opacity-60"
+        />
+      </label>
+      <div className="text-xs text-ink-2">
+        같은 날 신청: {sameDay.length ? sameDay.map((o) => `${o.name} ${o.text}`).join(' · ') : '없음'}
+      </div>
+    </div>
+  )
 
   return (
     <div data-hydrated={hydrated || undefined} className="flex min-w-0 flex-col gap-3 px-4 py-[18px]">
@@ -192,7 +256,12 @@ export function DoctorRequestsScreen({
         <span className="text-xs text-ink-2">
           조정 ~{formatMD(view.plan.negotiationEnd)} · 일찍 확정되면 조기 배포
         </span>
-        {admin && (
+        {proxyReadOnly && (
+          <span role="note" className="w-full rounded-lg bg-admin-soft px-3 py-1.5 text-xs text-admin">
+            {view.people.find((p) => p.id === view.userId)?.name} 선생님 신청 보기 · 대신 신청은 PC에서
+          </span>
+        )}
+        {admin && !mobile && (
           <label className="ml-auto flex items-center gap-2 text-xs font-semibold text-ink-2">
             의사
             <select
@@ -229,7 +298,7 @@ export function DoctorRequestsScreen({
         </span>
       </div>
 
-      <div className="grid grid-cols-[minmax(0,1fr)_300px] items-start gap-4">
+      <div className={`grid items-start gap-4 ${mobile ? 'grid-cols-1' : 'grid-cols-[minmax(0,1fr)_300px]'}`}>
         <div
           role="grid"
           aria-label={`${view.month}월 신청 달력`}
@@ -257,7 +326,8 @@ export function DoctorRequestsScreen({
                 exception={!!view.mine[d]?.fixedException}
                 others={view.others[d] ?? []}
                 selected={d === sel}
-                onSelect={() => setSel(d)}
+                onSelect={() => (setSel(d), mobile && setSheet(true))}
+                compact={mobile}
                 holiday={view.holidays[d] ?? null}
                 color={myColor}
                 colors={view.colors}
@@ -265,7 +335,9 @@ export function DoctorRequestsScreen({
                 dim={!!highlight && highlight !== view.userId}
                 highlight={highlight}
                 onWithdraw={
-                  view.mine[d] && view.canWithdraw && !lockedOf(d) && !pending ? () => withdraw(d) : undefined
+                  view.mine[d] && view.canWithdraw && !proxyReadOnly && !lockedOf(d) && !pending
+                    ? () => withdraw(d)
+                    : undefined
                 }
               />
             ) : (
@@ -275,59 +347,7 @@ export function DoctorRequestsScreen({
         </div>
 
         <aside className="flex flex-col gap-3">
-          <div className={`${card} border-ink`}>
-            <div className="text-[13px]">
-              <span className="font-bold">{dateLabel(sel)} 신청</span>
-              <span className="text-ink-2"> · 복수 선택 · or</span>
-            </div>
-            <div className="grid grid-cols-4 gap-1.5">
-              {DOCTOR_OPTION_VALUES.map((o) => {
-                const on = cur.options.includes(o)
-                return (
-                  <button
-                    key={o}
-                    type="button"
-                    aria-pressed={on}
-                    disabled={!view.editable || lockedOf(sel)}
-                    onClick={() => toggle(o)}
-                    className={`h-9 cursor-pointer rounded-lg text-[13px] font-bold text-ink disabled:cursor-default ${OPT_BG[o]} ${
-                      on ? 'border-2 border-ink' : 'border border-line opacity-50'
-                    }`}
-                    style={o === 'ALLDAY' ? { background: ALLDAY_BG } : undefined}
-                  >
-                    {DOCTOR_OPTION_LABEL[o]}
-                  </button>
-                )
-              })}
-            </div>
-            {lockedOf(sel) && (
-              <div role="note" className="rounded-md bg-admin-soft px-2 py-1.5 text-xs text-admin">
-                관리자가 넣은 신청입니다 · 바꾸려면 관리자에게 요청
-              </div>
-            )}
-            {curConflicts.length > 0 && (
-              <div role="alert" className="rounded-md bg-danger-bg px-2 py-1.5 text-xs text-danger-ink">
-                고정 조건 「{curConflicts.join(', ')}」과 부딪힙니다
-                {view.mine[sel]?.fixedException
-                  ? ' · 이 날은 조건 예외로 저장됨'
-                  : ' · 제출할 때 예외 여부를 묻습니다'}
-              </div>
-            )}
-            <label className="flex flex-col gap-1 text-xs font-semibold text-ink-2">
-              코멘트 (관리자만 열람)
-              <textarea
-                maxLength={200}
-                rows={2}
-                disabled={!view.editable || lockedOf(sel)}
-                value={cur.comment}
-                onChange={(e) => setCur({ comment: e.target.value })}
-                className="resize-none rounded-lg border border-line bg-surface px-2.5 py-2 text-[13px] font-normal text-ink disabled:opacity-60"
-              />
-            </label>
-            <div className="text-xs text-ink-2">
-              같은 날 신청: {sameDay.length ? sameDay.map((o) => `${o.name} ${o.text}`).join(' · ') : '없음'}
-            </div>
-          </div>
+          {!mobile && dayCard}
 
           <PrefsCard view={view} />
 
@@ -342,7 +362,7 @@ export function DoctorRequestsScreen({
           <button
             type="button"
             className={btnPrimary}
-            disabled={!view.editable || changed.length === 0 || pending}
+            disabled={!editable || changed.length === 0 || pending}
             onClick={() => submit([])}
           >
             신청 제출
@@ -354,6 +374,17 @@ export function DoctorRequestsScreen({
           )}
         </aside>
       </div>
+
+      {mobile && sheet && (
+        <BottomSheet label={`${dateLabel(sel)} 신청`} onClose={closeSheet}>
+          <div className="flex flex-col gap-3">
+            {dayCard}
+            <button type="button" className={btnPrimary} onClick={closeSheet}>
+              완료
+            </button>
+          </div>
+        </BottomSheet>
+      )}
 
       {conflicts && (
         <Dialog title="고정 조건과 부딪히는 신청이 있습니다" onClose={() => setConflicts(null)}>
@@ -400,7 +431,10 @@ function DayCell({
   dim,
   highlight,
   onWithdraw,
+  compact = false,
 }: {
+  // 3-12 휴대폰: 칸을 낮추고 남의 신청 줄은 점 하나로
+  compact?: boolean
   date: string
   mine: Draft | undefined
   changed: boolean
@@ -428,7 +462,7 @@ function DayCell({
     <div
       role="gridcell"
       title={holiday ?? undefined}
-      className={`relative flex min-h-[86px] flex-col items-start gap-1 border-t border-l border-line px-2 py-1.5 text-left ${bg} ${
+      className={`relative flex flex-col items-start gap-1 border-t border-l border-line text-left ${compact ? 'min-h-[60px] px-1 py-1' : 'min-h-[86px] px-2 py-1.5'} ${bg} ${
         selected ? 'z-10 outline-2 -outline-offset-2 outline-ink' : ''
       }`}
     >
@@ -472,26 +506,30 @@ function DayCell({
           <span className="text-[10px] text-ink-3">{exception ? '고정 예외' : `고정 · ${f.label}`}</span>
         </span>
       ))}
-      {others.map((o, i) => (
-        <span
-          key={i}
-          className={`pointer-events-none inline-flex items-center gap-1 text-[11px] leading-[1.3] text-ink-2 ${
-            highlight && highlight !== o.userId ? 'opacity-40' : ''
-          }`}
-        >
-          {o.fixed ? (
-            <span aria-hidden className="h-2 w-2 shrink-0" />
-          ) : (
-            <span
-              aria-label={DOT_LABEL[requestDot(o)]}
-              className={`h-2 w-2 shrink-0 rounded-full ${DOT_CLS[requestDot(o)]}`}
-            />
-          )}
-          <span className={`rounded px-1 ${colorOf(colors, o.userId).tint}`}>
-            {o.name} {o.text}
+      {compact && others.length > 0 && (
+        <span className="pointer-events-none text-[10px] text-ink-3">+{others.length}</span>
+      )}
+      {!compact &&
+        others.map((o, i) => (
+          <span
+            key={i}
+            className={`pointer-events-none inline-flex items-center gap-1 text-[11px] leading-[1.3] text-ink-2 ${
+              highlight && highlight !== o.userId ? 'opacity-40' : ''
+            }`}
+          >
+            {o.fixed ? (
+              <span aria-hidden className="h-2 w-2 shrink-0" />
+            ) : (
+              <span
+                aria-label={DOT_LABEL[requestDot(o)]}
+                className={`h-2 w-2 shrink-0 rounded-full ${DOT_CLS[requestDot(o)]}`}
+              />
+            )}
+            <span className={`rounded px-1 ${colorOf(colors, o.userId).tint}`}>
+              {o.name} {o.text}
+            </span>
           </span>
-        </span>
-      ))}
+        ))}
       {onWithdraw && (
         <button
           type="button"

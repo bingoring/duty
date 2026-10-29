@@ -11,6 +11,7 @@ import { useHydrated } from '@/components/admin/ui'
 import { decideLeaveAction, submitRequestsAction } from '@/server/requests/actions'
 import type { PendingLeave, RequestCellDTO, RequestsView } from '@/server/requests/dto'
 import { RequestPopover } from './RequestPopover'
+import { sameDayText } from '@/server/requests/mobile'
 import { OUTLINE } from '@/components/schedule/ScheduleGrid'
 
 // S4 근무 신청 · S5 휴가 · S4-A 휴가 승인 (Build Spec 2-5 frontend-components)
@@ -386,14 +387,7 @@ export function RequestsScreen({
   }
   const selRow = sel && view.rows.find((r) => r.userId === sel.userId)
   const selCell = selRow?.cells.find((c) => c.date === sel!.date)
-  const sameDay = sel
-    ? view.rows
-        .filter((r) => r.userId !== sel.userId)
-        .map((r) => ({ r, c: r.cells.find((c) => c.date === sel.date)! }))
-        .filter(({ c }) => c.kind && !c.draft)
-        .map(({ r, c }) => `${r.name} ${c.label}`)
-        .join(' · ')
-    : ''
+  const sameDay = sel ? sameDayText(view, sel.userId, sel.date) : ''
 
   const submit = () =>
     start(async () => {

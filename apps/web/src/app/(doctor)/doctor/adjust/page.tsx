@@ -22,7 +22,8 @@ export default async function DoctorAdjustPage({ searchParams }: { searchParams:
   const { year, month } = parseYm(sp.ym, today)
   const actor = { id: session.user.id, role: session.user.role === 'admin' ? 'admin' : 'member' } as const
   // 3-12: 관리자 직접 편집은 휴대폰에서 PC 안내
-  if (actor.role === 'admin' && (await requestDevice()) === 'mobile') return <PcOnly group="doctor" />
+  const mobile = (await requestDevice()) === 'mobile'
+  if (actor.role === 'admin' && mobile) return <PcOnly group="doctor" />
   const db = getDb()
   const adjust = await loadDoctorAdjust(db, { year, month }, actor, today)
   const view = await loadDoctorSchedule(db, { year, month, viewerId: session.user.id, today })
@@ -56,6 +57,7 @@ export default async function DoctorAdjustPage({ searchParams }: { searchParams:
 
   return (
     <DoctorAdjustScreen
+      mobile={mobile}
       header={header}
       year={year}
       month={month}
