@@ -33,10 +33,12 @@
 ### Task 1: 공용 아래 시트, 팝오버 겉틀 변형
 
 **Files:**
+
 - Create: `apps/web/src/components/mobile/BottomSheet.tsx`
 - Modify: `apps/web/src/components/requests/RequestPopover.tsx` (`Shell`), `apps/web/src/components/adjust/NurseAdjust.tsx` (`SwapPopup` 루트 className, `SwapPopup`·`SentList` export)
 
 **Interfaces:**
+
 - Produces:
   - `BottomSheet({ label: string; onClose: () => void; children: React.ReactNode })` — 클라이언트. `role="dialog" aria-modal="true" aria-label={label}`, 배경(`fixed inset-0 bg-ink/35`) 탭·Escape로 `onClose`, 패널 `fixed inset-x-0 bottom-0 max-h-[85dvh] overflow-y-auto rounded-t-[18px] bg-surface px-4 pt-2.5 pb-[calc(16px+env(safe-area-inset-bottom))]`, 손잡이 막대, 열려 있는 동안 `body` 스크롤 잠금.
   - `RequestPopover`에 prop `variant?: 'popover' | 'sheet'`(기본 popover). sheet면 `Shell`이 테두리·그림자·`w-[340px]` 없이 `w-full`.
@@ -53,17 +55,33 @@
 ### Task 2: 신청 달력 데이터 묶기(순수 함수)
 
 **Files:**
+
 - Create: `apps/web/src/server/requests/mobile.ts`, `apps/web/src/server/requests/mobile.test.ts`
 
 **Interfaces:**
+
 - Consumes: `RequestsView`, `RequestRowDTO`, `RequestCellDTO` (`server/requests/dto.ts`), `toWeeks`(1차 `server/schedule/mobile.ts`)는 `MyDay` 전용이라 쓰지 않고 같은 방식으로 주를 나눈다(일요일 시작).
 - Produces:
 
 ```ts
 export type ReqMark = { label: string; kind: 'shift' | 'leave'; byAdmin: boolean; draft: boolean }
-export type ReqDay = { date: IsoDate; day: number; red: boolean; mine: ReqMark | null; rest: number; hot: boolean; count: number }
+export type ReqDay = {
+  date: IsoDate
+  day: number
+  red: boolean
+  mine: ReqMark | null
+  rest: number
+  hot: boolean
+  count: number
+}
 export type ReqMonth = { weeks: (ReqDay | null)[][] }
-export type PeerRequest = { userId: string; name: string; label: string; kind: 'shift' | 'leave'; byAdmin: boolean }
+export type PeerRequest = {
+  userId: string
+  name: string
+  label: string
+  kind: 'shift' | 'leave'
+  byAdmin: boolean
+}
 export function requestMonth(view: RequestsView): ReqMonth
 export function peerRequests(view: RequestsView, date: IsoDate): PeerRequest[] // 내 행 제외, kind 있는 칸만, 표 순서
 ```
@@ -73,16 +91,24 @@ export function peerRequests(view: RequestsView, date: IsoDate): PeerRequest[] /
 - [ ] **Step 1: 실패하는 테스트** — 3명 × 12월 작은 `RequestsView` 픽스처(내 행 `me: true`):
 
 ```ts
-it('12월 1일은 화요일 → 첫 주 앞 2칸 null', () => expect(requestMonth(dec).weeks[0]!.slice(0, 2)).toEqual([null, null]))
+it('12월 1일은 화요일 → 첫 주 앞 2칸 null', () =>
+  expect(requestMonth(dec).weeks[0]!.slice(0, 2)).toEqual([null, null]))
 it('내 신청 표시: 라벨·종류·관리자 표시·임시 저장', () =>
-  expect(find(requestMonth(dec), '2026-12-04')?.mine).toEqual({ label: 'O', kind: 'shift', byAdmin: false, draft: true }))
+  expect(find(requestMonth(dec), '2026-12-04')?.mine).toEqual({
+    label: 'O',
+    kind: 'shift',
+    byAdmin: false,
+    draft: true,
+  }))
 it('쉼 n과 3 이상 빨강', () => {
   expect(find(requestMonth(dec), '2026-12-24')).toMatchObject({ rest: 5, hot: true })
   expect(find(requestMonth(dec), '2026-12-03')).toMatchObject({ rest: 2, hot: false })
 })
 it('그날 신청한 사람 수', () => expect(find(requestMonth(dec), '2026-12-04')?.count).toBe(2))
 it('동료 신청: 내 행 제외, 신청 있는 사람만, 휴가 포함', () =>
-  expect(peerRequests(dec, '2026-12-04')).toEqual([{ userId: 'u2', name: '윤채원', label: 'D/E', kind: 'shift', byAdmin: false }]))
+  expect(peerRequests(dec, '2026-12-04')).toEqual([
+    { userId: 'u2', name: '윤채원', label: 'D/E', kind: 'shift', byAdmin: false },
+  ]))
 it('관리자가 넣은 신청은 byAdmin', () => expect(peerRequests(dec, '2026-12-09')[0]?.byAdmin).toBe(true))
 it('신청 없는 날은 빈 배열', () => expect(peerRequests(dec, '2026-12-02')).toEqual([]))
 ```
@@ -97,10 +123,12 @@ it('신청 없는 날은 빈 배열', () => expect(peerRequests(dec, '2026-12-02
 ### Task 3: 간호사 모바일 신청 화면
 
 **Files:**
+
 - Create: `apps/web/src/components/mobile/MobileRequests.tsx`
 - Modify: `apps/web/src/app/(app)/requests/page.tsx`
 
 **Interfaces:**
+
 - Consumes: `requestMonth`, `peerRequests` (Task 2), `BottomSheet`, `RequestPopover variant="sheet"` (Task 1), `ProposalPanel`(기존, 받은 휴가 변경 요청), `submitRequestsAction`, `requestDevice`
 - Produces: `MobileRequests({ view: RequestsView; viewerId: string; prevHref: string; nextHref: string })`
 
@@ -123,10 +151,12 @@ it('신청 없는 날은 빈 배열', () => expect(peerRequests(dec, '2026-12-02
 ### Task 4: 교환 데이터(순수 함수)와 맞바꾸기 규칙 분리
 
 **Files:**
+
 - Create: `apps/web/src/components/adjust/swap-codes.ts`, `swap-codes.test.ts`, `apps/web/src/server/adjust/mobile.ts`, `apps/web/src/server/adjust/mobile.test.ts`
 - Modify: `apps/web/src/components/adjust/NurseAdjust.tsx` (`swapCodes`를 import로)
 
 **Interfaces:**
+
 - Produces:
   - `export function swapCodes(codes: SwapCode[], a: number, b: number, isHead: (i: number) => boolean): SwapCode[] | null` (본문은 지금 `NurseAdjust.tsx`의 것 그대로 옮김)
   - `export type SwapPerson = { id: string; name: string; code: string; selectable: boolean }`
@@ -147,10 +177,12 @@ it('신청 없는 날은 빈 배열', () => expect(peerRequests(dec, '2026-12-02
 ### Task 5: 간호사 모바일 교환 화면
 
 **Files:**
+
 - Create: `apps/web/src/components/mobile/MobileSwap.tsx`
 - Modify: `apps/web/src/app/(app)/adjust/page.tsx`
 
 **Interfaces:**
+
 - Consumes: `swapGroups`, `swapDates` (Task 4), `BottomSheet`, `SwapPopup variant="sheet"`, `ReceivedList`, `SentList` (Task 1)
 - Produces: `MobileSwap({ view: AdjustView; viewerId: string })`
 
@@ -170,9 +202,11 @@ it('신청 없는 날은 빈 배열', () => expect(peerRequests(dec, '2026-12-02
 ### Task 6: 의사 신청·교환 반응형
 
 **Files:**
+
 - Modify: `apps/web/src/components/doctor/DoctorRequestsScreen.tsx`, `apps/web/src/components/doctor/DoctorAdjustScreen.tsx`, `apps/web/src/components/doctor/DoctorCalendar.tsx`(폭 고정 부분만), 필요하면 `apps/web/src/app/(doctor)/doctor/requests/page.tsx`·`adjust/page.tsx`의 바깥 여백
 
 **Interfaces:**
+
 - Consumes: `BottomSheet`(Task 1)
 - Produces: 없음(같은 컴포넌트가 폭에 따라 배치만 바뀜)
 
@@ -188,9 +222,11 @@ it('신청 없는 날은 빈 배열', () => expect(peerRequests(dec, '2026-12-02
 ### Task 7: 모바일 E2E
 
 **Files:**
+
 - Create: `apps/web/e2e/mobile/requests-swap.spec.ts`
 
 **Interfaces:**
+
 - Consumes: `NURSE`, `ADMIN`, `loginAndWait`, `waitHydrated`, `setToday` (`e2e/fixtures.ts`). 데스크톱 `e2e/requests.spec.ts`·`swap.spec.ts`가 쓰는 달·날짜·상대(신청 기간 달, 협의 기간 달, `findSwapPair`)를 그대로 따른다.
 
 - [ ] **Step 1: 테스트 작성**
