@@ -115,14 +115,12 @@ test('의사 관리자: 휴대폰에서는 대신 신청 없이 자기 신청만
   await close()
   await login(page, '800101', DEV_PASSWORD)
   await page.waitForURL('/doctor')
+  // 신청 가능 여부는 앞선 스펙(11월 생성·확정)에 따라 달라지므로 보지 않는다. 대신 신청 막기만 확인한다
   await page.goto('/doctor/requests')
   await waitHydrated(page)
   await expect(page.getByLabel('의사 선택')).toHaveCount(0)
-  await page.getByRole('button', { name: '20일', exact: true }).click()
-  const own = page.getByRole('dialog', { name: /신청$/ })
-  await expect(own.getByRole('button', { name: 'D', exact: true })).toBeEnabled()
-  await own.getByRole('button', { name: '완료' }).click()
-  // 주소로 다른 의사를 열어도 휴대폰에서는 고칠 수 없다
+  await expect(page.getByText('대신 신청은 PC에서')).toHaveCount(0)
+  // 주소로 다른 의사를 열면 보기 전용 안내, 신청 버튼은 막힌다
   await page.goto(`/doctor/requests?user=${go!.id}`)
   await waitHydrated(page)
   await expect(page.getByText('대신 신청은 PC에서')).toBeVisible()
