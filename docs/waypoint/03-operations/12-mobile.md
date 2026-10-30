@@ -1,7 +1,7 @@
 ---
 phase: 03-operations
 stage: 12-mobile
-status: READY
+status: IMPLEMENTED
 updated: 2026-10-29
 ---
 
