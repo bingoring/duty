@@ -95,3 +95,19 @@ export function staleBefore(
     return !c || !sameBefore(e.before, beforeOf(c))
   })
 }
+
+// 3-12 3차: 휴대폰 급한 변경의 휴가 넣기 — 그 사람 그 날(하루)만, 다시 생성 없이. 인원 부족은 대체 지정·사유로 푼다
+export function dayLeave(
+  cells: readonly GridCell[],
+  a: { userId: string; date: IsoDate; type: LeaveType; reasonCode?: string },
+): DraftLeave {
+  const c = cells.find((x) => x.userId === a.userId && x.date === a.date)
+  return {
+    userId: a.userId,
+    type: a.type,
+    ...(a.reasonCode ? { reasonCode: a.reasonCode } : {}),
+    startDate: a.date,
+    endDate: a.date,
+    cells: c ? [{ date: a.date, before: beforeOf(c) }] : [],
+  }
+}

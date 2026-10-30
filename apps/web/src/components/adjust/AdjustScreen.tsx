@@ -1,23 +1,20 @@
 'use client'
 
-import { applyEdits, type CellEdit } from '@duty/domain'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
-import { useEffect, useMemo, useState, useTransition } from 'react'
+import { useEffect, useState, useTransition } from 'react'
 import { ScheduleGrid } from '@/components/schedule/ScheduleGrid'
 import {
   closeMonthAction,
   previewCloseAction,
   reopenMonthAction,
-  saveEditsAction,
   updateNegotiationAction,
 } from '@/server/adjust/actions'
-import { applyDraftLeaves, draftLeaveKeys, type DraftLeave } from '@/server/adjust/draft'
 import type { AdjustView } from '@/server/adjust/view'
-import { cellView, type GridCellView } from '@/server/schedule/view'
 import { useHydrated } from '../admin/ui'
 import { CellBody, DockFrame, ReplacementBody, cellLabel, type DockMode, type DockTarget } from './Dock'
 import { ReceivedList } from './NurseAdjust'
+import { useAdjustDraft } from './useAdjustDraft'
 
 // S9 근무 조정 · 관리자 시점 (Build Spec 2-7, 핸드오프 v5 5a·5b 하단 편집 도크)
 const btn2 =
@@ -29,29 +26,17 @@ export function AdjustScreen({ view }: { view: AdjustView }) {
   const router = useRouter()
   const hydrated = useHydrated()
   const [pending, start] = useTransition()
-  const [edits, setEdits] = useState<CellEdit[]>([])
-  // 3-10 9: 저장 전 휴가(휴가 넣고 다시 생성) — 「저장 · 재배포」 때 처음 저장된다
-  const [leaves, setLeaves] = useState<DraftLeave[]>([])
+  // 3-12 3차: 편집·저장 전 휴가·되돌리기·저장은 useAdjustDraft(휴대폰 급한 변경 시트와 같이 씀)
+  const draft = useAdjustDraft(view)
+  const { edits, leaves, base, draftInput, unsaved, pendingViews, addEdits, revert } = draft
   const [pop, setPop] = useState<DockTarget | null>(
     view.focus?.shift ? { kind: 'replace', date: view.focus.date, shift: view.focus.shift } : null,
   )
   const [mode, setMode] = useState<DockMode>('open')
-  // 맞바꾸기·대체처럼 함께 들어간 편집은 함께 되돌린다
-  const [groups, setGroups] = useState<Map<string, string[]>>(new Map())
   const [msg, setMsg] = useState<{ kind: 'ok' | 'err'; text: string; list?: string[] } | null>(null)
   const [closing, setClosing] = useState(false)
   const [hover, setHover] = useState<{ userId: string; date: string } | null>(null)
-  const input = view.checkInput
   const nameOf = (id: string) => view.names[id]?.name ?? id
-  // 저장 전 휴가를 얹은 칸(편집의 출발점)과 그 위에 편집을 얹은 칸
-  const draftInput = useMemo(
-    () => (input ? { ...input, cells: applyDraftLeaves(input.cells, leaves) } : null),
-    [input, leaves],
-  )
-  const base = useMemo(() => (draftInput ? applyEdits(draftInput.cells, edits) : []), [draftInput, edits])
-  const leaveCellCount = leaves.reduce((n, l) => n + l.cells.length, 0)
-  const unsaved = edits.length + leaveCellCount
-
   // 저장 전 편집이 있으면 떠날 때 경고
   useEffect(() => {
     if (!unsaved) return
@@ -60,51 +45,6 @@ export function AdjustScreen({ view }: { view: AdjustView }) {
     return () => window.removeEventListener('beforeunload', h)
   }, [unsaved])
 
-  const pendingViews = useMemo(() => {
-    const m = new Map<string, GridCellView>()
-    const days = new Map(view.grid.days.map((d) => [d.date, d]))
-    const changed = new Set([...edits.map((e) => key(e.userId, e.date)), ...draftLeaveKeys(leaves)])
-    for (const c of base.filter((c) => changed.has(key(c.userId, c.date))))
-      m.set(key(c.userId, c.date), cellView({ ...c, source: 'admin' }, days.get(c.date)!))
-    return m
-  }, [edits, leaves, base, view.grid.days])
-
-  const resetDraft = () => (setEdits([]), setLeaves([]), setGroups(new Map()))
-
-  const addEdits = (next: CellEdit[]) => {
-    const orig = new Map((draftInput?.cells ?? []).map((c) => [key(c.userId, c.date), c]))
-    setEdits((prev) => {
-      const m = new Map(prev.map((e) => [key(e.userId, e.date), e]))
-      for (const e of next) {
-        const k = key(e.userId, e.date)
-        const o = orig.get(k)!
-        const first = m.get(k)?.before ?? e.before
-        const back =
-          o.code === e.after.code &&
-          (o.code !== 'OFF' || (o.offKind ?? 'regular') === (e.after.offKind ?? 'regular'))
-        if (back) m.delete(k)
-        else m.set(k, { ...e, before: first })
-      }
-      return [...m.values()]
-    })
-    const ks = next.map((e) => key(e.userId, e.date))
-    setGroups((g) => {
-      const n = new Map(g)
-      for (const k of ks) n.set(k, ks)
-      return n
-    })
-  }
-  const revert = (k: string) => {
-    const ks = groups.get(k) ?? [k]
-    setEdits((prev) => prev.filter((e) => !ks.includes(key(e.userId, e.date))))
-    // 3-10 9: 휴가 넣기와 그 다시 생성 결과는 함께 되돌린다
-    setLeaves((prev) => prev.filter((l) => !l.cells.some((c) => ks.includes(key(l.userId, c.date)))))
-    setGroups((g) => {
-      const n = new Map(g)
-      for (const x of ks) n.delete(x)
-      return n
-    })
-  }
   const openCell = (userId: string, date: string) => {
     setPop({ kind: 'cell', userId, date })
     if (mode === 'min') setMode('open')
@@ -119,10 +59,9 @@ export function AdjustScreen({ view }: { view: AdjustView }) {
 
   const save = () =>
     start(async () => {
-      if (!view.plan) return
-      const r = await saveEditsAction({ planId: view.plan.id, edits, leaves })
+      const r = await draft.save()
+      if (!r) return
       if (r.ok) {
-        resetDraft()
         setMsg({
           kind: 'ok',
           text: `${'saved' in r ? r.saved : 0}건을 저장했습니다. 간호사 근무표에 바로 보입니다.`,
@@ -175,7 +114,7 @@ export function AdjustScreen({ view }: { view: AdjustView }) {
             >
               변경 {unsaved}건 미저장
             </span>
-            <button type="button" className={btn2} disabled={!unsaved || pending} onClick={resetDraft}>
+            <button type="button" className={btn2} disabled={!unsaved || pending} onClick={draft.reset}>
               되돌리기
             </button>
             <button
@@ -338,20 +277,8 @@ export function AdjustScreen({ view }: { view: AdjustView }) {
               onApply={addEdits}
               onRevert={revert}
               onRerolled={(leave, next, text) => {
-                // 3-10 8·9: 이전 편집 + 새 휴가 + 다시 생성한 편집이 모두 저장 전 편집이다
-                const prevKeys = new Set(edits.map((e) => key(e.userId, e.date)))
-                const ks = [
-                  ...leave.cells.map((c) => key(leave.userId, c.date)),
-                  ...next.map((e) => key(e.userId, e.date)).filter((x) => !prevKeys.has(x)),
-                ]
                 setPop(null)
-                setLeaves((prev) => [...prev, leave])
-                setEdits(next)
-                setGroups((g) => {
-                  const n = new Map(g)
-                  for (const x of ks) n.set(x, ks)
-                  return n
-                })
+                draft.addRerolled(leave, next)
                 setMsg({ kind: 'ok', text })
               }}
               onLeaveCancelled={(text, list) => {

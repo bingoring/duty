@@ -11,6 +11,7 @@ import { cancelApprovedLeave } from '../requests/service'
 import { closeMonth, previewClose, reopenMonth } from './close'
 import { rerollFrom, rerollPreview } from './reroll'
 import { saveEdits, updateNegotiation } from './service'
+import { loadAdjustView } from './view'
 import { requestToday } from '../clock'
 
 // Build Spec 2-7 — 근무 조정 서버 액션. 각 액션은 첫 줄에서 관리자를 확인한다(페이지 가드에 기대지 않음)
@@ -145,4 +146,16 @@ export async function rerollFromAction(input: unknown) {
     .safeParse(input)
   if (!parsed.success) return BAD
   return rerollFrom(getDb(), admin, { ...parsed.data, today: await requestToday() })
+}
+
+// 3-12 3차: 휴대폰 급한 변경 시트가 열릴 때 그 달 관리자 조정 데이터(검사 입력·대체 후보용)를 읽는다(홈에서 미리 읽지 않음)
+export async function adminAdjustViewAction(input: unknown) {
+  const admin = await adminOnly()
+  if (!admin) return DENIED
+  const p = z
+    .object({ year: z.number().int().min(2000).max(2100), month: z.number().int().min(1).max(12) })
+    .safeParse(input)
+  if (!p.success) return BAD
+  const view = await loadAdjustView(getDb(), { ym: p.data, viewer: admin, today: await requestToday() })
+  return { ok: true as const, view }
 }
