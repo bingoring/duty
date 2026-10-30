@@ -1,4 +1,4 @@
-import { and, asc, desc, eq, gte, lte, or } from 'drizzle-orm'
+import { and, asc, eq, gte, lte } from 'drizzle-orm'
 import type { Db } from '../db/client'
 import {
   holidays,
@@ -15,18 +15,17 @@ import { shiftYm, todaySeoul, type YearMonth } from '../schedule/month'
 import {
   addDays,
   baselineOff,
-  formatMD,
-  weekdayKo,
   monthDates,
   type HolidayKind,
   type LeaveType,
   type MonthPlanStatus,
   leaveCellLabel,
 } from '@duty/domain'
-import { leaveKindLabel, type RequestsRaw } from './dto'
+import type { RequestsRaw } from './dto'
 import { ensureRequestPlan } from './plan'
-import { leaveImpact, type Actor } from './service'
+import type { Actor } from './service'
 import { NURSES } from '../role-group'
+import { loadLeaveApprovals } from './approvals'
 
 // 3-6: 휴가 칸은 종류 이름
 const cellLabel = (c: { code: string; offKind: string | null; leaveKind: string | null }) =>
@@ -55,9 +54,6 @@ export async function loadRequestsRaw(
   const people = (await db.select().from(users).where(NURSES).orderBy(asc(users.seniorityRank))).filter(
     // 2-11 R-HEAD-2: 수간호사도 행이 있다(OFF·D만 신청)
     (u) => u.active || involved.has(u.id),
-  )
-  const names = new Map(
-    (await db.select({ id: users.id, name: users.name }).from(users)).map((u) => [u.id, u.name]),
   )
 
   const scheduled =
@@ -103,61 +99,9 @@ export async function loadRequestsRaw(
     }
   }
 
-  // 관리자: 승인 대기(모든 달) · 처리 이력
-  let pending: RequestsRaw['pending'] = []
-  let history: RequestsRaw['history'] = []
-  if (viewer.role === 'admin') {
-    const plans = await db.select().from(monthPlans)
-    const statusOf = (d: string) =>
-      plans.find((p) => p.year === Number(d.slice(0, 4)) && p.month === Number(d.slice(5, 7)))?.status
-    const queue = await db
-      .select()
-      .from(leaveRequests)
-      .where(eq(leaveRequests.status, 'SUBMITTED'))
-      .orderBy(asc(leaveRequests.startDate))
-    pending = await Promise.all(
-      queue.map(async (l) => {
-        const confirmed = statusOf(l.startDate) === 'CONFIRMED'
-        const m = Number(l.startDate.slice(5, 7))
-        const impact = confirmed ? await leaveImpact(db, l.id) : null
-        const day = (d: string) => `${formatMD(d)} (${weekdayKo(d)})`
-        return {
-          id: l.id,
-          name: names.get(l.userId) ?? '',
-          monthLabel: `${m}월 · ${confirmed ? '확정된 달' : '신청 중'}`,
-          confirmedMonth: confirmed,
-          kindLabel: leaveKindLabel(l.type as LeaveType, l.reasonCode),
-          range: l.startDate === l.endDate ? day(l.startDate) : `${day(l.startDate)} – ${day(l.endDate)}`,
-          days: Number(l.days),
-          comment: l.comment,
-          impact: impact?.lines ?? null,
-          candidates: impact?.candidates ?? [],
-          focus: impact?.focus ? { ym: impact.focus.date.slice(0, 7), ...impact.focus } : null,
-        }
-      }),
-    )
-    const done = await db
-      .select()
-      .from(leaveRequests)
-      .where(or(eq(leaveRequests.status, 'APPROVED'), eq(leaveRequests.status, 'REJECTED')))
-      .orderBy(desc(leaveRequests.decidedAt))
-      .limit(10)
-    history = done.map((l) => ({
-      id: l.id,
-      name: names.get(l.userId) ?? '',
-      // 핸드오프 4a: '연차 · 11/6–7', 처리일 '09/24'
-      kindLabel: `${leaveKindLabel(l.type as LeaveType, l.reasonCode).split(' · ')[0]} · ${
-        l.startDate === l.endDate
-          ? formatMD(l.startDate)
-          : l.startDate.slice(0, 7) === l.endDate.slice(0, 7)
-            ? `${formatMD(l.startDate)}–${Number(l.endDate.slice(8))}`
-            : `${formatMD(l.startDate)}–${formatMD(l.endDate)}`
-      }`,
-      status: l.status as 'APPROVED' | 'REJECTED',
-      reason: l.rejectReason,
-      when: l.decidedAt ? todaySeoul(l.decidedAt).slice(5).replace('-', '/') : '',
-    }))
-  }
+  // 관리자: 승인 대기(모든 달) · 처리 이력 (3-12: 모바일 관리 탭도 쓰도록 approvals.ts로)
+  const { pending, history } =
+    viewer.role === 'admin' ? await loadLeaveApprovals(db) : { pending: [], history: [] }
 
   return {
     ...ym,

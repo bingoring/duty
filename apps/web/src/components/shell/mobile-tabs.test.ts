@@ -24,5 +24,8 @@ describe('3-12 모바일 아래 탭', () => {
     expect(mobileTabs('nurse', false).find((t) => t.label === '교환')?.badge).toBe('swap')
     expect(mobileTabs('nurse', false).find((t) => t.label === '신청')?.badge).toBe('proposal')
     expect(mobileTabs('doctor', false).find((t) => t.label === '신청')?.badge).toBeUndefined()
+    // 3-12 3차: 간호사 관리자의 관리 탭 = 승인 대기 휴가 수
+    expect(mobileTabs('nurse', true).find((t) => t.label === '관리')?.badge).toBe('approval')
+    expect(mobileTabs('doctor', true).find((t) => t.label === '관리')?.badge).toBeUndefined()
   })
 })

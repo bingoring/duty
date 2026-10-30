@@ -5,7 +5,11 @@ import { usePathname } from 'next/navigation'
 import type { MobileTab } from './mobile-tabs'
 import { isActive } from './nav-items'
 
-const BADGE_LABEL = { swap: '받은 교환 요청', proposal: '받은 휴가 변경 요청' } as const
+const BADGE_LABEL = {
+  swap: '받은 교환 요청',
+  proposal: '받은 휴가 변경 요청',
+  approval: '승인 대기 휴가',
+} as const
 
 // 3-12 모바일 아래 탭. 본문 뒤에 두어(DOM 순서) 데스크톱과 같은 글자를 먼저 잡지 않게 한다
 export function BottomTabs({
@@ -13,7 +17,7 @@ export function BottomTabs({
   badges,
 }: {
   tabs: MobileTab[]
-  badges: { swap: number; proposal: number }
+  badges: { swap: number; proposal: number; approval: number }
 }) {
   const pathname = usePathname()
   return (
