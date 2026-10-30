@@ -33,6 +33,7 @@ export default async function SchedulePage({
     hl?: string | string[]
     tab?: string | string[]
     date?: string | string[]
+    shift?: string | string[]
   }>
 }) {
   const session = await requireNurse()
@@ -84,6 +85,20 @@ export default async function SchedulePage({
           mineHref={q(ym, 'mine')}
           allHref={`${q(ym, 'all')}&date=${date}`}
           footer={<ShiftTimesLegend />}
+          {...(session.user.role === 'admin'
+            ? {
+                admin: {
+                  ym: { year, month },
+                  // 3-12 3차: 관리 탭 「승인 · 대체 지정」 → 그 날짜·근무 대체 지정 시트
+                  target:
+                    tab === 'all' &&
+                    date === sp.date &&
+                    (sp.shift === 'D' || sp.shift === 'E' || sp.shift === 'N')
+                      ? { kind: 'replace' as const, date, shift: sp.shift }
+                      : null,
+                },
+              }
+            : {})}
         />
       </>
     )

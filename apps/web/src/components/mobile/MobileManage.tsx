@@ -1,9 +1,11 @@
+'use client'
+
 import { ApprovalList } from '@/components/requests/Approvals'
 import type { LeaveHistory, PendingLeave } from '@/server/requests/dto'
 import { PcOnlyList } from './PcOnly'
 
 // 3-12 모바일 「관리」 탭(간호사 관리자, 시안 design-mobile 5-admin 왼쪽): 휴가 승인·처리 이력 + PC 안내.
-// 확정된 달에 인원이 모자라면 승인 뒤 근무표 「전체」의 그 날짜·근무 대체 지정 시트로 간다
+// 확정된 달에 인원이 모자라면 승인 뒤 근무표 「전체」의 그 날짜·근무 대체 지정 시트로 간다(이동 주소 함수를 넘기므로 클라이언트 컴포넌트)
 const focusHref = (f: NonNullable<PendingLeave['focus']>) =>
   `/?ym=${f.ym}&tab=all&date=${f.date}&shift=${f.shift}`
 

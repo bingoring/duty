@@ -1,8 +1,11 @@
 'use client'
 
 import Link from 'next/link'
-import { useEffect, useRef, useState } from 'react'
+import { useRouter } from 'next/navigation'
+import { useCallback, useEffect, useRef, useState } from 'react'
 import type { IsoDate } from '@duty/domain'
+import { BottomSheet } from './BottomSheet'
+import { MobileUrgentEdit, type UrgentTarget } from './MobileUrgentEdit'
 import type { DayRosters, MobileChip, MyDay, MyMonth, RosterGroup, TodayCard } from '@/server/schedule/mobile'
 
 // 3-12 모바일 근무표 (시안 design-mobile 1-home B · 2-team B). 오늘 카드 → 「내 근무」 달력 / 「전체」 날짜별 명단
@@ -41,8 +44,19 @@ export function MobileSchedule(props: {
   mineHref: string
   allHref: string
   footer?: React.ReactNode
+  // 3-12 3차: 간호사 관리자 — 「전체」 간호사 명단의 이름을 눌러 급한 변경, target이면 처음부터 대체 지정 시트
+  admin?: { ym: { year: number; month: number }; target: UrgentTarget | null }
 }) {
   const [date, setDate] = useState(props.date)
+  const router = useRouter()
+  const [edit, setEdit] = useState<UrgentTarget | null>(props.admin?.target ?? null)
+  const [unsaved, setUnsaved] = useState(0)
+  const [msg, setMsg] = useState('')
+  const closeEdit = useCallback(() => {
+    if (unsaved && !window.confirm(`저장하지 않은 변경 ${unsaved}건이 사라집니다. 닫을까요?`)) return
+    setEdit(null)
+    setUnsaved(0)
+  }, [unsaved])
   return (
     <div className="flex flex-col gap-3 px-4 pt-3.5">
       <div className="flex items-center justify-between">
@@ -85,9 +99,40 @@ export function MobileSchedule(props: {
           onPick={setDate}
         />
       ) : (
-        <AllDay mine={props.mine} groups={props.groups} date={date} onPick={setDate} />
+        <AllDay
+          mine={props.mine}
+          groups={props.groups}
+          date={date}
+          onPick={setDate}
+          {...(props.admin
+            ? { onEdit: (userId: string) => (setMsg(''), setEdit({ kind: 'cell', userId, date })) }
+            : {})}
+        />
+      )}
+      {msg && (
+        <div role="status" className="text-xs text-primary">
+          {msg}
+        </div>
       )}
       {props.footer}
+      {props.admin && (
+        <BottomSheet open={edit !== null} label="급한 근무 변경" onClose={closeEdit}>
+          {edit && (
+            <MobileUrgentEdit
+              ym={props.admin.ym}
+              target={edit}
+              onUnsaved={setUnsaved}
+              onClose={closeEdit}
+              onSaved={(text) => {
+                setUnsaved(0)
+                setEdit(null)
+                setMsg(text)
+                router.refresh()
+              }}
+            />
+          )}
+        </BottomSheet>
+      )}
     </div>
   )
 }
@@ -190,7 +235,13 @@ function Together({ day, groups }: { day: MyDay; groups: RosterGroup[] }) {
   )
 }
 
-function AllDay(props: { mine: MyMonth; groups: RosterSet[]; date: IsoDate; onPick: (d: IsoDate) => void }) {
+function AllDay(props: {
+  mine: MyMonth
+  groups: RosterSet[]
+  date: IsoDate
+  onPick: (d: IsoDate) => void
+  onEdit?: (userId: string) => void
+}) {
   const [group, setGroup] = useState(0)
   const strip = useRef<HTMLDivElement>(null)
   const days = props.mine.weeks.flat().filter((d): d is MyDay => d !== null)
@@ -260,11 +311,24 @@ function AllDay(props: { mine: MyMonth; groups: RosterSet[]; date: IsoDate; onPi
               {g.people.map((p, i) => (
                 <span key={p.id}>
                   {i > 0 && ' · '}
-                  <span className={p.me ? 'font-extrabold text-primary' : ''}>
-                    {p.name}
-                    {p.me ? '(나)' : ''}
-                    {p.note ? `(${p.note})` : ''}
-                  </span>
+                  {props.onEdit && set?.key === 'nurse' ? (
+                    <button
+                      type="button"
+                      aria-label={`${p.name} 근무 바꾸기`}
+                      onClick={() => props.onEdit!(p.id)}
+                      className={`underline decoration-line underline-offset-4 ${p.me ? 'font-extrabold text-primary' : ''}`}
+                    >
+                      {p.name}
+                      {p.me ? '(나)' : ''}
+                      {p.note ? `(${p.note})` : ''}
+                    </button>
+                  ) : (
+                    <span className={p.me ? 'font-extrabold text-primary' : ''}>
+                      {p.name}
+                      {p.me ? '(나)' : ''}
+                      {p.note ? `(${p.note})` : ''}
+                    </span>
+                  )}
                 </span>
               ))}
             </p>
