@@ -34,10 +34,12 @@
 ### Task 1: 바텀 시트 v2 (애니메이션·손잡이 끌기·초점·스크롤 잠금)
 
 **Files:**
+
 - Create: `apps/web/src/components/mobile/sheet-drag.ts`, `sheet-drag.test.ts`
 - Modify: `apps/web/src/components/mobile/BottomSheet.tsx`, `MobileRequests.tsx`, `MobileSwap.tsx`, `apps/web/src/components/doctor/DoctorRequestsScreen.tsx`, `apps/web/src/components/requests/RequestPopover.tsx`(`Shell`), `apps/web/src/components/adjust/NurseAdjust.tsx`(`SwapPopup`)
 
 **Interfaces:**
+
 - Produces:
   - `export function dragOutcome(a: { dy: number; velocity: number; height: number }): 'close' | 'stay'` (전역 제약의 기준값)
   - `export function dragOffset(dy: number): number` — 아래로는 그대로, 위로(음수)는 0
@@ -49,10 +51,16 @@
 
 ```ts
 it('짧게 끌면 제자리', () => expect(dragOutcome({ dy: 40, velocity: 0.2, height: 600 })).toBe('stay'))
-it('120px 넘게 끌면 닫힘(높은 시트)', () => expect(dragOutcome({ dy: 130, velocity: 0.1, height: 600 })).toBe('close'))
-it('낮은 시트는 높이 25%만 넘어도 닫힘', () => expect(dragOutcome({ dy: 70, velocity: 0.1, height: 240 })).toBe('close'))
-it('빠르게 튕기면 짧아도 닫힘', () => expect(dragOutcome({ dy: 30, velocity: 0.8, height: 600 })).toBe('close'))
-it('위로는 움직이지 않음', () => { expect(dragOffset(-50)).toBe(0); expect(dragOffset(35)).toBe(35) })
+it('120px 넘게 끌면 닫힘(높은 시트)', () =>
+  expect(dragOutcome({ dy: 130, velocity: 0.1, height: 600 })).toBe('close'))
+it('낮은 시트는 높이 25%만 넘어도 닫힘', () =>
+  expect(dragOutcome({ dy: 70, velocity: 0.1, height: 240 })).toBe('close'))
+it('빠르게 튕기면 짧아도 닫힘', () =>
+  expect(dragOutcome({ dy: 30, velocity: 0.8, height: 600 })).toBe('close'))
+it('위로는 움직이지 않음', () => {
+  expect(dragOffset(-50)).toBe(0)
+  expect(dragOffset(35)).toBe(35)
+})
 ```
 
 - [ ] **Step 2:** `vitest run src/components/mobile/sheet-drag.test.ts` → FAIL
@@ -66,11 +74,13 @@ it('위로는 움직이지 않음', () => { expect(dragOffset(-50)).toBe(0); exp
 ### Task 2: 휴가 승인 데이터 분리와 관리 탭 배지
 
 **Files:**
+
 - Create: `apps/web/src/server/requests/approvals.ts`
 - Modify: `apps/web/src/server/requests/load.ts`(관리자 pending/history를 새 함수로), `apps/web/src/app/(app)/layout.tsx`, `apps/web/src/components/shell/AppShell.tsx`, `MobileShell.tsx`, `BottomTabs.tsx`, `mobile-tabs.ts`(+test)
 - Test: `apps/web/src/server/requests/approvals.int.test.ts`(기존 int 테스트 방식)
 
 **Interfaces:**
+
 - Produces:
   - `export async function loadLeaveApprovals(db: Db): Promise<{ pending: PendingLeave[]; history: LeaveHistory[] }>` — 지금 `loadRequestsRaw` 안의 관리자 블록을 그대로 옮김(`loadRequestsRaw`는 이것을 부른다)
   - `export async function pendingLeaveCount(db: Db): Promise<number>` — `SUBMITTED` 수만(달력 읽지 않음)
@@ -84,10 +94,12 @@ it('위로는 움직이지 않음', () => { expect(dragOffset(-50)).toBe(0); exp
 ### Task 3: 관리 탭 휴가 승인 화면
 
 **Files:**
+
 - Modify: `apps/web/src/components/requests/RequestsScreen.tsx`(`ApprovalCard`·`CancelApproved` export, `ApprovalCard`에 `onApproved?: (focus: PendingLeave['focus']) => void`), `apps/web/src/app/(app)/manage/page.tsx`
 - Create: `apps/web/src/components/mobile/MobileManage.tsx`
 
 **Interfaces:**
+
 - Consumes: `loadLeaveApprovals` (Task 2), `PcOnlyList`(1차)
 - Produces: `MobileManage({ pending: PendingLeave[]; history: LeaveHistory[] })`
 - [ ] **Step 1: 구현** (시안 `5-admin.html` 왼쪽)
@@ -102,10 +114,12 @@ it('위로는 움직이지 않음', () => { expect(dragOffset(-50)).toBe(0); exp
 ### Task 4: 편집 상태 훅, 하루 휴가 초안, 관리자 조정 데이터 액션
 
 **Files:**
+
 - Create: `apps/web/src/components/adjust/useAdjustDraft.ts`
 - Modify: `apps/web/src/components/adjust/AdjustScreen.tsx`(훅 사용), `apps/web/src/server/adjust/draft.ts`(+test), `apps/web/src/server/adjust/actions.ts`(+`actions.test.ts` 액션 수 9)
 
 **Interfaces:**
+
 - Produces:
   - `useAdjustDraft(view: AdjustView): { edits: CellEdit[]; leaves: DraftLeave[]; base: GridCell[]; draftInput: ScheduleInput | null; unsaved: number; pendingViews: Map<string, GridCellView>; addEdits(next: CellEdit[]): void; addLeave(leave: DraftLeave, edits?: CellEdit[]): void; revert(k: string): void; reset(): void; save(): Promise<SaveResult> }` — 지금 `AdjustScreen`의 `edits/leaves/groups/draftInput/base/pendingViews/addEdits/revert/resetDraft/save` 본문을 옮긴다(`save`는 결과만 돌려주고 메시지는 호출부가).
   - `export function dayLeave(cells: readonly GridCell[], a: { userId: string; date: IsoDate; type: LeaveType; reasonCode?: string }): DraftLeave` — `startDate = endDate = date`, `cells = [{ date, before: 그 칸 }]`(`draft.ts`).
@@ -119,9 +133,11 @@ it('위로는 움직이지 않음', () => { expect(dragOffset(-50)).toBe(0); exp
 ### Task 5: 도크 본문을 시트용으로 (휴가는 리롤 없이 하루)
 
 **Files:**
+
 - Modify: `apps/web/src/components/adjust/Dock.tsx`(`CellBody`·`ReplacementBody`에 `variant?: 'dock' | 'sheet'`, `CellBody`에 `leaveMode?: 'reroll' | 'day'`), 새 내부 컴포넌트 `LeaveDay`
 
 **Interfaces:**
+
 - Consumes: `dayLeave`(Task 4)
 - Produces: `CellBody`의 새 prop `onLeaveDay?: (leave: DraftLeave) => void` — `leaveMode === 'day'`이면 `LeaveReroll` 대신 `LeaveDay`(휴가 종류 칩 `DOCK_LEAVES`, 사유가 필요한 종류는 사유 선택) → `onLeaveDay(dayLeave(...))`.
 - `variant === 'sheet'`: 가로 3단 배치(`bodyCls`) 대신 세로 한 열, 칩 버튼 높이 40px 이상.
@@ -134,10 +150,12 @@ it('위로는 움직이지 않음', () => { expect(dragOffset(-50)).toBe(0); exp
 ### Task 6: 근무표 「전체」에서 급한 변경 시트
 
 **Files:**
+
 - Create: `apps/web/src/components/mobile/MobileUrgentEdit.tsx`
 - Modify: `apps/web/src/components/mobile/MobileSchedule.tsx`(관리자면 명단 이름이 버튼), `apps/web/src/app/(app)/page.tsx`(관리자 여부·`shift` 딥링크 전달)
 
 **Interfaces:**
+
 - Consumes: `adminAdjustViewAction`, `useAdjustDraft` (Task 4), `CellBody variant="sheet" leaveMode="day"`, `ReplacementBody variant="sheet"` (Task 5), `BottomSheet` (Task 1)
 - Produces:
   - `MobileSchedule`에 prop `admin?: { ym: string; target: { date: IsoDate; shift: 'D' | 'E' | 'N' } | null }` — 있으면 「전체」 명단의 이름(간호사 묶음만)이 버튼, `target`이 있으면 처음부터 대체 지정 시트.
@@ -155,6 +173,7 @@ it('위로는 움직이지 않음', () => { expect(dragOffset(-50)).toBe(0); exp
 ### Task 7: 의사 관리자 급한 변경
 
 **Files:**
+
 - Modify: `apps/web/src/app/(doctor)/doctor/adjust/page.tsx`(관리자 PC 안내 제거), `apps/web/src/components/doctor/DoctorAdjustScreen.tsx`(`mobile`이면 `AdminDock`을 `BottomSheet` 안에), `apps/web/src/app/(doctor)/doctor/manage/page.tsx`(「근무 바꾸기」 링크 카드 + PC 안내 목록에서 「근무 조정」 줄 제거)
 
 - [ ] **Step 1: 구현** — 관리자가 휴대폰에서 칩을 누르면 도크 내용이 시트로 올라온다(`open = !!first`, 닫기 = `clear`).
@@ -166,6 +185,7 @@ it('위로는 움직이지 않음', () => { expect(dragOffset(-50)).toBe(0); exp
 ### Task 8: 모바일 관리자 E2E
 
 **Files:**
+
 - Create: `apps/web/e2e/mobile/manage.spec.ts`
 
 - [ ] **Step 1: 테스트 작성** (데스크톱 `e2e/requests.spec.ts`의 「10월 병가 → 인원 영향 경고 → 승인」과 `e2e/adjust.spec.ts`의 안전한 편집 찾기(`findSafeEdit`)를 따른다. 테스트가 만든 휴가·편집은 끝에서 되돌린다)
