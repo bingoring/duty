@@ -2,6 +2,7 @@
 
 import { formatMD, ownerOf, swapChips, weekdayKo, type DoctorChip, type DoctorShiftRow } from '@duty/domain'
 import { useRouter } from 'next/navigation'
+import { BottomSheet } from '../mobile/BottomSheet'
 import { useEffect, useMemo, useRef, useState, useTransition } from 'react'
 import {
   adminEditDoctorShiftAction,
@@ -242,7 +243,7 @@ export function DoctorAdjustScreen(props: {
             ...(preview ? { preview } : {}),
           }}
         />
-        {admin && first && (
+        {admin && first && !props.mobile && (
           <AdminDock
             key={pair ? `${chipKey(pair.a)}|${chipKey(pair.b)}` : chipKey(first)}
             chip={first}
@@ -293,6 +294,33 @@ export function DoctorAdjustScreen(props: {
         )}
       </aside>
 
+      {/* 3-12 3차: 휴대폰 관리자는 칩을 누르면 같은 편집 도크가 아래 시트로 올라온다 */}
+      {admin && props.mobile && (
+        <BottomSheet open={!!first} label="근무 바꾸기" onClose={clear}>
+          {first && (
+            <AdminDock
+              key={pair ? `${chipKey(pair.a)}|${chipKey(pair.b)}` : chipKey(first)}
+              chip={first}
+              pair={pair}
+              owner={personOf(ownerOf(rows, first))}
+              doctors={doctors}
+              pending={editing}
+              checked={checked}
+              err={editErr}
+              label={chipName}
+              onAssign={(d) =>
+                sendEdit(
+                  { kind: 'assign', chip: first, userId: d.id },
+                  null,
+                  `${chipName(first)}을(를) ${d.name}에게 배정했습니다.`,
+                )
+              }
+              onNote={(note) => checked && sendEdit(checked.edit, note, `${checked.done} (사유 기록)`)}
+              onClear={clear}
+            />
+          )}
+        </BottomSheet>
+      )}
       {!admin && pair && (
         <SwapDialog
           key={`${chipKey(pair.a)}|${chipKey(pair.b)}`}
