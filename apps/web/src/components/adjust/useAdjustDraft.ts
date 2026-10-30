@@ -3,7 +3,7 @@
 import { applyEdits, type CellEdit } from '@duty/domain'
 import { useMemo, useState } from 'react'
 import { saveEditsAction } from '@/server/adjust/actions'
-import { applyDraftLeaves, draftLeaveKeys, type DraftLeave } from '@/server/adjust/draft'
+import { applyDraftLeaves, draftLeaveKeys, mergeRerolled, type DraftLeave } from '@/server/adjust/draft'
 import type { AdjustView } from '@/server/adjust/view'
 import { cellView, type GridCellView } from '@/server/schedule/view'
 
@@ -85,10 +85,13 @@ export function useAdjustDraft(view: AdjustView) {
       ...next.map((e) => key(e.userId, e.date)).filter((x) => !prevKeys.has(x)),
     ])
   }
-  // 3-12 3차: 휴대폰 하루 휴가(다시 생성 없음)
+  // 3-12 3차: 휴대폰 하루 휴가(다시 생성 없음). 휴가가 덮는 칸의 저장 전 편집은 빠지고(휴가가 우선),
+  // 그 편집과 함께 들어간 칸(맞바꾸기·대체)은 휴가와 함께 되돌리도록 묶는다
   const addLeave = (leave: DraftLeave) => {
+    const covered = leave.cells.map((c) => key(leave.userId, c.date))
     setLeaves((prev) => [...prev, leave])
-    group(leave.cells.map((c) => key(leave.userId, c.date)))
+    setEdits((prev) => mergeRerolled(prev, leave, []))
+    group([...new Set([...covered, ...covered.flatMap((k) => groups.get(k) ?? [])])])
   }
   // 성공하면 초안을 비운다. 계획(달)이 없으면 null
   const save = async (): Promise<SaveResult | null> => {

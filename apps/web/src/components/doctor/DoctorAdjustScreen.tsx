@@ -296,7 +296,7 @@ export function DoctorAdjustScreen(props: {
 
       {/* 3-12 3차: 휴대폰 관리자는 칩을 누르면 같은 편집 도크가 아래 시트로 올라온다 */}
       {admin && props.mobile && (
-        <BottomSheet open={!!first} label="근무 바꾸기" onClose={clear}>
+        <BottomSheet open={!!first} label="근무 바꾸기" onClose={clear} modal={false}>
           {first && (
             <AdminDock
               key={pair ? `${chipKey(pair.a)}|${chipKey(pair.b)}` : chipKey(first)}

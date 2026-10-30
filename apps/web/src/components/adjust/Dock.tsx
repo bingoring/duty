@@ -404,28 +404,48 @@ export function CellBody(props: {
 
   // 3-10 9: 저장 전 휴가 칸 — 「저장 · 재배포」 전이라 간호사에게는 아직 안 보인다
   const draftLeave = props.leaves.find((l) => l.userId === userId && l.startDate <= date && date <= l.endDate)
+  // 3-12 3차: 휴대폰 하루 휴가로 그 근무 인원이 모자라면 같은 시트에서 대체 지정(다시 생성은 없으므로)
+  const leftShift = draftLeave?.cells.find((c) => c.date === date)?.before.code
+  const replaceAfterLeave =
+    props.variant === 'sheet' && (leftShift === 'D' || leftShift === 'E' || leftShift === 'N')
+      ? leftShift
+      : null
   if (draftLeave)
     return (
-      <div className={bodyOf(props.variant)}>
-        {target}
-        <div />
-        <div className="flex min-w-0 flex-col gap-1 border-l border-line-soft pl-4">
-          <ResultLine
-            tone="warn"
-            strong="저장 전 휴가"
-            text={`${LEAVE_TYPE_SHORT[draftLeave.type]} · ${draftLeave.startDate === draftLeave.endDate ? md(draftLeave.startDate) : `${md(draftLeave.startDate)}–${md(draftLeave.endDate)}`} · 「저장 · 재배포」를 눌러야 반영됩니다`}
+      <>
+        <div className={bodyOf(props.variant)}>
+          {target}
+          <div />
+          <div className="flex min-w-0 flex-col gap-1 border-l border-line-soft pl-4">
+            <ResultLine
+              tone="warn"
+              strong="저장 전 휴가"
+              text={`${LEAVE_TYPE_SHORT[draftLeave.type]} · ${draftLeave.startDate === draftLeave.endDate ? md(draftLeave.startDate) : `${md(draftLeave.startDate)}–${md(draftLeave.endDate)}`} · 「저장 · 재배포」를 눌러야 반영됩니다`}
+            />
+          </div>
+          <div className="flex items-center gap-1.5">
+            <button
+              type="button"
+              onClick={() => props.onRevert(k)}
+              className="h-9 cursor-pointer rounded-lg border border-line bg-surface px-3.5 text-[12.5px] font-semibold whitespace-nowrap"
+            >
+              휴가 넣기 되돌리기
+            </button>
+          </div>
+        </div>
+        {replaceAfterLeave && (
+          <ReplacementBody
+            variant="sheet"
+            view={view}
+            input={input}
+            base={base}
+            date={date}
+            shift={replaceAfterLeave}
+            nameOf={nameOf}
+            onPick={(e) => props.onApply([e])}
           />
-        </div>
-        <div className="flex items-center gap-1.5">
-          <button
-            type="button"
-            onClick={() => props.onRevert(k)}
-            className="h-9 cursor-pointer rounded-lg border border-line bg-surface px-3.5 text-[12.5px] font-semibold whitespace-nowrap"
-          >
-            휴가 넣기 되돌리기
-          </button>
-        </div>
-      </div>
+        )}
+      </>
     )
 
   if (isLeaveCell(now))
@@ -613,7 +633,7 @@ export function CellBody(props: {
         </div>
       </div>
       {view.plan && props.leaveMode === 'day' && props.onLeaveDay ? (
-        <LeaveDay userId={userId} date={date} base={base} onDone={props.onLeaveDay} />
+        <LeaveDay userId={userId} date={date} cells={input.cells} onDone={props.onLeaveDay} />
       ) : (
         view.plan && (
           <LeaveReroll
@@ -783,7 +803,8 @@ function LeaveReroll(props: {
 function LeaveDay(props: {
   userId: string
   date: string
-  base: GridCell[]
+  // 편집을 얹기 전 칸(저장 때 넣기 전 값과 맞아야 한다)
+  cells: readonly GridCell[]
   onDone: (leave: DraftLeave) => void
 }) {
   const [kind, setKind] = useState(0)
@@ -794,7 +815,7 @@ function LeaveDay(props: {
   const go = () => {
     if (needsLeaveReason(l.type) && !reason) return setErr('사유를 선택해 주세요.')
     props.onDone(
-      dayLeave(props.base, {
+      dayLeave(props.cells, {
         userId: props.userId,
         date: props.date,
         type: l.type,

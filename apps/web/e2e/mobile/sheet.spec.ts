@@ -55,3 +55,18 @@ test('배경을 누르거나 Escape를 누르면 닫힌다', async ({ page }) =>
   await page.keyboard.press('Escape')
   await expect(sheet).toBeHidden()
 })
+
+test('내려가는 동안에는 시트를 누를 수 없다(inert)', async ({ page }) => {
+  const sheet = await openSheet(page)
+  // 닫히는 순간을 놓치지 않게 속성 변화를 기록해 둔다
+  await sheet.evaluate((el) => {
+    const w = window as unknown as { inertSeen: boolean }
+    w.inertSeen = false
+    new MutationObserver(() => {
+      if (el.hasAttribute('inert')) w.inertSeen = true
+    }).observe(el, { attributes: true })
+  })
+  await page.keyboard.press('Escape')
+  await expect(sheet).toBeHidden()
+  expect(await page.evaluate(() => (window as unknown as { inertSeen: boolean }).inertSeen)).toBe(true)
+})

@@ -22,8 +22,11 @@ export function BottomSheet({
   label,
   onClose,
   children,
+  modal = true,
 }: {
   open: boolean
+  // false: 배경 없이 아래쪽만 덮는다(뒤 화면을 계속 누를 수 있다 — 의사 관리자 칩 두 개 맞바꾸기)
+  modal?: boolean
   label: string
   onClose: () => void
   children: React.ReactNode
@@ -62,7 +65,7 @@ export function BottomSheet({
 
   // 열려 있는 동안: 초점을 시트로, 배경 스크롤 잠금(iOS도 막히게 body를 고정), 닫히면 되돌린다
   useEffect(() => {
-    if (!mounted) return
+    if (!mounted || !modal) return
     const before = document.activeElement as HTMLElement | null
     panel.current?.focus({ preventScroll: true })
     const y = window.scrollY
@@ -74,14 +77,15 @@ export function BottomSheet({
       window.scrollTo(0, y)
       before?.focus?.({ preventScroll: true })
     }
-  }, [mounted])
+  }, [mounted, modal])
 
   if (!mounted) return null
 
   const onKeyDown = (e: React.KeyboardEvent) => {
+    if (!open) return
     // 시트 안 창(교환 재배정 등)이 이미 처리한 Escape는 시트를 닫지 않는다
     if (e.key === 'Escape' && !e.defaultPrevented) return onClose()
-    if (e.key !== 'Tab' || !panel.current) return
+    if (!modal || e.key !== 'Tab' || !panel.current) return
     const items = [...panel.current.querySelectorAll<HTMLElement>(FOCUSABLE)]
     if (!items.length) return
     const first = items[0]!
@@ -99,6 +103,7 @@ export function BottomSheet({
     }
   }
   const onPointerDown = (e: React.PointerEvent) => {
+    if (!open) return
     e.currentTarget.setPointerCapture(e.pointerId)
     track.current = { startY: e.clientY, samples: [{ y: e.clientY, t: e.timeStamp }] }
     setDrag({ dy: 0, height: panel.current?.offsetHeight ?? 600 })
@@ -124,26 +129,30 @@ export function BottomSheet({
   const transform = drag ? `translateY(${drag.dy}px)` : shown ? 'translateY(0)' : 'translateY(100%)'
   const dim = shown ? 0.35 * (drag ? Math.max(0, 1 - drag.dy / drag.height) : 1) : 0
   return (
-    <div className="fixed inset-0 z-40">
-      <div
-        aria-hidden
-        onClick={onClose}
-        className="absolute inset-0 bg-ink"
-        style={{
-          opacity: dim,
-          transition: drag !== null || reduce ? 'none' : `opacity ${DURATION}ms ${EASE}`,
-        }}
-      />
+    // 내려가는 동안(open=false)에는 시트 전체를 누를 수 없게(inert) — 보내기 버튼을 두 번 누르는 일을 막는다
+    <div className={`fixed inset-0 z-40 ${!open || !modal ? 'pointer-events-none' : ''}`}>
+      {modal && (
+        <div
+          aria-hidden
+          onClick={() => open && onClose()}
+          className="absolute inset-0 bg-ink"
+          style={{
+            opacity: dim,
+            transition: drag !== null || reduce ? 'none' : `opacity ${DURATION}ms ${EASE}`,
+          }}
+        />
+      )}
       <div
         ref={panel}
         role="dialog"
-        aria-modal="true"
+        aria-modal={modal}
         aria-label={open ? label : kept.label}
+        inert={!open}
         tabIndex={-1}
         onKeyDown={onKeyDown}
         data-state={settled ? 'open' : shown ? 'opening' : 'closing'}
         onTransitionEnd={(e) => e.target === e.currentTarget && shown && setSettled(true)}
-        className="absolute inset-x-0 bottom-0 flex max-h-[85dvh] flex-col rounded-t-[18px] bg-surface shadow-[0_-8px_30px_rgba(0,0,0,.12)] outline-none"
+        className={`absolute inset-x-0 bottom-0 flex flex-col rounded-t-[18px] bg-surface shadow-[0_-8px_30px_rgba(0,0,0,.12)] outline-none ${modal ? 'max-h-[85dvh]' : 'pointer-events-auto max-h-[60dvh]'}`}
         style={{ transform, transition }}
       >
         <button
