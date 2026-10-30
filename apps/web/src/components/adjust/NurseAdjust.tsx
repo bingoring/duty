@@ -425,14 +425,14 @@ export function SwapPopup(props: {
 
   return (
     <div
-      role="dialog"
+      role={props.variant === 'sheet' ? 'group' : 'dialog'}
       aria-label={`${md(date)} 근무 재배정`}
       className={
         props.variant === 'sheet'
           ? 'flex w-full flex-col gap-3 text-[13px]'
           : 'absolute top-[110px] left-[260px] z-20 flex w-[400px] flex-col gap-3 rounded-xl border border-ink bg-surface p-4 text-[13px] shadow-[0_16px_40px_rgba(0,0,0,.18)]'
       }
-      onKeyDown={(e) => e.key === 'Escape' && props.onClose()}
+      onKeyDown={(e) => e.key === 'Escape' && (e.preventDefault(), props.onClose())}
     >
       <div className="flex items-center justify-between">
         <span className="text-[14px] font-bold">

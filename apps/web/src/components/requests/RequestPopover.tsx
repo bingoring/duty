@@ -432,14 +432,15 @@ function Shell({
 }) {
   return (
     <div
-      role="dialog"
+      // 3-12: 시트 안에서는 시트가 이미 dialog
+      role={variant === 'sheet' ? 'group' : 'dialog'}
       aria-label={title}
       className={
         variant === 'sheet'
           ? 'flex w-full flex-col gap-2.5 text-[13px]'
           : 'flex w-[340px] flex-col gap-2.5 rounded-xl border border-ink bg-surface p-3.5 text-[13px] shadow-popover'
       }
-      onKeyDown={(e) => e.key === 'Escape' && onClose()}
+      onKeyDown={(e) => e.key === 'Escape' && (e.preventDefault(), onClose())}
     >
       <div className="flex items-center justify-between">
         <span className="font-bold">{title}</span>
