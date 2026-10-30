@@ -8,7 +8,7 @@ export function MobileShell(props: {
   group: 'nurse' | 'doctor'
   isAdmin: boolean
   persistent: boolean
-  badges: { swap: number; proposal: number }
+  badges: { swap: number; proposal: number; approval: number }
   children: React.ReactNode
 }) {
   return (

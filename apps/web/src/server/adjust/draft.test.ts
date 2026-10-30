@@ -3,6 +3,7 @@ import { describe, expect, it } from 'vitest'
 import {
   applyDraftLeaves,
   beforeOf,
+  dayLeave,
   draftLeaveKeys,
   mergeRerolled,
   staleBefore,
@@ -98,5 +99,26 @@ describe('keptAdminKeys (3-10 8)', () => {
     expect(keptAdminKeys(rows, [{ userId: 'head', date: '2026-10-25' }], '2026-10-20')).toEqual(
       new Set(['head|2026-10-25', 'a|2026-10-20']),
     )
+  })
+})
+
+// 3-12 3차: 휴대폰 급한 변경의 휴가 넣기 = 그 칸(하루)만, 리롤 없음
+describe('dayLeave', () => {
+  const cells = [cell('a', '2026-10-20', 'D'), cell('a', '2026-10-21', 'E'), cell('b', '2026-10-20', 'N')]
+  it('그 사람 그 날 하루 초안, 넣기 전 칸을 기억한다', () =>
+    expect(dayLeave(cells, { userId: 'a', date: '2026-10-20', type: 'sick' })).toEqual({
+      userId: 'a',
+      type: 'sick',
+      startDate: '2026-10-20',
+      endDate: '2026-10-20',
+      cells: [{ date: '2026-10-20', before: { code: 'D' } }],
+    }))
+  it('사유가 있으면 싣는다', () =>
+    expect(
+      dayLeave(cells, { userId: 'a', date: '2026-10-20', type: 'checkup', reasonCode: 'am' }).reasonCode,
+    ).toBe('am'))
+  it('넣으면 그 칸만 휴가', () => {
+    const out = applyDraftLeaves(cells, [dayLeave(cells, { userId: 'a', date: '2026-10-20', type: 'sick' })])
+    expect(out.map((c) => c.code)).toEqual(['LEAVE', 'E', 'N'])
   })
 })

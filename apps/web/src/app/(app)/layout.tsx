@@ -8,6 +8,7 @@ import { ktasReminder } from '@/server/ktas/reminder'
 import { pendingProposalCount } from '@/server/requests/proposals'
 import { pendingReceivedCount } from '@/server/swaps/service'
 import { requestToday } from '@/server/clock'
+import { pendingLeaveCount } from '@/server/requests/approvals'
 import { requestDevice } from '@/server/request-device'
 
 export default async function AppLayout({ children }: { children: React.ReactNode }) {
@@ -29,6 +30,7 @@ export default async function AppLayout({ children }: { children: React.ReactNod
       leaveBalance={leaveBalance}
       swapCount={swapCount}
       proposalCount={proposalCount}
+      approvalCount={session.user.role === 'admin' ? await pendingLeaveCount(getDb()) : 0}
     >
       {ktas && <KtasReminder until={ktas.until} />}
       {children}

@@ -92,16 +92,16 @@ export function MobileSwap({ view, viewerId }: { view: AdjustView; viewerId: str
           </button>
         </>
       )}
-      {sheet && swap && view.checkInput && (
-        <BottomSheet label="교환 요청" onClose={close}>
+      <BottomSheet open={sheet && !!swap && !!view.checkInput} label="교환 요청" onClose={close}>
+        {swap && view.checkInput && (
           <NewSwap
             view={view}
             viewerId={viewerId}
             onClose={close}
             onSent={(text) => (setSheet(false), done(text))}
           />
-        </BottomSheet>
-      )}
+        )}
+      </BottomSheet>
     </div>
   )
 }

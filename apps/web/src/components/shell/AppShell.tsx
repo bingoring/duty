@@ -16,6 +16,7 @@ export function AppShell({
   leaveBalance,
   swapCount = 0,
   proposalCount = 0,
+  approvalCount = 0,
   children,
 }: {
   session: ValidSession
@@ -23,6 +24,8 @@ export function AppShell({
   leaveBalance: LeaveBalanceSummary | null
   swapCount?: number
   proposalCount?: number
+  // 3-12 3차: 모바일 관리 탭 배지(간호사 관리자)
+  approvalCount?: number
   children: React.ReactNode
 }) {
   const { user } = session
@@ -34,7 +37,7 @@ export function AppShell({
         group={doctor ? 'doctor' : 'nurse'}
         isAdmin={isAdmin}
         persistent={session.persistent}
-        badges={{ swap: swapCount, proposal: proposalCount }}
+        badges={{ swap: swapCount, proposal: proposalCount, approval: approvalCount }}
       >
         {children}
       </MobileShell>

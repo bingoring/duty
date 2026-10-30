@@ -2,6 +2,8 @@ import {
   applyEdits,
   checkSchedule,
   newViolations,
+  leaveToCell,
+  replacementCandidates,
   swappable,
   swapToEdits,
   type CellEdit,
@@ -85,4 +87,25 @@ export function findHeadSwap(input: ScheduleInput, headId: string, userIds: stri
     }
   }
   throw new Error('수간호사 교환 날짜 없음')
+}
+
+// 3-12 3차: 하루 휴가(병가)로 그날 그 근무 인원이 모자라고, 대체 후보가 있는 칸 (휴대폰 급한 변경)
+export function findLeaveShortage(
+  input: ScheduleInput,
+  userIds: string[],
+  from: string,
+): { userId: string; date: string; shift: 'D' | 'E' | 'N' } {
+  const base = checkSchedule(input)
+  for (const date of datesFrom(input, from))
+    for (const userId of userIds) {
+      const c = input.cells.find((x) => x.userId === userId && x.date === date)
+      if (!c || !(c.code === 'D' || c.code === 'E' || c.code === 'N')) continue
+      const cells = input.cells.map((x) => (x === c ? { ...x, ...leaveToCell('sick')! } : x))
+      const short = newViolations(base, checkSchedule({ ...input, cells })).hardViolations.some(
+        (v) => v.ruleId === 'H-STAFF' && v.dates.includes(date) && v.shift === c.code,
+      )
+      if (short && replacementCandidates({ ...input, cells }, date, c.code).length > 0)
+        return { userId, date, shift: c.code }
+    }
+  throw new Error('대체 후보가 있는 인원 부족 칸 없음')
 }

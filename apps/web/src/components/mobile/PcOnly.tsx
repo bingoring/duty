@@ -10,15 +10,24 @@ export function pcOnlyItems(group: 'nurse' | 'doctor'): string[] {
   ]
 }
 
-export function PcOnlyList({ group }: { group: 'nurse' | 'doctor' }) {
+// adjustOnMobile: 의사 근무 조정은 휴대폰에서도 하므로 목록에서 뺀다(3-12 3차)
+export function PcOnlyList({
+  group,
+  adjustOnMobile = false,
+}: {
+  group: 'nurse' | 'doctor'
+  adjustOnMobile?: boolean
+}) {
   return (
     <ul className="overflow-hidden rounded-xl bg-surface text-[13px]">
-      {pcOnlyItems(group).map((t) => (
-        <li key={t} className="flex justify-between border-b border-line-soft px-3 py-2.5 last:border-0">
-          {t}
-          <span className="text-xs text-ink-3">PC</span>
-        </li>
-      ))}
+      {pcOnlyItems(group)
+        .filter((t) => !(adjustOnMobile && t.startsWith('근무 조정')))
+        .map((t) => (
+          <li key={t} className="flex justify-between border-b border-line-soft px-3 py-2.5 last:border-0">
+            {t}
+            <span className="text-xs text-ink-3">PC</span>
+          </li>
+        ))}
     </ul>
   )
 }

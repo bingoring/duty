@@ -375,8 +375,8 @@ export function DoctorRequestsScreen({
         </aside>
       </div>
 
-      {mobile && sheet && (
-        <BottomSheet label={`${dateLabel(sel)} 신청`} onClose={closeSheet}>
+      {mobile && (
+        <BottomSheet open={sheet} label={`${dateLabel(sel)} 신청`} onClose={closeSheet}>
           <div className="flex flex-col gap-3">
             {dayCard}
             <button type="button" className={btnPrimary} onClick={closeSheet}>

@@ -158,11 +158,13 @@ export function MobileRequests(props: {
         「쉼 n」 = 그날 쉬겠다고 신청한 사람 수(3명 이상이면 빨강) · 빨간 테두리 = 내 신청, 점선 = 제출 전
       </p>
 
-      {date && (
-        <BottomSheet label={`${formatMD(date)} (${weekdayKo(date)}) 신청`} onClose={close}>
-          <DaySheet view={view} viewerId={props.viewerId} date={date} me={me} onClose={close} />
-        </BottomSheet>
-      )}
+      <BottomSheet
+        open={date !== null}
+        label={date ? `${formatMD(date)} (${weekdayKo(date)}) 신청` : ''}
+        onClose={close}
+      >
+        {date && <DaySheet view={view} viewerId={props.viewerId} date={date} me={me} onClose={close} />}
+      </BottomSheet>
     </div>
   )
 }

@@ -1,14 +1,11 @@
-import { PcOnlyList } from '@/components/mobile/PcOnly'
+import { MobileManage } from '@/components/mobile/MobileManage'
 import { requireAdmin } from '@/server/auth/guards'
+import { getDb } from '@/server/db/client'
+import { loadLeaveApprovals } from '@/server/requests/approvals'
 
-// 3-12 모바일 「관리」 탭(관리자). 휴가 승인·급한 변경은 3차 PR, 지금은 PC 안내 목록만
+// 3-12 모바일 「관리」 탭(간호사 관리자): 휴가 승인·처리 이력. 급한 변경은 근무표 「전체」 시트
 export default async function ManagePage() {
   await requireAdmin()
-  return (
-    <div className="flex flex-col gap-2 px-4 pt-3.5">
-      <h1 className="text-[19px] font-bold tracking-[-0.02em]">관리</h1>
-      <div className="mt-1 text-xs text-ink-2">PC에서 이용해 주세요</div>
-      <PcOnlyList group="nurse" />
-    </div>
-  )
+  const { pending, history } = await loadLeaveApprovals(getDb())
+  return <MobileManage pending={pending} history={history} />
 }
