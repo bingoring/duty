@@ -23,7 +23,7 @@ import {
 } from '@duty/domain'
 import { useMemo, useRef, useState, useSyncExternalStore, useTransition } from 'react'
 import { cancelApprovedLeaveAction, rerollFromAction, rerollPreviewAction } from '@/server/adjust/actions'
-import { leaveRangeKeys, mergeRerolled, type DraftLeave } from '@/server/adjust/draft'
+import { dayLeave, leaveRangeKeys, mergeRerolled, type DraftLeave } from '@/server/adjust/draft'
 import { LeaveReasonSelect, needsLeaveReason } from '../leave/LeaveReasonSelect'
 import type { AdjustView } from '@/server/adjust/view'
 
@@ -211,6 +211,11 @@ export function DockFrame(props: {
 
 const bodyCls =
   'grid min-h-[84px] grid-cols-[auto_auto_minmax(0,1fr)_auto] items-center gap-4 px-4 py-2 text-[13px]'
+// 3-12 3차: 휴대폰 시트에서는 같은 내용을 세로 한 열로(칸 사이 세로선·여백은 없앤다)
+const sheetCls =
+  'flex flex-col items-stretch gap-3 py-1 text-[13px] [&>*]:border-x-0 [&>*]:px-0 [&_button]:min-h-10'
+export type BodyVariant = 'dock' | 'sheet'
+const bodyOf = (v: BodyVariant | undefined) => (v === 'sheet' ? sheetCls : bodyCls)
 
 function ResultLine({
   tone,
@@ -255,6 +260,10 @@ export function CellBody(props: {
   onRevert: (k: string) => void
   onLeaveCancelled: (text: string, list: string[]) => void
   onRerolled: (leave: DraftLeave, edits: CellEdit[], text: string) => void
+  // 3-12 3차: 휴대폰 시트 배치, 휴가는 다시 생성 없이 그 칸(하루)만
+  variant?: BodyVariant
+  leaveMode?: 'reroll' | 'day'
+  onLeaveDay?: (leave: DraftLeave) => void
 }) {
   const { view, input, edits, base, userId, date, nameOf } = props
   const k = key(userId, date)
@@ -366,7 +375,7 @@ export function CellBody(props: {
     return hs.length ? Math.min(...hs) : null
   })()
 
-  if (!now) return <div className={bodyCls}>재직일이 아닌 칸입니다.</div>
+  if (!now) return <div className={bodyOf(props.variant)}>재직일이 아닌 칸입니다.</div>
 
   const target = (
     <div className="flex min-w-[132px] flex-col gap-0.5 border-r border-line-soft pr-3.5">
@@ -397,7 +406,7 @@ export function CellBody(props: {
   const draftLeave = props.leaves.find((l) => l.userId === userId && l.startDate <= date && date <= l.endDate)
   if (draftLeave)
     return (
-      <div className={bodyCls}>
+      <div className={bodyOf(props.variant)}>
         {target}
         <div />
         <div className="flex min-w-0 flex-col gap-1 border-l border-line-soft pl-4">
@@ -421,7 +430,7 @@ export function CellBody(props: {
 
   if (isLeaveCell(now))
     return (
-      <div className={bodyCls}>
+      <div className={bodyOf(props.variant)}>
         {target}
         <div />
         <div className="flex min-w-0 flex-col gap-1 border-l border-line-soft pl-4">
@@ -469,7 +478,7 @@ export function CellBody(props: {
 
   return (
     <>
-      <div className={bodyCls}>
+      <div className={bodyOf(props.variant)}>
         {target}
         <div className="flex gap-1.5">
           {/* 2-11 R-HEAD-7: 수간호사 칸은 D·S·OFF만 */}
@@ -603,17 +612,21 @@ export function CellBody(props: {
           ) : null}
         </div>
       </div>
-      {view.plan && (
-        <LeaveReroll
-          planId={view.plan.id}
-          userId={userId}
-          date={date}
-          monthEnd={view.grid.days.at(-1)!.date}
-          edits={edits}
-          leaves={props.leaves}
-          nameOf={nameOf}
-          onDone={props.onRerolled}
-        />
+      {view.plan && props.leaveMode === 'day' && props.onLeaveDay ? (
+        <LeaveDay userId={userId} date={date} base={base} onDone={props.onLeaveDay} />
+      ) : (
+        view.plan && (
+          <LeaveReroll
+            planId={view.plan.id}
+            userId={userId}
+            date={date}
+            monthEnd={view.grid.days.at(-1)!.date}
+            edits={edits}
+            leaves={props.leaves}
+            nameOf={nameOf}
+            onDone={props.onRerolled}
+          />
+        )
       )}
     </>
   )
@@ -766,8 +779,71 @@ function LeaveReroll(props: {
   )
 }
 
+// 3-12 3차: 휴대폰 휴가 넣기 — 그 칸(하루)만 저장 전 휴가로. 다시 생성은 PC에서. 인원이 모자라면 대체 지정·사유로
+function LeaveDay(props: {
+  userId: string
+  date: string
+  base: GridCell[]
+  onDone: (leave: DraftLeave) => void
+}) {
+  const [kind, setKind] = useState(0)
+  const [reason, setReason] = useState('')
+  const [err, setErr] = useState('')
+  const l = DOCK_LEAVES[kind]!
+  const reasonCode = 'reasonCode' in l ? l.reasonCode : needsLeaveReason(l.type) ? reason : undefined
+  const go = () => {
+    if (needsLeaveReason(l.type) && !reason) return setErr('사유를 선택해 주세요.')
+    props.onDone(
+      dayLeave(props.base, {
+        userId: props.userId,
+        date: props.date,
+        type: l.type,
+        ...(reasonCode ? { reasonCode } : {}),
+      }),
+    )
+  }
+  return (
+    <div className="flex flex-col gap-2 border-t border-line-soft pt-3 text-[13px]">
+      <span className="font-semibold">휴가로 바꾸기 (이 날 하루)</span>
+      <div className="flex flex-wrap gap-1.5">
+        {DOCK_LEAVES.map((x, i) => (
+          <button
+            key={x.label}
+            type="button"
+            aria-pressed={i === kind}
+            onClick={() => (setKind(i), setReason(''), setErr(''))}
+            className={`h-9 rounded-md border bg-shift-off px-2.5 text-xs font-bold ${i === kind ? 'border-ink' : 'border-line'}`}
+          >
+            {x.label}
+          </button>
+        ))}
+      </div>
+      <LeaveReasonSelect
+        type={l.type}
+        value={reason}
+        onChange={(v) => (setReason(v), setErr(''))}
+        className="h-9 rounded-md border border-line px-1.5 text-xs text-ink"
+      />
+      <button
+        type="button"
+        onClick={go}
+        className="h-10 rounded-lg bg-ink text-[13px] font-semibold text-white"
+      >
+        {l.label}로 바꾸기
+      </button>
+      <p className="text-xs text-ink-2">여러 날 휴가와 이후 다시 생성은 PC 근무 조정에서 합니다.</p>
+      {err && (
+        <span role="alert" className="text-danger">
+          {err}
+        </span>
+      )}
+    </div>
+  )
+}
+
 // 4a 「승인 · 대체 지정」에서 넘어온 대체 지정 본문
 export function ReplacementBody(props: {
+  variant?: BodyVariant
   view: AdjustView
   input: ScheduleInput
   base: GridCell[]
@@ -786,7 +862,7 @@ export function ReplacementBody(props: {
     [input, base, date, shift],
   )
   return (
-    <div className={bodyCls}>
+    <div className={bodyOf(props.variant)}>
       <div className="flex min-w-[132px] flex-col gap-0.5 border-r border-line-soft pr-3.5">
         <span className="text-[14px] font-extrabold">
           {md(date)} {shift} 대체 지정
