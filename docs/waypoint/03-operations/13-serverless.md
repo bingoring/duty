@@ -85,7 +85,7 @@ updated: 2026-11-17
 - **화면 폭 보정:** 판정을 `proxy.ts`에서 `requestDevice()`로 옮겨 **세션의 보정값 → user-agent** 순으로 한다(`getSession`은 요청 안에서 캐시). `ViewportSync`는 보정값이 **바뀔 때만** 서버 액션으로 세션에 저장하고, 끝난 뒤 `router.refresh()`. 마이그레이션 1개(`sessions.viewport`). `duty_vp` 쿠키는 6단계에서 정리.
 - **DB 소켓:** `createDb`가 `DB_SOCKET_HOST`가 있으면 `host` 옵션으로 넘긴다(없으면 지금처럼 URL만). 경로 108자 이하.
 - **솔버 ID 토큰:** 메타데이터 서버(`…/computeMetadata/v1/instance/service-accounts/default/identity?audience=<솔버 URL>`, `Metadata-Flavor: Google`)에서 받아 약 50분 캐시하는 **공용 함수 하나**를 간호사·의사 두 호출 모두에 붙인다. `SOLVER_URL`이 http면 토큰 없이(VM·로컬·CI).
-- **근무표 생성 비동기화:** 생성 버튼은 작업을 시작만 하고 바로 돌아오며(작업 행 저장, 상태 = 대기·진행·완료·실패), 화면은 몇 초마다 진행을 확인해 끝나면 결과·실패 원인을 그대로 보여 준다. 간호사·의사 생성 모두. Cloud Run은 응답 뒤 CPU가 줄어들 수 있으므로, 생성 작업을 **Cloud Run Job으로** 돌릴지 web만 **`--no-cpu-throttling`**으로 둘지는 계획 단계에서 비용·복잡도를 비교해 정한다. VM에서는 지금처럼 같은 프로세스에서 이어 돌아도 된다.
+- **근무표 생성 비동기화:** 생성 버튼은 작업을 시작만 하고 바로 돌아오며(작업 행 저장, 상태 = 대기·진행·완료·실패), 화면은 몇 초마다 진행을 확인해 끝나면 결과·실패 원인을 그대로 보여 준다. **간호사 생성만**(의사 생성은 시간 한도 10초라 60초 안 — 동기 유지). 실행은 **Cloud Tasks**(서울 큐 `duty-generate`)가 web의 run.app 작업 엔드포인트(`/api/generate/run`, 비밀 키 헤더)를 불러 그 요청 안에서 돌린다 — Firebase를 거치지 않아 60초 제한이 없고, 처리하는 동안만 과금된다(무료 월 100만 건). web을 `--no-cpu-throttling`으로 두면 업타임 체크 때문에 늘 켜져 월 $40 넘게 들고, Cloud Run Job은 생성마다 컨테이너를 새로 띄워 무거워 탈락(계획 단계 결정 2026-11-17). VM·로컬·E2E는 큐 설정이 없으므로 같은 프로세스에서 바로 실행.
 - **클라이언트 IP:** 믿을 프록시 수를 환경 변수 `TRUSTED_PROXY_HOPS`(VM=1, 지금과 같음)로 받는다. Firebase 값은 스테이징에서 실제 헤더를 보고 정한다. 로그인 IP 제한·동의 기록 IP 모두 같은 함수.
 - **서버 액션 Origin:** Firebase가 넘기는 `x-forwarded-host`가 offplz.com이 아니면 모든 액션이 실패한다. 스테이징에서 확인하고 필요하면 `serverActions.allowedOrigins: ['offplz.com', 'duty-511008.web.app']`.
 - **HSTS:** Caddy가 붙이던 `Strict-Transport-Security`를 Next `headers()`로 옮긴다.
@@ -138,7 +138,7 @@ main CI(검사·E2E)는 그대로. 새 `deploy` 잡:
 
 - [x] 설계 질문 답변 (2026-11-17)
 - [x] 독립 검토 반영 (2026-11-17)
-- [ ] 설계 문서 승인 → 구현 계획
+- [x] 설계 문서 승인 → 구현 계획 (2026-11-17, `docs/superpowers/plans/2026-11-17-serverless-code.md`)
 - [ ] 1. 코드 PR 머지
 - [ ] 2. GCP 자원 생성 승인
 - [ ] 3. 스테이징 확인
