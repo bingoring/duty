@@ -5,6 +5,8 @@ import { z } from 'zod'
 import { groupSession } from '../auth/session'
 import { getDb } from '../db/client'
 import { revokeConfirmation, revokePreview } from './revoke'
+import { dispatchGeneration } from './dispatch'
+import { readGenerationJob, runGenerationJob, startGeneration } from './jobs'
 import { confirmCandidate, generate } from './service'
 import { requestToday } from '../clock'
 
@@ -38,6 +40,39 @@ export async function generateAction(input: unknown) {
   const r = await generate(getDb(), admin, { year, month }, { priorities, today: await requestToday() })
   if (r.ok) refresh()
   return r
+}
+
+// 3-13: 생성 작업을 시작만 하고 바로 돌아온다(Firebase Hosting 60초 제한). 화면은 generationJobAction으로 진행을 확인한다
+export async function startGenerateAction(input: unknown) {
+  const admin = await adminOnly()
+  if (!admin) return DENIED
+  const parsed = GenerateSchema.safeParse(input)
+  if (!parsed.success) return BAD
+  const { year, month, priorities } = parsed.data
+  const db = getDb()
+  const r = await startGeneration(db, admin, { year, month }, priorities, await requestToday())
+  if (!r.ok) return r
+  try {
+    await dispatchGeneration(r.jobId, process.env, { run: (id) => runGenerationJob(db, id) })
+  } catch (e) {
+    console.error('generation_dispatch_failed', { jobId: r.jobId, error: String(e) })
+    return {
+      ok: false as const,
+      kind: 'unreachable' as const,
+      message: '생성을 시작하지 못했습니다. 잠시 뒤 다시 시도해 주세요.',
+    }
+  }
+  return r
+}
+
+export async function generationJobAction(input: unknown) {
+  const admin = await adminOnly()
+  if (!admin) return DENIED
+  const parsed = z.string().uuid().safeParse(input)
+  if (!parsed.success) return BAD
+  const job = await readGenerationJob(getDb(), parsed.data)
+  if (!job) return { ok: false as const, kind: 'blocked' as const, message: '생성 작업을 찾을 수 없습니다.' }
+  return { ok: true as const, ...job }
 }
 
 export async function confirmCandidateAction(input: unknown) {

@@ -21,6 +21,7 @@ import {
   text,
   timestamp,
   unique,
+  uniqueIndex,
   uuid,
 } from 'drizzle-orm/pg-core'
 
@@ -664,5 +665,31 @@ export const doctorSwapRequests = pgTable(
   (t) => [
     index('doctor_swaps_plan_idx').on(t.planId, t.status),
     index('doctor_swaps_target_idx').on(t.targetId, t.status),
+  ],
+)
+
+// 3-13: 간호사 근무표 생성 작업. 생성 버튼은 작업만 만들고, Cloud Tasks(또는 같은 프로세스)가 실행, 화면은 진행을 확인한다.
+// 같은 달에 진행 중인 작업은 하나만(두 번 클릭·두 관리자). result = GenerateResult(성공이든 원인이 있는 실패든)
+export const generationJobs = pgTable(
+  'generation_jobs',
+  {
+    id: id(),
+    year: integer('year').notNull(),
+    month: integer('month').notNull(),
+    priorities: jsonb('priorities').notNull(),
+    // 시작한 요청의 「오늘」(E2E 가짜 날짜 포함) — 실행하는 쪽에는 쿠키가 없다
+    today: day('today').notNull(),
+    status: text('status').$type<'queued' | 'running' | 'done' | 'failed'>().notNull().default('queued'),
+    result: jsonb('result'),
+    createdBy: uuid('created_by')
+      .notNull()
+      .references(() => users.id),
+    createdAt: createdAt(),
+    updatedAt: tstz('updated_at').notNull().defaultNow(),
+  },
+  (t) => [
+    uniqueIndex('generation_jobs_active_ym')
+      .on(t.year, t.month)
+      .where(sql`${t.status} in ('queued', 'running')`),
   ],
 )
