@@ -1,0 +1,7 @@
+{
+  "hosting": {
+    "public": "deploy/cloudrun/public",
+    "ignore": [".gitkeep"],
+    "rewrites": [{ "source": "**", "run": { "serviceId": "duty-web", "region": "asia-northeast3" } }]
+  }
+}

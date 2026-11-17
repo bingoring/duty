@@ -73,7 +73,8 @@ jobs:
   # Build Spec 3-3 — main push에서 검사가 통과하면 운영에 배포한다. 저장소 변수가 없으면(설정 전·포크) 건너뛴다
   deploy:
     needs: check
-    if: github.event_name == 'push' && github.ref == 'refs/heads/main' && vars.GCP_WIF_PROVIDER != ''
+    # VM 배포(3-13 전환 전까지). 저장소 변수 DEPLOY_TARGET=cloudrun이면 아래 deploy-cloudrun이 대신 돈다
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main' && vars.GCP_WIF_PROVIDER != '' && vars.DEPLOY_TARGET != 'cloudrun'
     runs-on: ubuntu-latest
     # 배포는 한 번에 하나, 진행 중인 배포는 끊지 않는다(뒤 커밋은 차례를 기다린다)
     concurrency: { group: deploy-production, cancel-in-progress: false }
@@ -95,3 +96,71 @@ jobs:
             --command "sudo bash -s -- ${{ github.sha }}" < deploy/deploy.sh 2>&1 | tee deploy.log
           grep -qE '^deploy_(ok|skip|docs_only) ' deploy.log
       - run: curl -fsS -o /dev/null -w '%{http_code}\n' https://offplz.com/api/health
+
+  # 3-13: Cloud Run + Firebase Hosting 배포. 저장소 변수 DEPLOY_TARGET=cloudrun을 넣기 전까지는 돌지 않는다.
+  # 자원과 첫 배포는 deploy/gcp/serverless.sh가 만든다(이 잡은 이미지·리비전만 바꾼다)
+  deploy-cloudrun:
+    needs: check
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main' && vars.GCP_WIF_PROVIDER != '' && vars.DEPLOY_TARGET == 'cloudrun'
+    runs-on: ubuntu-latest
+    concurrency: { group: deploy-production, cancel-in-progress: false }
+    environment: production
+    permissions: { contents: read, id-token: write }
+    env:
+      PROJECT: ${{ vars.GCP_PROJECT }}
+      REGION: asia-northeast3
+      SHA: ${{ github.sha }}
+      AR: asia-northeast3-docker.pkg.dev/${{ vars.GCP_PROJECT }}/duty
+    steps:
+      - uses: actions/checkout@v7
+        with: { fetch-depth: 0 }
+      - uses: google-github-actions/auth@v2
+        with:
+          workload_identity_provider: ${{ vars.GCP_WIF_PROVIDER }}
+          service_account: ${{ vars.GCP_DEPLOY_SA }}
+      - uses: google-github-actions/setup-gcloud@v2
+      # 1) 지금 트래픽을 받는 web 리비전의 커밋(label commit-sha)과 비교해 실행에 쓰이는 파일이 안 바뀌었으면 빌드하지 않는다.
+      #    서비스 라벨이 아니라 리비전을 본다 — 헬스 실패로 트래픽을 못 옮긴 커밋을 「이미 배포됨」으로 보지 않게
+      - id: diff
+        run: |
+          REV=$(gcloud run services describe duty-web --project "$PROJECT" --region "$REGION" --format=json 2>/dev/null |
+            jq -r '[.status.traffic[] | select(.percent > 0)][0].revisionName // empty' || true)
+          PREV=""
+          [ -z "$REV" ] || PREV=$(gcloud run revisions describe "$REV" --project "$PROJECT" --region "$REGION" \
+            --format='value(metadata.labels.commit-sha)' 2>/dev/null || true)
+          RUNTIME='^(apps/|packages/|services/|firebase\.json|deploy/cloudrun/|package\.json|pnpm-lock\.yaml|pnpm-workspace\.yaml|\.nvmrc)'
+          if [ -n "$PREV" ] && git cat-file -e "$PREV^{commit}" 2>/dev/null && ! git diff --name-only "$PREV" "$SHA" | grep -qE "$RUNTIME"; then
+            echo "deploy_docs_only $PREV → $SHA"
+            echo "skip=true" >> "$GITHUB_OUTPUT"
+          fi
+      # 2) 이미지 빌드 → Artifact Registry(태그 = 커밋 SHA)
+      - if: steps.diff.outputs.skip != 'true'
+        run: |
+          gcloud auth configure-docker asia-northeast3-docker.pkg.dev --quiet
+          docker build -f apps/web/Dockerfile --target runner -t "$AR/web:$SHA" .
+          docker build -f apps/web/Dockerfile --target tools -t "$AR/tools:$SHA" .
+          docker build -t "$AR/solver:$SHA" services/solver
+          docker push "$AR/web:$SHA" && docker push "$AR/tools:$SHA" && docker push "$AR/solver:$SHA"
+      # 3) 마이그레이션 Job(실패하면 여기서 멈춘다). 배포 전 백업은 Cloud SQL 원하는 시점 복구로 대신한다
+      - if: steps.diff.outputs.skip != 'true'
+        run: |
+          gcloud run jobs update duty-migrate --project "$PROJECT" --region "$REGION" --image "$AR/tools:$SHA"
+          gcloud run jobs execute duty-migrate --project "$PROJECT" --region "$REGION" --wait
+      # 4) 새 리비전은 트래픽 없이 올리고(태그 URL만 생김), web 태그 URL 헬스가 통과해야 트래픽을 옮긴다.
+      #    솔버는 비공개라 태그 URL을 부르지 않는다 — 리비전이 준비되지 않으면 deploy가 실패한다
+      - if: steps.diff.outputs.skip != 'true'
+        run: |
+          TAG="c${SHA:0:7}"
+          gcloud run deploy duty-solver --project "$PROJECT" --region "$REGION" --image "$AR/solver:$SHA" \
+            --update-labels "commit-sha=$SHA" --no-traffic --tag "$TAG"
+          gcloud run deploy duty-web --project "$PROJECT" --region "$REGION" --image "$AR/web:$SHA" \
+            --update-labels "commit-sha=$SHA" --no-traffic --tag "$TAG"
+          URL=$(gcloud run services describe duty-web --project "$PROJECT" --region "$REGION" --format=json |
+            jq -r --arg t "$TAG" '.status.traffic[] | select(.tag == $t) | .url')
+          curl -fsS --retry 5 --retry-delay 5 --retry-all-errors -o /dev/null -w '%{http_code}\n' "$URL/api/health"
+          gcloud run services update-traffic duty-solver --project "$PROJECT" --region "$REGION" --to-latest --clear-tags
+          gcloud run services update-traffic duty-web --project "$PROJECT" --region "$REGION" --to-latest --clear-tags
+      # 5) Hosting을 매번 배포해 Firebase CDN 캐시를 비운다(지운 청크를 가리키는 옛 페이지가 남지 않게)
+      - if: steps.diff.outputs.skip != 'true'
+        run: npx --yes firebase-tools@14 deploy --only hosting --project "$PROJECT" --non-interactive
+      - run: curl -fsS --retry 3 --retry-delay 5 -o /dev/null -w '%{http_code}\n' https://offplz.com/api/health
