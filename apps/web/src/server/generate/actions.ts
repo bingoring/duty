@@ -7,7 +7,7 @@ import { getDb } from '../db/client'
 import { revokeConfirmation, revokePreview } from './revoke'
 import { dispatchGeneration } from './dispatch'
 import { readGenerationJob, runGenerationJob, startGeneration } from './jobs'
-import { confirmCandidate, generate } from './service'
+import { confirmCandidate } from './service'
 import { requestToday } from '../clock'
 
 // Build Spec 2-6 — 듀티 생성 서버 액션. 각 액션은 첫 줄에서 관리자를 확인한다(페이지 가드에 기대지 않음)
@@ -30,17 +30,6 @@ const GenerateSchema = z.object({
     minimizeRepeatPairs: z.boolean(),
   }),
 })
-
-export async function generateAction(input: unknown) {
-  const admin = await adminOnly()
-  if (!admin) return DENIED
-  const parsed = GenerateSchema.safeParse(input)
-  if (!parsed.success) return BAD
-  const { year, month, priorities } = parsed.data
-  const r = await generate(getDb(), admin, { year, month }, { priorities, today: await requestToday() })
-  if (r.ok) refresh()
-  return r
-}
 
 // 3-13: 생성 작업을 시작만 하고 바로 돌아온다(Firebase Hosting 60초 제한). 화면은 generationJobAction으로 진행을 확인한다
 export async function startGenerateAction(input: unknown) {

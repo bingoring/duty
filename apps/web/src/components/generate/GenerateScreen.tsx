@@ -2,11 +2,12 @@
 
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
-import { useState, useTransition } from 'react'
+import { useEffect, useState, useTransition } from 'react'
 import { ScheduleGrid } from '@/components/schedule/ScheduleGrid'
 import {
   confirmCandidateAction,
-  generateAction,
+  generationJobAction,
+  startGenerateAction,
   revokeConfirmationAction,
   revokePreviewAction,
 } from '@/server/generate/actions'
@@ -35,10 +36,21 @@ const QUICK_LEAVES = [
 ] as const
 type QuickLeave = (typeof QUICK_LEAVES)[number]
 
-export function GenerateScreen({ view }: { view: GenerateView }) {
+// 3-13: 생성은 작업으로 돈다 — 버튼은 작업을 시작하고, 2초마다 진행을 확인한다(initialJobId = 화면을 다시 열 때 이어 볼 작업)
+const POLL_MS = 2_000
+const POLL_MAX_MS = 6 * 60_000
+
+export function GenerateScreen({
+  view,
+  initialJobId = null,
+}: {
+  view: GenerateView
+  initialJobId?: string | null
+}) {
   const router = useRouter()
   const hydrated = useHydrated()
   const [pending, start] = useTransition()
+  const [jobId, setJobId] = useState<string | null>(initialJobId)
   const [failure, setFailure] = useState<Failure | null>(null)
   const [message, setMessage] = useState('')
   const [showAll, setShowAll] = useState(false)
@@ -91,10 +103,41 @@ export function GenerateScreen({ view }: { view: GenerateView }) {
     start(async () => {
       setFailure(null)
       setMessage('')
-      const r = await generateAction({ year: view.year, month: view.month, priorities: prio })
-      if (r.ok) go(r.candidateId)
+      const r = await startGenerateAction({ year: view.year, month: view.month, priorities: prio })
+      if (r.ok) setJobId(r.jobId)
       else setFailure({ message: r.message, ...('causes' in r && r.causes ? { causes: r.causes } : {}) })
     })
+  useEffect(() => {
+    if (!jobId) return
+    const started = Date.now()
+    let stop = false
+    const tick = async () => {
+      if (stop) return
+      const r = await generationJobAction(jobId)
+      if (stop) return
+      const done = r.ok && (r.status === 'done' || r.status === 'failed')
+      if (!r.ok || done || Date.now() - started > POLL_MAX_MS) {
+        setJobId(null)
+        const res = r.ok ? r.result : r
+        if (res?.ok) go(res.candidateId)
+        else
+          setFailure(
+            res
+              ? { message: res.message, ...('causes' in res && res.causes ? { causes: res.causes } : {}) }
+              : { message: '생성이 너무 오래 걸립니다. 잠시 뒤 다시 확인해 주세요.' },
+          )
+        return
+      }
+      setTimeout(tick, POLL_MS)
+    }
+    const t = setTimeout(tick, POLL_MS)
+    return () => {
+      stop = true
+      clearTimeout(t)
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [jobId])
+  const generating = jobId !== null
   // 3-9 6: OFF·D·E·N 복수 선택(신청), S(그날 S로 고정), 휴가(하루) → 그 간호사의 관리자 입력 → 리롤할지 묻는다
   const afterSaved = (name: string, date: string, what: string) => {
     setAsk(null)
@@ -231,7 +274,7 @@ export function GenerateScreen({ view }: { view: GenerateView }) {
             {view.planStatus === 'CONFIRMED' && (
               <button
                 type="button"
-                disabled={pending}
+                disabled={pending || generating}
                 onClick={revoke}
                 className="mt-2 block h-8 cursor-pointer rounded-lg border border-danger bg-surface px-3 text-xs font-semibold text-danger disabled:opacity-50"
               >
@@ -245,15 +288,15 @@ export function GenerateScreen({ view }: { view: GenerateView }) {
               <button
                 type="button"
                 className={secondary}
-                disabled={!view.canGenerate || pending}
+                disabled={!view.canGenerate || pending || generating}
                 onClick={run}
               >
-                {pending ? '생성 중… (최대 20초)' : view.candidates.length ? '↻ 리롤' : '생성'}
+                {generating ? '생성 중…' : view.candidates.length ? '↻ 리롤' : '생성'}
               </button>
               <button
                 type="button"
                 className={primary}
-                disabled={!cur || cur.stale || cur.hardCount > 0 || pending}
+                disabled={!cur || cur.stale || cur.hardCount > 0 || pending || generating}
                 onClick={confirm}
               >
                 이 안으로 확정
@@ -456,7 +499,7 @@ export function GenerateScreen({ view }: { view: GenerateView }) {
                   key={c}
                   type="button"
                   aria-pressed={picks.includes(c)}
-                  disabled={pending}
+                  disabled={pending || generating}
                   onClick={() => setPicks((p) => (p.includes(c) ? p.filter((x) => x !== c) : [...p, c]))}
                   className={`h-8 min-w-10 cursor-pointer rounded-md px-2 font-bold ${
                     picks.includes(c) ? 'border-2 border-ink' : 'border border-line bg-surface'
@@ -467,7 +510,7 @@ export function GenerateScreen({ view }: { view: GenerateView }) {
               ))}
               <button
                 type="button"
-                disabled={pending || !picks.length}
+                disabled={pending || generating || !picks.length}
                 onClick={() => saveFromCell({ options: picks })}
                 className="h-8 cursor-pointer rounded-md bg-ink px-2.5 text-xs font-bold text-white disabled:opacity-40"
               >
@@ -476,7 +519,7 @@ export function GenerateScreen({ view }: { view: GenerateView }) {
               <span className="mx-1 h-5 w-px bg-line" />
               <button
                 type="button"
-                disabled={pending}
+                disabled={pending || generating}
                 onClick={() => saveFromCell({ special: 'S' })}
                 className="h-8 min-w-10 cursor-pointer rounded-md border border-line bg-shift-s px-2 font-bold"
               >
@@ -486,7 +529,7 @@ export function GenerateScreen({ view }: { view: GenerateView }) {
                 <button
                   key={l.label}
                   type="button"
-                  disabled={pending}
+                  disabled={pending || generating}
                   onClick={() => saveFromCell({ leave: l })}
                   className="h-8 cursor-pointer rounded-md border border-line bg-shift-off px-2 text-xs font-bold"
                 >

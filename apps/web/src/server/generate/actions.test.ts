@@ -8,9 +8,8 @@ describe('듀티 생성 서버 액션 가드', () => {
   const chunks = src.split('export async function ').slice(1)
   const names = chunks.map((c) => c.slice(0, c.indexOf('(')))
 
-  it('액션이 6개 있다(3-8 확정 철회 미리보기·철회, 3-13 생성 작업 시작·확인 포함)', () => {
+  it('액션이 5개 있다(3-8 확정 철회 미리보기·철회, 3-13 생성 작업 시작·확인 포함)', () => {
     expect(names).toEqual([
-      'generateAction',
       'startGenerateAction',
       'generationJobAction',
       'confirmCandidateAction',
