@@ -11,7 +11,9 @@ if (existsSync('.env')) process.loadEnvFile('.env')
 
 test('생성 중에 새로 고쳐도 「생성 중…」이 이어지고 생성안이 나온다', async ({ page }) => {
   test.setTimeout(120_000)
-  const { db, close } = createDb(process.env.E2E_DATABASE_URL ?? 'postgres://duty:duty@localhost:5433/duty_e2e')
+  const { db, close } = createDb(
+    process.env.E2E_DATABASE_URL ?? 'postgres://duty:duty@localhost:5433/duty_e2e',
+  )
   await ensureRequestPlan(db, { year: 2027, month: 1 }, '2026-12-16', DEFAULT_RULES)
   await close()
 
@@ -23,7 +25,7 @@ test('생성 중에 새로 고쳐도 「생성 중…」이 이어지고 생성�
   await page.reload()
   await waitHydrated(page)
   await expect(page.getByRole('button', { name: '생성 중…' })).toBeVisible()
-  await expect(
-    page.getByRole('region', { name: '생성 결과' }).getByText('생성 결과 · 1번째 안'),
-  ).toBeVisible({ timeout: 90_000 })
+  await expect(page.getByRole('region', { name: '생성 결과' }).getByText('생성 결과 · 1번째 안')).toBeVisible(
+    { timeout: 90_000 },
+  )
 })

@@ -10,7 +10,7 @@ import {
   viewportDevice,
 } from '@/server/device'
 import type { Device } from '@/server/device'
-import { saveViewportAction } from '@/server/device-actions'
+import { saveViewportAction } from '@/server/auth/viewport-actions'
 
 // 셸이 바뀌면 이 컴포넌트도 다시 마운트되므로 모듈 범위에 둔다
 let refreshedFrom: Device | null = null
