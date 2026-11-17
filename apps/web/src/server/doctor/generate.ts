@@ -25,6 +25,7 @@ import {
   doctorShifts,
 } from '../db/schema'
 import { solverTimeLimit, solverUrl } from '../generate/solver-client'
+import { solverHeaders } from '../solver-auth'
 import {
   currentDoctorRules,
   employmentOf,
@@ -117,7 +118,7 @@ export async function callDoctorSolver(req: DoctorSolverRequest, url = solverUrl
   try {
     const r = await fetch(`${url}/solve/doctor`, {
       method: 'POST',
-      headers: { 'content-type': 'application/json' },
+      headers: { 'content-type': 'application/json', ...(await solverHeaders(url)) },
       body: JSON.stringify(req),
       signal: AbortSignal.timeout((req.timeLimitSec * 3 + 15) * 1000),
     })
