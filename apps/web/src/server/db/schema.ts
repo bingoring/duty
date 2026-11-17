@@ -100,6 +100,8 @@ export const sessions = pgTable(
     createdAt: createdAt(),
     lastSeenAt: tstz('last_seen_at').notNull().defaultNow(),
     userAgent: text('user_agent'),
+    // 3-13: 화면 폭 보정값('mobile'|'desktop'). Firebase Hosting은 duty_vp 쿠키를 넘기지 않는다
+    viewport: text('viewport'),
   },
   (t) => [index('sessions_user_idx').on(t.userId)],
 )

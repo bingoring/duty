@@ -10,6 +10,7 @@ import {
   viewportDevice,
 } from '@/server/device'
 import type { Device } from '@/server/device'
+import { saveViewportAction } from '@/server/device-actions'
 
 // 셸이 바뀌면 이 컴포넌트도 다시 마운트되므로 모듈 범위에 둔다
 let refreshedFrom: Device | null = null
@@ -26,7 +27,8 @@ export function ViewportSync({ device }: { device: Device }) {
       document.cookie = `${VIEWPORT_COOKIE}=${want}; path=/; max-age=31536000; samesite=lax`
       if (shouldRefresh({ want, device, refreshedFrom })) {
         refreshedFrom = device
-        router.refresh()
+        // 3-13: 쿠키가 전달되지 않는 Firebase Hosting 뒤에서도 맞도록 세션에도 저장한 뒤 다시 받는다
+        void saveViewportAction(want).finally(() => router.refresh())
       }
     }
     sync()

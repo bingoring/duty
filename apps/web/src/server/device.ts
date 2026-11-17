@@ -3,11 +3,20 @@
 export type Device = 'mobile' | 'desktop'
 
 export const VIEWPORT_COOKIE = 'duty_vp'
-export const DEVICE_HEADER = 'x-device'
 
 // iPad UA에도 "Mobile/"이 들어 있어 먼저 뺀다. Android 태블릿은 "Mobile"이 없다
 const TABLET = /iPad|Tablet/i
 const PHONE = /iPhone|iPod|Android.*Mobile|Mobi/i
+
+// 3-13: 세션에 저장한 보정값 → duty_vp 쿠키 → user-agent 순
+export function deviceFor(a: {
+  saved: string | null | undefined
+  cookie: string | undefined
+  ua: string
+}): Device {
+  if (a.saved === 'mobile' || a.saved === 'desktop') return a.saved
+  return detectDevice({ cookie: a.cookie, ua: a.ua })
+}
 
 export function detectDevice(a: { cookie: string | undefined; ua: string }): Device {
   if (a.cookie === 'mobile' || a.cookie === 'desktop') return a.cookie

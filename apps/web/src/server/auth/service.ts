@@ -127,6 +127,8 @@ export type ValidSession = {
   pendingStep: PendingStep | null
   persistent: boolean
   expiresAt: Date
+  /** 3-13 화면 폭 보정값(세션별) */
+  viewport: 'mobile' | 'desktop' | null
   /** R-AUTH-8로 연장됐으면 새 만료 시각. 호출자가 쿠키를 다시 써야 한다. */
   renewedExpiresAt?: Date
 }
@@ -203,6 +205,8 @@ export async function validateSession(
     pendingStep,
     persistent: row.session.persistent,
     expiresAt,
+    viewport:
+      row.session.viewport === 'mobile' || row.session.viewport === 'desktop' ? row.session.viewport : null,
     ...(renewedExpiresAt ? { renewedExpiresAt } : {}),
   }
 }
