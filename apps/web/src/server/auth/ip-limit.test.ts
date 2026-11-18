@@ -30,3 +30,16 @@ describe('clientIp', () => {
     expect(clientIp(new Headers())).toBeNull()
   })
 })
+
+// 3-13: Firebase Hosting 뒤에서는 프록시가 더 붙으므로 믿을 프록시 수를 받는다(기본 1 = 지금처럼 마지막 값)
+describe('clientIp — TRUSTED_PROXY_HOPS', () => {
+  const h = new Headers({ 'x-forwarded-for': 'a, b, c' })
+  it('뒤에서 hops번째', () => {
+    expect(clientIp(h, 1)).toBe('c')
+    expect(clientIp(h, 2)).toBe('b')
+  })
+  it('값이 모자라면 첫 값, 헤더가 없으면 null', () => {
+    expect(clientIp(h, 5)).toBe('a')
+    expect(clientIp(new Headers(), 2)).toBeNull()
+  })
+})

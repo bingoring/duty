@@ -32,11 +32,16 @@ export class IpLimiter {
   }
 }
 
-// Caddy는 들어온 X-Forwarded-For를 믿지 않고 실제 연결 IP를 붙인다 → 마지막 값만 믿는다
-export function clientIp(headers: Headers): string | null {
+// Caddy는 들어온 X-Forwarded-For를 믿지 않고 실제 연결 IP를 붙인다 → 마지막 값만 믿는다(hops 1).
+// 3-13: Firebase Hosting·Google 프런트 뒤에서는 프록시가 더 붙으므로 믿을 프록시 수를 TRUSTED_PROXY_HOPS로 받는다
+export function clientIp(
+  headers: Headers,
+  hops = Number(process.env.TRUSTED_PROXY_HOPS ?? 1),
+): string | null {
   const xff = headers.get('x-forwarded-for')
   if (!xff) return null
-  return xff.split(',').at(-1)!.trim() || null
+  const parts = xff.split(',').map((p) => p.trim())
+  return parts[Math.max(0, parts.length - Math.max(1, hops))] || null
 }
 
 export const loginLimiter = new IpLimiter()

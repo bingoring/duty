@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import { config } from '../proxy'
-import { detectDevice, shouldRefresh, viewportDevice } from './device'
+import { detectDevice, deviceFor, shouldRefresh, viewportDevice } from './device'
 
 const IPHONE_UA =
   'Mozilla/5.0 (iPhone; CPU iPhone OS 15_0 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/26.6 Mobile/15E148 Safari/604.1'
@@ -60,4 +60,17 @@ describe('3-12 뷰포트 보정(ViewportSync)', () => {
     expect(shouldRefresh({ want: 'mobile', device: 'desktop', refreshedFrom: 'desktop' })).toBe(false))
   it('한 번 바뀐 뒤 다시 돌아가는 것은 허용(창을 다시 넓힘·휴대폰을 다시 세움)', () =>
     expect(shouldRefresh({ want: 'desktop', device: 'mobile', refreshedFrom: 'desktop' })).toBe(true))
+})
+
+// 3-13: 판정 순서 = 세션에 저장한 보정값 → duty_vp 쿠키 → user-agent
+describe('deviceFor', () => {
+  it('세션 저장값이 쿠키·UA보다 앞선다', () => {
+    expect(deviceFor({ saved: 'desktop', cookie: 'mobile', ua: IPHONE_UA })).toBe('desktop')
+    expect(deviceFor({ saved: 'mobile', cookie: undefined, ua: DESKTOP_UA })).toBe('mobile')
+  })
+  it('저장값이 없거나 이상하면 지금 순서(쿠키 → UA)', () => {
+    expect(deviceFor({ saved: null, cookie: 'mobile', ua: DESKTOP_UA })).toBe('mobile')
+    expect(deviceFor({ saved: undefined, cookie: undefined, ua: IPHONE_UA })).toBe('mobile')
+    expect(deviceFor({ saved: 'x', cookie: undefined, ua: DESKTOP_UA })).toBe('desktop')
+  })
 })

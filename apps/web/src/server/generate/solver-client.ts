@@ -1,5 +1,6 @@
 import { SolverResponse, type SolverCause, type SolverRequest } from '@duty/contract'
 import type { SeverityKey } from '@duty/domain'
+import { solverHeaders } from '../solver-auth'
 
 // Build Spec 2-6 business-rules R-GEN-9. 솔버는 내부망의 무상태 HTTP 서비스
 export type SolveOutcome =
@@ -20,7 +21,7 @@ export async function callSolver(req: SolverRequest, url = solverUrl()): Promise
   try {
     const r = await fetch(`${url}/solve`, {
       method: 'POST',
-      headers: { 'content-type': 'application/json' },
+      headers: { 'content-type': 'application/json', ...(await solverHeaders(url)) },
       body: JSON.stringify(req),
       signal: AbortSignal.timeout(solverTimeoutMs(req.timeLimitSec)),
     })
