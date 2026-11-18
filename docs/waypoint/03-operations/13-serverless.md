@@ -2,7 +2,7 @@
 phase: 03-operations
 stage: 13-serverless
 status: READY
-updated: 2026-11-17
+updated: 2026-11-18
 ---
 
 # [Stage 3-13] 서버 비용 절감 — VM 한 대 → Cloud Run(요청 없으면 0) + Cloud SQL + Firebase Hosting ⚠️
@@ -133,6 +133,24 @@ main CI(검사·E2E)는 그대로. 새 `deploy` 잡:
 - Cloud SQL 고가용성(리전 복제), 읽기 복제본, Memorystore.
 - VM을 유지한 채 야간에만 끄는 예약 방식(요청 기반이 아님).
 - forin과 Cloud SQL 인스턴스 공유(서비스·개인정보 분리를 위해 따로 둔다).
+
+## 구현 결과 — 1단계 코드 PR (2026-11-18, 브랜치 `feature/3-13-serverless-code`)
+
+VM 배포에서도 그대로 동작한다. GCP 자원은 아직 하나도 만들지 않았다.
+
+- **DB 연결:** `DB_SOCKET_HOST`가 있으면 Cloud SQL 유닉스 소켓으로 붙는다(없으면 지금처럼 `DATABASE_URL`).
+- **로그인 쿠키 `__session`:** 옛 이름도 읽는다. 페이지를 열면(`/api/session/refresh`) 연장할 때가 아니어도 새 이름으로 옮기고 옛 쿠키를 지운다 — 남은 기간이 긴 로그인 유지 사용자가 전환 때 로그아웃되지 않게. 로그인 유지를 끈 12시간 세션은 옮기지 않는다(짧아서 무방).
+- **화면 폭 보정값을 세션에:** 마이그레이션 0017. 저장 액션은 간호사·의사 공통 세션 액션이라 `server/auth/`에 둔다. `proxy.ts`의 `x-device` 헤더를 없애고 판정을 `requestDevice` 한 곳(세션 → 쿠키 → user-agent)으로 모았다.
+- **솔버·접속 IP·HSTS:** 솔버 주소가 https(Cloud Run)면 메타데이터 서버의 ID 토큰을 붙인다(로컬 http는 토큰 없음). 믿을 프록시 수는 `TRUSTED_PROXY_HOPS`(기본 1). Caddy가 붙이던 HSTS를 운영 앱 응답 헤더로 옮겼다.
+- **근무표 생성 비동기화(간호사만):** 마이그레이션 0018 작업 행(대기·진행·완료·실패, 같은 달 진행 중 작업은 하나). `GENERATION_QUEUE`가 있으면 Cloud Tasks가 `/api/generate/run`을 부르고(`x-duty-task-key` 헤더를 `GENERATION_TASK_KEY`와 상수 시간 비교), 없으면(VM·로컬·E2E) 같은 프로세스에서 바로 실행한다. 실행 요청에는 E2E 가짜 날짜 쿠키가 없으므로 작업 행에 기준 날짜를 함께 저장한다. 화면은 몇 초마다 진행을 확인하고, 페이지를 다시 열어도 진행 중 작업을 이어서 보여 준다. 버튼 문구는 「생성 중…」(시간 안내 삭제), 6분이 넘으면 「생성이 너무 오래 걸립니다」로 멈춘다(서버는 5분 넘은 작업을 멈춘 것으로 본다). 메모리 잠금은 남겨 같은 프로세스에서 다른 달 생성이 동시에 돌지 않게 한다. **의사 생성은 시간 한도 10초라 동기 유지.**
+- **배포 설정:** `firebase.json`(모든 경로 → `duty-web`, 서울)·`.firebaserc`, `deploy/gcp/serverless.sh`(기본은 명령 출력만, `--apply`일 때 실행), CI `deploy-cloudrun` 잡(꺼 둠).
+- **설계와 달라진 점:**
+  - `duty-deployer`에 Cloud SQL Client·Secret Accessor를 주지 않는다(소켓·비밀값은 실행 계정만 쓴다). 서비스 계정 사용자 권한은 프로젝트 전체가 아니라 `duty-web`·`duty-solver` 계정에만.
+  - Cloud Tasks용 서비스 계정을 두지 않는다 — Cloud Tasks가 OIDC가 아니라 비밀 키 헤더로 web을 부른다. 스테이징에서 큐 작업이 403이면 계정을 더한다.
+  - 비공개 솔버는 태그 URL 헬스 대신 리비전 준비(시작 프로브)로 확인한다. web 태그 URL만 `/api/health`.
+  - 「문서만 바뀐 커밋」은 트래픽을 받는 web 리비전의 `commit-sha` 라벨과 비교한다(헬스에 실패한 커밋을 배포된 것으로 보지 않게).
+- **3단계 스테이징에서 확인할 것:** `update-traffic --to-latest`와 `--clear-tags` 동시 사용, 리비전 라벨 상속, firebase-tools가 WIF 자격 증명 파일을 쓰는지.
+- **테스트:** 단위 web 278·domain 321·solver 56, 통합 230, E2E 86, 실명 검사 0건.
 
 ## 검토 게이트 (Human Gate)
 

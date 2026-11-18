@@ -4,11 +4,11 @@
 **Requirements:** [inputs/requirements_v3.md](inputs/requirements_v3.md) (근무 지침 원문 + 근무자 명단)
 **Design handoff:** [inputs/design_handoff_nurse_duty_scheduler/](inputs/design_handoff_nurse_duty_scheduler/README.md) (최신, 의사 근무표 turn-6 포함, 가명본) · [v5](inputs/design-handoff_v5/README.md) (2026-09-30) · [v4](inputs/design-handoff_v4/README.md) · [v3](inputs/design-handoff_v3/README.md) · [v2](inputs/design-handoff_v2/README.md) · [v1](inputs/design-handoff_v1/README.md)
 **Decisions (audit):** [DECISIONS.md](DECISIONS.md)
-**Last updated:** 2026-11-17
+**Last updated:** 2026-11-18
 
 > 🔒 **개인정보:** 공개 저장소다. 간호사 이름·사번은 모두 가명이며, 실명 자료는 커밋하지 않는다([DECISIONS](DECISIONS.md) 2026-09-26).
 
-> 📝 **3-13 서버 비용 절감 설계 READY (2026-11-17).** 웹·솔버를 Cloud Run(요청 없으면 0), DB를 Cloud SQL 서울(자동 백업 30일 + 원하는 시점 복구), 도메인은 Firebase Hosting. 월 약 $39 → 약 $13. Firebase가 `__session` 쿠키만 넘기므로 로그인 쿠키를 `__session`으로(옛 이름도 읽어 아무도 다시 로그인하지 않음)·화면 폭 보정값을 세션으로, 근무표 생성은 60초 제한 때문에 비동기로. 스테이징(가명 시드) 확인 뒤 다운타임 전환, VM은 2주 중지 뒤 삭제. 구현 착수 승인 대기. [13-serverless.md](03-operations/13-serverless.md)
+> 🏗️ **3-13 서버 비용 절감 1단계 코드 구현 (2026-11-18, 브랜치 `feature/3-13-serverless-code`, PR 대기).** 설계 승인(생성 비동기는 Cloud Tasks). 로그인 쿠키 `__session`(옛 이름도 읽고 페이지를 열면 옮김)·화면 폭 보정값을 세션으로(마이그레이션 0017)·Cloud SQL 소켓·솔버 ID 토큰·HSTS, 간호사 근무표 생성 비동기화(작업 행, 마이그레이션 0018, 의사 생성은 동기 유지), Firebase·Cloud Run 설정과 꺼 둔 배포 잡. VM 배포에서도 그대로 동작하고 GCP 자원은 아직 없음. 다음: 머지 → VM 배포 뒤 운영에서 로그인 유지(옛 쿠키 사용자 포함)·생성 확인 → 2단계 GCP 자원 생성 승인. [13-serverless.md](03-operations/13-serverless.md)
 
 > 🚀 **3-12 모바일 대응 운영 반영 (2026-10-30, PR #14·#15·#16·#17 → 배포 `25eb31e`).** 768px 미만에서 아래 탭(근무표·신청·교환/관리·더보기), 홈 화면 추가(PWA), 근무표 오늘 카드·내 달력·날짜별 명단, 신청·교환 시트, 관리 탭 휴가 승인·급한 변경, 바텀 시트(애니메이션·손잡이 끌어 닫기). 실기기(iPhone·Android) 확인 대기 — 홈 화면 추가·로그인 유지·시트 끄는 느낌. 설계 [12-mobile.md](03-operations/12-mobile.md).
 
