@@ -2,7 +2,7 @@
 phase: 03-operations
 stage: 13-serverless
 status: READY
-updated: 2026-11-18
+updated: 2026-11-23
 ---
 
 # [Stage 3-13] 서버 비용 절감 — VM 한 대 → Cloud Run(요청 없으면 0) + Cloud SQL + Firebase Hosting ⚠️
@@ -152,13 +152,23 @@ VM 배포에서도 그대로 동작한다. GCP 자원은 아직 하나도 만들
 - **3단계 스테이징에서 확인할 것:** `update-traffic --to-latest`와 `--clear-tags` 동시 사용, 리비전 라벨 상속, firebase-tools가 WIF 자격 증명 파일을 쓰는지.
 - **테스트:** 단위 web 278·domain 321·solver 56, 통합 230, E2E 86, 실명 검사 0건.
 
+## 구현 결과 — 2단계 GCP 자원 생성 (2026-11-23)
+
+`deploy/gcp/serverless.sh --apply infra → services 9aa4f36 → hosting`. offplz.com은 그대로 VM(`via: 1.1 Caddy`)이고, CI의 `DEPLOY_TARGET`은 설정하지 않아 `deploy-cloudrun` 잡은 계속 꺼져 있다.
+
+- **만든 자원:** API 7개, Artifact Registry `duty`(서울, 이미지별 최근 5개), Cloud SQL `duty-db`(Postgres 16, db-f1-micro, 백업 30개, PITR 7일), DB·사용자 `duty`, 비밀값 `duty-database-url`·`duty-generation-task-key`, 서비스 계정 `duty-web`·`duty-solver`와 역할, 큐 `duty-generate`, Cloud SQL 서비스 계정의 백업 버킷 읽기, Cloud Run `duty-solver`·`duty-web`(최소 0·최대 2), Job `duty-migrate`(1회 실행 성공), Firebase 추가·Hosting(`duty-511008.web.app` → `duty-web`).
+- **확인:** `duty-511008.web.app/api/health` 200, `/login` 200. DB는 마이그레이션만 적용된 빈 상태(가명 시드는 3단계).
+- **계획과 달라진 점:** 첫 이미지는 CI가 아니라 Mac에서 `--platform linux/amd64`로 빌드해 올렸다(머지 커밋 `9aa4f36`의 깨끗한 worktree, 약 4분). CI 배포 잡은 `duty-migrate` Job이 있어야 돌고 전환 전에는 꺼 두어야 하기 때문이다.
+- **공휴일 API 키:** 운영 `.env.prod`에도 값이 없어(지금 운영도 API 미사용) 비밀값 `duty-holiday-api-key`를 만들지 않았다. 나중에 넣으면 `services` 단계가 web에 연결한다.
+- **비용:** 이때부터 Cloud SQL 비용(월 약 $9~10)이 VM과 겹친다.
+
 ## 검토 게이트 (Human Gate)
 
 - [x] 설계 질문 답변 (2026-11-17)
 - [x] 독립 검토 반영 (2026-11-17)
 - [x] 설계 문서 승인 → 구현 계획 (2026-11-17, `docs/superpowers/plans/2026-11-17-serverless-code.md`)
-- [ ] 1. 코드 PR 머지
-- [ ] 2. GCP 자원 생성 승인
+- [x] 1. 코드 PR 머지 (2026-11-18, PR #18 → VM 배포 `9aa4f36`, 운영 로그인 유지·생성 확인)
+- [x] 2. GCP 자원 생성 승인 (2026-11-23)
 - [ ] 3. 스테이징 확인
 - [ ] 4. 전환 승인·실행
 - [ ] 6. 2주 뒤 정리 승인
