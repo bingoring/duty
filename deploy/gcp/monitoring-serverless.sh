@@ -3,7 +3,8 @@
 #   PROJECT_ID=duty-511008 BUDGET_KRW=30000 ./deploy/gcp/monitoring-serverless.sh
 #   DRY_RUN=1 이면 실행할 명령만 출력한다. 이름으로 찾아 이미 있으면 건너뛴다(멱등)
 # 알림 채널(duty-email)·업타임 체크 duty-health·정책 duty-down은 deploy/gcp/monitoring.sh가 만든 것을 그대로 쓴다.
-# - duty-backup-missing(VM 백업 상태 파일)은 끈다 — Cloud Run에는 그 파일이 없어 계속 울린다. 체크·정책 삭제는 6단계 정리 때
+# - VM 백업 상태 파일을 보는 업타임 체크 duty-backup과 정책 duty-backup-missing은 지운다 — Cloud Run에는 그 파일이 없어
+#   체크가 15분마다 503을 남긴다(업타임 체크는 끄는 설정이 없다). 되살리려면 deploy/gcp/monitoring.sh
 # - VM 디스크·메모리 정책(duty-disk·duty-memory)은 VM을 멈추면 지표가 없어 울리지 않는다 — 6단계 정리 때 지운다
 # - Cloud SQL 백업 실패 알림은 실패 로그 형식을 확인한 뒤 더한다(waypoint 13-serverless.md 남은 일)
 set -euo pipefail
@@ -13,7 +14,7 @@ run() { echo "+ $*" >&2; [ -n "${DRY_RUN:-}" ] || "$@"; }
 TMP=$(mktemp -d)
 trap 'rm -rf "$TMP"' EXIT
 API=https://monitoring.googleapis.com/v3/projects/$PROJECT_ID
-api() { # GET 경로 | POST 경로 파일 | PATCH 경로?updateMask 파일
+api() { # GET 경로 | POST 경로 파일
   local token
   token=$(gcloud auth print-access-token)
   if [ "$1" = GET ]; then
@@ -29,12 +30,15 @@ find_name() { { api GET "$1?pageSize=200" 2>/dev/null || echo "{}"; } | python3 
 CHANNEL=$(find_name notificationChannels notificationChannels duty-email)
 [ -n "$CHANNEL" ] || { echo "알림 채널 duty-email이 없습니다 — deploy/gcp/monitoring.sh를 먼저 돌리세요" >&2; exit 1; }
 
-# 1) VM 백업 상태 파일 알림 끄기
+# 1) VM 백업 상태 파일 알림·체크 지우기(정책이 체크를 가리키므로 정책 먼저)
 OLD=$(find_name alertPolicies alertPolicies duty-backup-missing)
 if [ -n "$OLD" ]; then
-  echo '{"enabled": false}' >"$TMP/disable.json"
-  api PATCH "$OLD?updateMask=enabled" "$TMP/disable.json"
+  echo "+ DELETE $OLD" # 토큰이 출력되지 않게 run을 쓰지 않는다
+  [ -n "${DRY_RUN:-}" ] || curl -fsS -X DELETE -H "Authorization: Bearer $(gcloud auth print-access-token)" \
+    "https://monitoring.googleapis.com/v3/$OLD" -o /dev/null
 fi
+CHECK=$(gcloud monitoring uptime list-configs "${P[@]}" --filter='displayName="duty-backup"' --format='value(name)' 2>/dev/null | head -1)
+[ -z "$CHECK" ] || run gcloud monitoring uptime delete "$CHECK" --quiet
 
 # 2) Cloud SQL·Cloud Run 알림 정책
 policy() { # 이름 조건이름 필터 정렬 집계 비교 임계 지속(초) 안내
