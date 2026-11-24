@@ -180,6 +180,24 @@ VM 배포에서도 그대로 동작한다. GCP 자원은 아직 하나도 만들
 - 스테이징 서비스에 두 값(프록시 수 2, 프로브 1초)을 직접 적용했고, 스크립트 기본값은 PR #19로 고친다. CI의 `gcloud run deploy --image`는 서비스 설정을 그대로 이어받는다.
 - **남은 확인:** CI의 firebase-tools가 WIF 자격 증명으로 배포되는지는 `DEPLOY_TARGET=cloudrun`을 켠 뒤 첫 CI 배포에서 확인한다. 서버 액션(로그인·생성)은 Firebase를 거쳐 정상 동작했다.
 
+## 구현 결과 — 4단계 전환 (2026-11-24 13:40~14:45 KST)
+
+사용자 결정으로 낮에 바로 진행했다(「아직 사용자 없으니 가용성 고려하지 말 것」). 인증서를 미리 받는 하루 전 준비는 건너뛰고 DNS를 바꾼 뒤 발급받았다(중단 약 1시간).
+
+1. Firebase 사용자 지정 도메인을 API로 만들었다: `offplz.com`, `www.offplz.com`(→ `offplz.com` 301). CAA 레코드는 없다.
+2. VM `web`·`solver`를 멈추고(DB 앱 연결 0) 표마다 정확한 행 수를 셌다: **표 32개(public 31 + 마이그레이션 기록), 12,235행**. VM 배포 커밋 `8ed547c`, 마이그레이션 19개, 확장은 `plpgsql`만, Postgres 16.
+3. VM에서 `pg_dump --no-owner --no-acl --format=plain | gzip` → 서울 백업 버킷에 바로 올렸다(Mac에 남기지 않음, 84KB, 끝 표식·`CREATE TABLE` 32·`COPY` 32 확인). Cloud SQL은 평문 SQL만 가져오므로 `-Fc`가 아니라 평문.
+4. Cloud SQL `duty` DB를 지우고 다시 만든 뒤 `gcloud sql import sql --user=duty`. **표 32개 행 수가 VM과 모두 같다**, 모든 표 소유자 `duty`. `duty-migrate`를 한 번 돌려 바뀌는 것이 없음을 확인.
+5. 가비아 DNS(사용자): `@` A `199.36.158.100`·TXT `hosting-site=duty-511008`, `www` CNAME `duty-511008.web.app.`, 옛 A `34.64.144.77` 삭제. 약 15분 뒤 인증서(Google Trust Services, 2027-02-22까지) → `offplz.com/api/health` 200, `server: Google Frontend`.
+6. Cloud SQL 수동 백업 1회(가져오기 직후). 저장소 변수 `DEPLOY_TARGET=cloudrun` → 이후 머지는 `deploy-cloudrun` 잡이 배포하고 VM `deploy` 잡은 돌지 않는다.
+7. 덤프 파일은 버킷에서 지웠다. 버킷 소프트 삭제(7일)로 2026-12-01께 완전히 없어진다(비공개 서울 버킷, 기존 백업과 같은 접근 권한 — 백업 보호를 위해 소프트 삭제 설정은 바꾸지 않음).
+8. VM은 **중지만** 했다(`TERMINATED`, 디스크·고정 IP 유지). 다시 켜면 `db`·`caddy`·`backup`만 자동으로 뜨고, `web`·`solver`는 손으로 멈춰 둔 상태라 `docker compose up -d`가 필요하다.
+9. 감시(`deploy/gcp/monitoring-serverless.sh`): `duty-backup-missing`(VM 백업 상태 파일) 끔, `duty-sql-cpu`(80% 15분)·`duty-sql-disk`(80%)·`duty-run-5xx`(5분 5건) 추가, 월 예산 5만 → 3만 원. `duty-health`·`duty-down`은 주소 그대로. VM 디스크·메모리 정책은 VM을 멈추면 지표가 없어 울리지 않는다(6단계에 삭제).
+
+- 전환 중 main CI 3건(문서·스크립트 커밋)의 VM `deploy`가 마지막 `offplz.com` 헬스에서 502로 실패했다 — 중단 시간에 돈 것이고 VM은 git만 갱신했다(다시 빌드하지 않음).
+- **되돌리기 기간(~2026-12-08):** 새 마이그레이션 머지 금지. 되돌릴 때는 가비아 A를 `34.64.144.77`로, `www`를 A로 되돌리고 VM을 켠 뒤 `web`을 띄우고, 전환 뒤 바뀐 데이터를 Cloud SQL에서 같은 방식(덤프 → 버킷 → VM 복원)으로 옮긴다. `DEPLOY_TARGET`도 지운다.
+- **남은 확인:** 사용자 본인 계정으로 offplz.com 운영 스모크(근무표·신청·교환·관리·생성), 첫 앱 변경 머지 때 CI의 이미지 빌드·Firebase 배포(WIF), Cloud SQL 백업 실패 알림(실패 로그 형식 확인 뒤).
+
 ## 검토 게이트 (Human Gate)
 
 - [x] 설계 질문 답변 (2026-11-17)
@@ -188,5 +206,5 @@ VM 배포에서도 그대로 동작한다. GCP 자원은 아직 하나도 만들
 - [x] 1. 코드 PR 머지 (2026-11-18, PR #18 → VM 배포 `9aa4f36`, 운영 로그인 유지·생성 확인)
 - [x] 2. GCP 자원 생성 승인 (2026-11-23)
 - [x] 3. 스테이징 확인 (2026-11-24 승인, PR #19 머지 `3b7cc4b`)
-- [ ] 4. 전환 승인·실행
+- [x] 4. 전환 승인·실행 (2026-11-24, 사용자 「지금 전부 진행」)
 - [ ] 6. 2주 뒤 정리 승인
