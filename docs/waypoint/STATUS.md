@@ -4,11 +4,11 @@
 **Requirements:** [inputs/requirements_v3.md](inputs/requirements_v3.md) (근무 지침 원문 + 근무자 명단)
 **Design handoff:** [inputs/design_handoff_nurse_duty_scheduler/](inputs/design_handoff_nurse_duty_scheduler/README.md) (최신, 의사 근무표 turn-6 포함, 가명본) · [v5](inputs/design-handoff_v5/README.md) (2026-09-30) · [v4](inputs/design-handoff_v4/README.md) · [v3](inputs/design-handoff_v3/README.md) · [v2](inputs/design-handoff_v2/README.md) · [v1](inputs/design-handoff_v1/README.md)
 **Decisions (audit):** [DECISIONS.md](DECISIONS.md)
-**Last updated:** 2026-11-23
+**Last updated:** 2026-11-24
 
 > 🔒 **개인정보:** 공개 저장소다. 간호사 이름·사번은 모두 가명이며, 실명 자료는 커밋하지 않는다([DECISIONS](DECISIONS.md) 2026-09-26).
 
-> 🏗️ **3-13 서버 비용 절감 2단계 GCP 자원 생성 (2026-11-23).** 1단계 코드(PR #18)는 VM에 배포됐고 운영에서 로그인 유지·생성을 확인했다. 2단계: Cloud SQL `duty-db`(백업 30개·PITR 7일), Cloud Run `duty-web`·`duty-solver`(요청 없으면 0), 생성 큐, Firebase Hosting(`duty-511008.web.app`, DB는 빈 상태). offplz.com은 그대로 VM이고 Cloud SQL 비용이 VM과 겹친다. 다음: 3단계 스테이징 확인(가명 시드). [13-serverless.md](03-operations/13-serverless.md)
+> 🧪 **3-13 서버 비용 절감 3단계 스테이징 확인 → 승인 대기 (2026-11-24).** 2단계 GCP 자원(Cloud SQL·Cloud Run·생성 큐·Firebase Hosting)은 2026-11-23 생성. `duty-511008.web.app`에서 가명 시드로 로그인 유지(`__session`)·휴대폰 화면·CDN 캐시·생성(Cloud Tasks, 36.5초)·CI 배포 리허설 확인, 프록시 수 2·시작 프로브 1초로 콜드스타트 13초 → 3.9초(PR #19). 확인 뒤 스테이징 DB는 비움. offplz.com은 그대로 VM이고 Cloud SQL 비용이 VM과 겹친다. 다음: 3단계 승인 → 4단계 전환(다운타임). [13-serverless.md](03-operations/13-serverless.md)
 
 > 🚀 **3-12 모바일 대응 운영 반영 (2026-10-30, PR #14·#15·#16·#17 → 배포 `25eb31e`).** 768px 미만에서 아래 탭(근무표·신청·교환/관리·더보기), 홈 화면 추가(PWA), 근무표 오늘 카드·내 달력·날짜별 명단, 신청·교환 시트, 관리 탭 휴가 승인·급한 변경, 바텀 시트(애니메이션·손잡이 끌어 닫기). 실기기(iPhone·Android) 확인 대기 — 홈 화면 추가·로그인 유지·시트 끄는 느낌. 설계 [12-mobile.md](03-operations/12-mobile.md).
 

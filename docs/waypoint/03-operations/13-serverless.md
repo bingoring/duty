@@ -2,7 +2,7 @@
 phase: 03-operations
 stage: 13-serverless
 status: READY
-updated: 2026-11-23
+updated: 2026-11-24
 ---
 
 # [Stage 3-13] 서버 비용 절감 — VM 한 대 → Cloud Run(요청 없으면 0) + Cloud SQL + Firebase Hosting ⚠️
@@ -161,6 +161,24 @@ VM 배포에서도 그대로 동작한다. GCP 자원은 아직 하나도 만들
 - **계획과 달라진 점:** 첫 이미지는 CI가 아니라 Mac에서 `--platform linux/amd64`로 빌드해 올렸다(머지 커밋 `9aa4f36`의 깨끗한 worktree, 약 4분). CI 배포 잡은 `duty-migrate` Job이 있어야 돌고 전환 전에는 꺼 두어야 하기 때문이다.
 - **공휴일 API 키:** 운영 `.env.prod`에도 값이 없어(지금 운영도 API 미사용) 비밀값 `duty-holiday-api-key`를 만들지 않았다. 나중에 넣으면 `services` 단계가 web에 연결한다.
 - **비용:** 이때부터 Cloud SQL 비용(월 약 $9~10)이 VM과 겹친다.
+
+## 구현 결과 — 3단계 스테이징 확인 (2026-11-23~24, `duty-511008.web.app`)
+
+가명 시드(간호사 11·의사 5)만 넣고 확인한 뒤 **표 데이터를 모두 비웠다**(표 31개·마이그레이션 기록 19개는 남김, 사용자 0명). 시드는 tools 이미지에 `fixtures/`가 없어 그 폴더만 더한 임시 이미지·Job(`duty-seed-staging`)으로 한 번 넣고 지웠다. `duty-migrate` Job 정의는 바꾸지 않았다(일회 실행 인자만 덮어씀). 확인용 관리자 비밀번호도 스테이징에서만 바꿨다.
+
+| 항목 | 결과 |
+|---|---|
+| 로그인 쿠키 `__session` | Firebase를 거쳐 로그인이 유지된다(Firebase는 `__session`만 넘긴다). |
+| 휴대폰 화면 | 375px에서 아래 탭·오늘 카드. |
+| Firebase CDN 캐시 | `/login`·`/privacy`·`/api/health` 모두 `private`(`no-store`), `Vary`에 `cookie` — 남의 화면이 캐시될 위험 없음. 대신 정적 페이지도 CDN 캐시를 쓰지 않는다. |
+| `X-Forwarded-For` | Firebase를 거치면 「클라이언트, Google 프런트」 두 개이고 클라이언트가 보낸 값은 버린다 → **`TRUSTED_PROXY_HOPS=2`**(1이면 요청마다 바뀌는 프런트 IP를 읽는다). run.app 직접 접속은 위조 가능(받아들인 위험). |
+| run.app 기본 주소 끄기 | **끌 수 없다** — Cloud Tasks가 `/api/generate/run`을 run.app 주소로 부른다. 위 위험은 그대로 받아들인다. |
+| 근무표 생성(12월) | 버튼부터 결과까지 36.5초(솔버 콜드스타트 포함 33.4초). `Google-Cloud-Tasks`가 `/api/generate/run`을 1번 불렀다. 작업은 「대기 → 진행」 원자적 전환으로 잡고 실패해도 204라, 재시도로 두 번 돌지 않는다. |
+| 콜드스타트(인스턴스 0개에서) | 13초 → **3.9초**. 시작 프로브 기본 간격 10초가 원인(Next 준비 1.5초) → `periodSeconds=1, failureThreshold=30`. |
+| CI 배포 4단계 리허설 | `--no-traffic --tag` → 태그 URL 헬스 200 → `update-traffic --to-latest --clear-tags`(두 옵션 함께 동작, 태그 모두 정리). 새 리비전도 `commit-sha` 라벨을 이어받는다. |
+
+- 스테이징 서비스에 두 값(프록시 수 2, 프로브 1초)을 직접 적용했고, 스크립트 기본값은 PR #19로 고친다. CI의 `gcloud run deploy --image`는 서비스 설정을 그대로 이어받는다.
+- **남은 확인:** CI의 firebase-tools가 WIF 자격 증명으로 배포되는지는 `DEPLOY_TARGET=cloudrun`을 켠 뒤 첫 CI 배포에서 확인한다. 서버 액션(로그인·생성)은 Firebase를 거쳐 정상 동작했다.
 
 ## 검토 게이트 (Human Gate)
 
