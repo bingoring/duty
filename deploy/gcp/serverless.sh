@@ -117,7 +117,9 @@ services() {
   run gcloud run services add-iam-policy-binding duty-solver --project="$PROJECT" --region="$REGION" \
     --member="serviceAccount:$WEB_SA" --role=roles/run.invoker
 
-  local env="DB_SOCKET_HOST=/cloudsql/$CONN,DB_POOL_MAX=4,SOLVER_URL=$solver_url,TRUSTED_PROXY_HOPS=${TRUSTED_PROXY_HOPS:-1}"
+  # 3-13 스테이징 확인: Firebase Hosting을 거치면 X-Forwarded-For가 「클라이언트, Google 프런트」 두 개라 hops 2
+  # (Firebase는 들어온 X-Forwarded-For를 버린다). 시작 프로브 기본 간격 10초는 콜드스타트를 ~10초 늘려 1초로
+  local env="DB_SOCKET_HOST=/cloudsql/$CONN,DB_POOL_MAX=4,SOLVER_URL=$solver_url,TRUSTED_PROXY_HOPS=${TRUSTED_PROXY_HOPS:-2}"
   run gcloud run jobs deploy duty-migrate --project="$PROJECT" --region="$REGION" --image="$AR/tools:$sha" \
     --service-account="$WEB_SA" --set-cloudsql-instances="$CONN" \
     --set-env-vars="DB_SOCKET_HOST=/cloudsql/$CONN,DB_POOL_MAX=2" \
@@ -127,7 +129,7 @@ services() {
   run gcloud run deploy duty-web --project="$PROJECT" --region="$REGION" --image="$AR/web:$sha" \
     --service-account="$WEB_SA" --allow-unauthenticated --set-cloudsql-instances="$CONN" \
     --cpu=1 --memory=1Gi --min-instances=0 --max-instances=2 --timeout=300 \
-    --startup-probe=httpGet.path=/api/health \
+    --startup-probe=httpGet.path=/api/health,periodSeconds=1,failureThreshold=30,timeoutSeconds=1 \
     --set-env-vars="$env" \
     --set-secrets=DATABASE_URL=duty-database-url:latest,GENERATION_TASK_KEY=duty-generation-task-key:latest \
     --labels=commit-sha="$sha" --tag="$tag"
