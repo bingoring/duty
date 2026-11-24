@@ -192,7 +192,7 @@ VM 배포에서도 그대로 동작한다. GCP 자원은 아직 하나도 만들
 6. Cloud SQL 수동 백업 1회(가져오기 직후). 저장소 변수 `DEPLOY_TARGET=cloudrun` → 이후 머지는 `deploy-cloudrun` 잡이 배포하고 VM `deploy` 잡은 돌지 않는다.
 7. 덤프 파일은 버킷에서 지웠다. 버킷 소프트 삭제(7일)로 2026-12-01께 완전히 없어진다(비공개 서울 버킷, 기존 백업과 같은 접근 권한 — 백업 보호를 위해 소프트 삭제 설정은 바꾸지 않음).
 8. VM은 **중지만** 했다(`TERMINATED`, 디스크·고정 IP 유지). 다시 켜면 `db`·`caddy`·`backup`만 자동으로 뜨고, `web`·`solver`는 손으로 멈춰 둔 상태라 `docker compose up -d`가 필요하다.
-9. 감시(`deploy/gcp/monitoring-serverless.sh`): `duty-backup-missing`(VM 백업 상태 파일) 끔, `duty-sql-cpu`(80% 15분)·`duty-sql-disk`(80%)·`duty-run-5xx`(5분 5건) 추가, 월 예산 5만 → 3만 원. `duty-health`·`duty-down`은 주소 그대로. VM 디스크·메모리 정책은 VM을 멈추면 지표가 없어 울리지 않는다(6단계에 삭제).
+9. 감시(`deploy/gcp/monitoring-serverless.sh`): VM 백업 상태 파일을 보는 업타임 체크 `duty-backup`·정책 `duty-backup-missing` 삭제(체크가 15분마다 Cloud Run에 503을 남겼고, 업타임 체크는 끄는 설정이 없다), `duty-sql-cpu`(80% 15분)·`duty-sql-disk`(80%)·`duty-run-5xx`(5분 5건) 추가, 월 예산 5만 → 3만 원. `duty-health`·`duty-down`은 주소 그대로. VM 디스크·메모리 정책은 VM을 멈추면 지표가 없어 울리지 않는다(6단계에 삭제).
 
 - 전환 중 main CI 3건(문서·스크립트 커밋)의 VM `deploy`가 마지막 `offplz.com` 헬스에서 502로 실패했다 — 중단 시간에 돈 것이고 VM은 git만 갱신했다(다시 빌드하지 않음).
 - **되돌리기 기간(~2026-12-08):** 새 마이그레이션 머지 금지. 되돌릴 때는 가비아 A를 `34.64.144.77`로, `www`를 A로 되돌리고 VM을 켠 뒤 `web`을 띄우고, 전환 뒤 바뀐 데이터를 Cloud SQL에서 같은 방식(덤프 → 버킷 → VM 복원)으로 옮긴다. `DEPLOY_TARGET`도 지운다.
