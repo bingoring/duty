@@ -4,11 +4,11 @@
 **Requirements:** [inputs/requirements_v3.md](inputs/requirements_v3.md) (근무 지침 원문 + 근무자 명단)
 **Design handoff:** [inputs/design_handoff_nurse_duty_scheduler/](inputs/design_handoff_nurse_duty_scheduler/README.md) (최신, 의사 근무표 turn-6 포함, 가명본) · [v5](inputs/design-handoff_v5/README.md) (2026-09-30) · [v4](inputs/design-handoff_v4/README.md) · [v3](inputs/design-handoff_v3/README.md) · [v2](inputs/design-handoff_v2/README.md) · [v1](inputs/design-handoff_v1/README.md)
 **Decisions (audit):** [DECISIONS.md](DECISIONS.md)
-**Last updated:** 2026-11-24
+**Last updated:** 2026-11-25
 
 > 🔒 **개인정보:** 공개 저장소다. 간호사 이름·사번은 모두 가명이며, 실명 자료는 커밋하지 않는다([DECISIONS](DECISIONS.md) 2026-09-26).
 
-> 🚀 **3-13 서버 비용 절감 4단계 전환 완료 (2026-11-24).** offplz.com = Firebase Hosting → Cloud Run(요청 없으면 0) + Cloud SQL 서울(백업 30개·PITR 7일). VM DB를 덤프해 가져오고 표 32개 행 수(12,235행)가 모두 같음을 확인, 수동 백업 1회, CI는 `DEPLOY_TARGET=cloudrun`. VM은 중지만 했다(되돌리기 기간 ~2026-12-08, **새 마이그레이션 머지 금지**). 감시를 Cloud SQL·Cloud Run으로 바꾸고 예산 3만 원. 남은 확인: 사용자 운영 스모크, 첫 앱 변경 때 CI 이미지 빌드·Firebase 배포. 다음: 2주 뒤 6단계 정리(VM 삭제). [13-serverless.md](03-operations/13-serverless.md)
+> 🚀 **3-13 서버 비용 절감 전환 완료·VM 삭제 (2026-11-24~25).** offplz.com = Firebase Hosting → Cloud Run(요청 없으면 0) + Cloud SQL 서울(백업 30개·PITR 7일). VM DB를 덤프해 가져오고 표 32개 행 수(12,235행)가 모두 같음을 확인, CI는 `DEPLOY_TARGET=cloudrun`(첫 배포 잡 성공). 사용자 결정으로 되돌리기 기간 없이 VM·디스크·고정 IP를 삭제했다 — 복구는 Cloud SQL 백업·PITR로. 감시를 Cloud SQL·Cloud Run으로 바꾸고 예산 3만 원. 남은 확인: offplz.com에서 신청 저장·근무표 생성(의사 포함), 첫 앱 변경 때 CI 이미지 빌드·Firebase 배포. 다음: 6단계 정리(VM 전용 코드·권한·알림). [13-serverless.md](03-operations/13-serverless.md)
 
 > 🚀 **3-12 모바일 대응 운영 반영 (2026-10-30, PR #14·#15·#16·#17 → 배포 `25eb31e`).** 768px 미만에서 아래 탭(근무표·신청·교환/관리·더보기), 홈 화면 추가(PWA), 근무표 오늘 카드·내 달력·날짜별 명단, 신청·교환 시트, 관리 탭 휴가 승인·급한 변경, 바텀 시트(애니메이션·손잡이 끌어 닫기). 실기기(iPhone·Android) 확인 대기 — 홈 화면 추가·로그인 유지·시트 끄는 느낌. 설계 [12-mobile.md](03-operations/12-mobile.md).
 
