@@ -16,18 +16,13 @@ const DESKTOP_UA =
   'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/153.0.8010.12 Safari/537.36'
 
 describe('3-12 기기 판정', () => {
-  it('쿠키가 user-agent보다 앞선다', () => {
-    expect(detectDevice({ cookie: 'desktop', ua: IPHONE_UA })).toBe('desktop')
-    expect(detectDevice({ cookie: 'mobile', ua: DESKTOP_UA })).toBe('mobile')
-  })
-
-  it('쿠키가 없거나 이상하면 user-agent: 휴대폰 = mobile, 태블릿·데스크톱 = desktop', () => {
-    expect(detectDevice({ cookie: undefined, ua: IPHONE_UA })).toBe('mobile')
-    expect(detectDevice({ cookie: 'x', ua: ANDROID_PHONE_UA })).toBe('mobile')
-    expect(detectDevice({ cookie: undefined, ua: IPAD_UA })).toBe('desktop')
-    expect(detectDevice({ cookie: undefined, ua: ANDROID_TABLET_UA })).toBe('desktop')
-    expect(detectDevice({ cookie: undefined, ua: DESKTOP_UA })).toBe('desktop')
-    expect(detectDevice({ cookie: undefined, ua: '' })).toBe('desktop')
+  it('user-agent: 휴대폰 = mobile, 태블릿·데스크톱 = desktop', () => {
+    expect(detectDevice(IPHONE_UA)).toBe('mobile')
+    expect(detectDevice(ANDROID_PHONE_UA)).toBe('mobile')
+    expect(detectDevice(IPAD_UA)).toBe('desktop')
+    expect(detectDevice(ANDROID_TABLET_UA)).toBe('desktop')
+    expect(detectDevice(DESKTOP_UA)).toBe('desktop')
+    expect(detectDevice('')).toBe('desktop')
   })
 
   it('matcher가 홈 화면 추가 파일을 로그인 검사에서 뺀다', () => {
@@ -62,15 +57,15 @@ describe('3-12 뷰포트 보정(ViewportSync)', () => {
     expect(shouldRefresh({ want: 'desktop', device: 'mobile', refreshedFrom: 'desktop' })).toBe(true))
 })
 
-// 3-13: 판정 순서 = 세션에 저장한 보정값 → duty_vp 쿠키 → user-agent
+// 3-13: 판정 순서 = 세션에 저장한 보정값 → user-agent
 describe('deviceFor', () => {
-  it('세션 저장값이 쿠키·UA보다 앞선다', () => {
-    expect(deviceFor({ saved: 'desktop', cookie: 'mobile', ua: IPHONE_UA })).toBe('desktop')
-    expect(deviceFor({ saved: 'mobile', cookie: undefined, ua: DESKTOP_UA })).toBe('mobile')
+  it('세션 저장값이 UA보다 앞선다', () => {
+    expect(deviceFor({ saved: 'desktop', ua: IPHONE_UA })).toBe('desktop')
+    expect(deviceFor({ saved: 'mobile', ua: DESKTOP_UA })).toBe('mobile')
   })
-  it('저장값이 없거나 이상하면 지금 순서(쿠키 → UA)', () => {
-    expect(deviceFor({ saved: null, cookie: 'mobile', ua: DESKTOP_UA })).toBe('mobile')
-    expect(deviceFor({ saved: undefined, cookie: undefined, ua: IPHONE_UA })).toBe('mobile')
-    expect(deviceFor({ saved: 'x', cookie: undefined, ua: DESKTOP_UA })).toBe('desktop')
+  it('저장값이 없거나 이상하면 UA', () => {
+    expect(deviceFor({ saved: null, ua: DESKTOP_UA })).toBe('desktop')
+    expect(deviceFor({ saved: undefined, ua: IPHONE_UA })).toBe('mobile')
+    expect(deviceFor({ saved: 'x', ua: DESKTOP_UA })).toBe('desktop')
   })
 })

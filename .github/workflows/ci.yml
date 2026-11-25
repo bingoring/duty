@@ -27,11 +27,11 @@ jobs:
       - uses: actions/checkout@v7
         with: { fetch-depth: 0 }
       # 문서·waypoint 포인터만 바뀐 커밋은 E2E를 건너뛴다(배포도 deploy_docs_only라 앱이 바뀌지 않는다).
-      # 판단 기준은 deploy/deploy.sh의 RUNTIME과 같고, CI 설정(.github/)이 바뀌면 모두 돈다
+      # 판단 기준은 아래 deploy-cloudrun의 RUNTIME과 같고, CI 설정(.github/)이 바뀌면 모두 돈다
       - id: changes
         run: |
           if [ "${{ github.event_name }}" = pull_request ]; then BASE="${{ github.event.pull_request.base.sha }}"; else BASE="${{ github.event.before }}"; fi
-          RUNTIME='^(apps/|packages/|services/|deploy/(backup/|Caddyfile|deploy\.sh)|compose\.prod\.yaml|package\.json|pnpm-lock\.yaml|pnpm-workspace\.yaml|\.nvmrc|\.github/)'
+          RUNTIME='^(apps/|packages/|services/|firebase\.json|deploy/cloudrun/|package\.json|pnpm-lock\.yaml|pnpm-workspace\.yaml|\.nvmrc|\.github/)'
           if git cat-file -e "$BASE^{commit}" 2>/dev/null && ! git diff --name-only "$BASE" "$GITHUB_SHA" | grep -qE "$RUNTIME"; then
             echo "docs_only=true" >> "$GITHUB_OUTPUT"
             echo "문서만 바뀜 — E2E 건너뜀"
@@ -56,10 +56,6 @@ jobs:
       - run: docker build -f apps/web/Dockerfile --target runner -t duty-web .
       - run: docker build -f apps/web/Dockerfile --target tools -t duty-tools .
       - run: docker build -t duty-solver services/solver
-      - run: docker build -t duty-backup deploy/backup
-      # 운영 compose가 문법·필수 변수 검사를 통과하는지(값은 가짜)
-      - run: docker compose -f compose.prod.yaml config -q
-        env: { DOMAIN: example.com, POSTGRES_PASSWORD: x, BACKUP_AGE_RECIPIENT: age1x }
       - run: pnpm --filter web exec playwright install --with-deps chromium
         if: steps.changes.outputs.docs_only != 'true'
       - run: pnpm test:e2e
@@ -70,38 +66,11 @@ jobs:
           name: playwright
           path: apps/web/test-results
 
-  # Build Spec 3-3 — main push에서 검사가 통과하면 운영에 배포한다. 저장소 변수가 없으면(설정 전·포크) 건너뛴다
-  deploy:
-    needs: check
-    # VM 배포(3-13 전환 전까지). 저장소 변수 DEPLOY_TARGET=cloudrun이면 아래 deploy-cloudrun이 대신 돈다
-    if: github.event_name == 'push' && github.ref == 'refs/heads/main' && vars.GCP_WIF_PROVIDER != '' && vars.DEPLOY_TARGET != 'cloudrun'
-    runs-on: ubuntu-latest
-    # 배포는 한 번에 하나, 진행 중인 배포는 끊지 않는다(뒤 커밋은 차례를 기다린다)
-    concurrency: { group: deploy-production, cancel-in-progress: false }
-    environment: production
-    permissions: { contents: read, id-token: write }
-    steps:
-      - uses: actions/checkout@v7
-      - uses: google-github-actions/auth@v2
-        with:
-          workload_identity_provider: ${{ vars.GCP_WIF_PROVIDER }}
-          service_account: ${{ vars.GCP_DEPLOY_SA }}
-      - uses: google-github-actions/setup-gcloud@v2
-      # 새 커밋의 deploy.sh를 표준 입력으로 보내 서버에서 root로 돌린다. SSH 키는 30분 뒤 만료.
-      # 끝 표시(deploy_ok·deploy_skip·deploy_docs_only)가 없으면 중간에 멈춘 것으로 보고 실패시킨다
-      - run: |
-          gcloud compute ssh duty-vm --tunnel-through-iap --quiet \
-            --project "${{ vars.GCP_PROJECT }}" --zone "${{ vars.GCP_ZONE }}" \
-            --ssh-key-expire-after=30m --strict-host-key-checking=no \
-            --command "sudo bash -s -- ${{ github.sha }}" < deploy/deploy.sh 2>&1 | tee deploy.log
-          grep -qE '^deploy_(ok|skip|docs_only) ' deploy.log
-      - run: curl -fsS -o /dev/null -w '%{http_code}\n' https://offplz.com/api/health
-
-  # 3-13: Cloud Run + Firebase Hosting 배포. 저장소 변수 DEPLOY_TARGET=cloudrun을 넣기 전까지는 돌지 않는다.
+  # 3-13: main push에서 검사가 통과하면 Cloud Run + Firebase Hosting에 배포한다. 저장소 변수가 없으면(설정 전·포크) 건너뛴다.
   # 자원과 첫 배포는 deploy/gcp/serverless.sh가 만든다(이 잡은 이미지·리비전만 바꾼다)
   deploy-cloudrun:
     needs: check
-    if: github.event_name == 'push' && github.ref == 'refs/heads/main' && vars.GCP_WIF_PROVIDER != '' && vars.DEPLOY_TARGET == 'cloudrun'
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main' && vars.GCP_WIF_PROVIDER != ''
     runs-on: ubuntu-latest
     concurrency: { group: deploy-production, cancel-in-progress: false }
     environment: production

@@ -19,7 +19,7 @@ const nextConfig: NextConfig = {
           { key: 'Content-Security-Policy', value: "frame-ancestors 'none'" },
           { key: 'X-Content-Type-Options', value: 'nosniff' },
           { key: 'Referrer-Policy', value: 'same-origin' },
-          // 3-13: Caddy가 붙이던 HSTS를 앱으로(Firebase Hosting·Cloud Run에는 Caddy가 없다)
+          // 3-13: HSTS는 앱이 붙인다(VM 시절에는 Caddy가 붙였다)
           ...(process.env.NODE_ENV === 'production'
             ? [{ key: 'Strict-Transport-Security', value: 'max-age=31536000' }]
             : []),

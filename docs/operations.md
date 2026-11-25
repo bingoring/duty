@@ -1,168 +1,119 @@
-# 운영 문서 — 설치·업데이트·백업·복구
+# 운영 문서 — 배포·백업·복구·장애 대응
 
-> Build Spec 3-1(waypoint `projects/duty/03-operations/deployment/`). GCP 서울 VM 한 대에 Docker Compose 한 벌로 운영한다.
-> 비밀값(DB 비밀번호·백업 개인키·임시 비밀번호·명단 CSV)은 저장소·채팅·이미지·로그에 남기지 않는다.
+> 3-13(waypoint `projects/duty/03-operations/13-serverless.md`)부터 Firebase Hosting + Cloud Run + Cloud SQL(서울)로 운영한다.
+> 2026-11-24에 VM 한 대(Docker Compose)에서 옮겼고, VM은 2026-11-25에 지웠다. VM 시절 문서는 git 이력(커밋 `136b022`)에 있다.
+> 비밀값(DB 비밀번호·작업 키·임시 비밀번호·명단 CSV)은 저장소·채팅·이미지·로그에 남기지 않는다.
 
 ## 구성
 
-| 서비스    | 역할                                                                                                        | 공개          |
-| --------- | ----------------------------------------------------------------------------------------------------------- | ------------- |
-| `caddy`   | HTTPS(Let's Encrypt 자동 발급·갱신), HTTP→HTTPS, HSTS, 역방향 프록시                                        | 80·443 (유일) |
-| `web`     | Next.js 앱. `/api/health`로 상태 확인                                                                       | 없음          |
-| `solver`  | CP-SAT 듀티 생성                                                                                            | 없음          |
-| `db`      | PostgreSQL 16 (볼륨 `db-data`)                                                                              | 없음          |
-| `backup`  | 매일 03:00 암호화 덤프 → `/opt/duty/backups` 14일 + Cloud Storage 90일, 성공 시각 → `backup-status/last-ok` | 없음          |
-| `migrate` | 배포마다 한 번 마이그레이션, 관리자·명단 가져오기 도구                                                      | 없음          |
-
-## 1. GCP 준비 (한 번)
-
-1. 결제 계정 ID 확인: `gcloud billing accounts list`
-2. 자원 생성(비용 발생) — 먼저 `DRY_RUN=1`로 명령을 확인한다.
-
-   ```bash
-   PROJECT_ID=duty-<무작위> BILLING_ACCOUNT=<결제 계정> BUCKET=<PROJECT_ID>-backups ./deploy/gcp/provision.sh
-   ```
-
-   마지막 줄에 나오는 **고정 IP**를 적어 둔다.
-
-3. 도메인 등록 업체에서 DNS **A 레코드**를 고정 IP로 지정한다(`@`와 `www` 둘 다, 가비아는 「가비아 네임서버 사용」 + DNS 관리). 반영 확인: `dig +short <도메인>`
-
-## 2. 백업 키 (한 번, 사용자 PC에서)
-
-```bash
-age-keygen -o duty-backup.key     # 첫 줄 "public key: age1..." 이 공개키
+```
+offplz.com ─ Firebase Hosting(인증서·CDN, 모든 경로를 duty-web으로 rewrite, www → offplz.com)
+              └─ Cloud Run duty-web (서울, 0~2대) ─ Cloud SQL duty-db (소켓 /cloudsql/…)
+                   ├─ Cloud Run duty-solver (비공개, ID 토큰으로 호출)
+                   └─ Cloud Tasks duty-generate → duty-web /api/generate/run (run.app 주소, x-duty-task-key)
 ```
 
-- **공개키**(`age1...`)만 서버 `.env.prod`의 `BACKUP_AGE_RECIPIENT`에 넣는다.
-- **개인키 파일**(`duty-backup.key`)은 서버에 올리지 않는다. PC와 오프라인 한 곳(USB·비밀번호 관리자)에 보관한다. 잃으면 백업을 풀 수 없다.
+| 자원                        | 내용                                                                                                     |
+| --------------------------- | -------------------------------------------------------------------------------------------------------- |
+| Cloud Run `duty-web`        | Next.js 앱. 1 vCPU·1GiB, 0~2대, 요청을 처리하는 동안만 CPU 비용. 시작 프로브 `/api/health` 1초 간격      |
+| Cloud Run `duty-solver`     | CP-SAT 듀티 생성. 2 vCPU·1GiB, 0~2대, 동시 요청 1, `duty-web` 계정만 호출                                |
+| Job `duty-migrate`          | tools 이미지로 마이그레이션(배포마다)                                                                    |
+| Cloud SQL `duty-db`         | Postgres 16, db-f1-micro, 자동 백업 30개(매일 03:00 KST), 원하는 시점 복구 7일, 저장 공간 자동 증가      |
+| Cloud Tasks `duty-generate` | 간호사 근무표 생성 작업(최대 3회 시도, 작업 행이 「대기」일 때만 실행되어 두 번 돌지 않는다)             |
+| Secret Manager              | `duty-database-url`, `duty-generation-task-key` (공휴일 API 키 `duty-holiday-api-key`는 넣으면 연결된다) |
+| Artifact Registry `duty`    | web·tools·solver 이미지(태그 = 커밋 SHA, 이미지별 최근 5개)                                              |
 
-## 3. 서버 설정·최초 부팅 (한 번)
+- Firebase Hosting은 요청 쿠키 중 `__session`만 넘긴다. 세션 쿠키 이름이 `__session`이고, 화면 폭 보정값을 세션 행에 두는 까닭이다.
+- Firebase를 거치면 `X-Forwarded-For`가 「클라이언트, Google 프런트」라 `TRUSTED_PROXY_HOPS=2`다. run.app 주소로 직접 들어오면 이 값을 꾸밀 수 있다(받아들인 위험 — Cloud Tasks가 run.app 주소를 쓰므로 끌 수 없다).
+- 의사 근무표 생성은 동기(시간 한도 10초)라 Firebase의 60초 제한 안에서 돈다. 간호사 생성은 Cloud Tasks로 비동기.
 
-```bash
-gcloud compute ssh duty-vm --tunnel-through-iap --zone asia-northeast3-a --project <PROJECT_ID>
-curl -fsSL https://raw.githubusercontent.com/bingoring/duty/main/deploy/server-setup.sh | sudo bash
-exit   # docker 그룹 반영을 위해 다시 접속
-```
+## 1. 자원 만들기 (한 번)
 
-다시 접속한 뒤:
-
-```bash
-cd /opt/duty
-cp .env.prod.example .env.prod && chmod 600 .env.prod
-nano .env.prod     # DOMAIN, POSTGRES_PASSWORD(openssl rand -base64 32), ADMIN_EMPLOYEE_NO·ADMIN_NAME, BACKUP_AGE_RECIPIENT, BACKUP_REMOTE의 버킷 이름
-docker compose -f compose.prod.yaml --env-file .env.prod up -d --build
-docker compose -f compose.prod.yaml --env-file .env.prod ps     # 모두 Up(healthy)
-curl -fsS https://<DOMAIN>/api/health && echo OK
-```
-
-첫 관리자(수간호사) — 임시 비밀번호는 **이 화면에 한 번만** 나온다. `--rm`이라 컨테이너 로그로 남지 않는다.
+모두 기본은 명령 출력만 하고, 이미 있는 자원은 건너뛴다.
 
 ```bash
-docker compose -f compose.prod.yaml --env-file .env.prod run --rm migrate pnpm db:bootstrap
+./deploy/gcp/serverless.sh infra                       # 출력만 확인
+./deploy/gcp/serverless.sh --apply infra               # API·저장소·Cloud SQL·비밀값·서비스 계정·큐(비용 발생)
+./deploy/gcp/serverless.sh --apply services <커밋 SHA>  # 그 커밋 이미지로 솔버·마이그레이션 Job·웹 첫 배포(이미지가 저장소에 있어야 한다)
+./deploy/gcp/serverless.sh --apply hosting             # Firebase 추가·Hosting 배포(firebase-tools 로그인 필요)
+PROJECT_ID=duty-511008 REPO=bingoring/duty ./deploy/gcp/cd.sh                       # GitHub OIDC 배포 계정·저장소 변수
+PROJECT_ID=duty-511008 BUDGET_KRW=30000 ALERT_EMAIL=<주소> ./deploy/gcp/monitoring.sh # 알림·업타임 체크·예산
 ```
 
-간호사 명단 — 실명 CSV(형식: `apps/web/src/server/seed/roster.example.csv`)를 PC에서 올리고, 가져온 뒤 **바로 지운다**.
+- 첫 이미지는 CI가 아직 없으므로 PC에서 `docker build --platform linux/amd64`로 만들어 올렸다(Apple Silicon은 amd64가 아니다).
+- 도메인: Firebase 콘솔(또는 Hosting API)에서 사용자 지정 도메인을 추가하면 필요한 레코드를 알려 준다. 지금은 가비아에 `@` A `199.36.158.100`·TXT `hosting-site=duty-511008`, `www` CNAME `duty-511008.web.app.`.
+
+## 2. 배포 · 되돌리기
+
+`main`에 머지되고 CI 검사가 통과하면 GitHub Actions의 `deploy-cloudrun` 잡이 배포한다.
+
+1. 트래픽을 받는 `duty-web` 리비전의 `commit-sha` 라벨과 비교해 실행에 쓰이는 파일(`apps/`·`packages/`·`services/`·`firebase.json`·`deploy/cloudrun/`·패키지 파일)이 안 바뀌었으면 빌드하지 않는다.
+2. web·tools·solver 이미지 빌드 → Artifact Registry.
+3. `duty-migrate` Job 실행(실패하면 멈춘다). 배포 전 백업은 원하는 시점 복구로 대신한다.
+4. 솔버·웹 새 리비전을 트래픽 없이 올리고 web 태그 URL의 `/api/health`가 통과해야 트래픽을 옮긴다.
+5. `firebase deploy --only hosting`(CDN 캐시 비우기) → `https://offplz.com/api/health`.
+
+- **되돌리기(앱):** 이전 리비전으로 트래픽을 옮긴다.
+
+  ```bash
+  gcloud run revisions list --service duty-web --region asia-northeast3 --project duty-511008
+  gcloud run services update-traffic duty-web --to-revisions <이전 리비전>=100 --region asia-northeast3 --project duty-511008
+  ```
+
+- **DB 마이그레이션은 자동으로 되돌리지 않는다.** 필요하면 아래 4의 원하는 시점 복구로 배포 직전 시각을 고른다.
+
+## 3. 관리자·명단 도구 (미검증)
+
+VM 시절에는 서버에서 `migrate` 컨테이너로 돌렸다. 지금은 PC에서 Cloud SQL Auth Proxy로 DB에 붙어 돌린다. **아직 한 번도 해 보지 않았다** — 처음 할 때 이 절을 확인·수정한다.
 
 ```bash
-# PC에서
-gcloud compute scp roster.csv duty-vm:/tmp/roster.csv --tunnel-through-iap --zone asia-northeast3-a --project <PROJECT_ID>
-# 서버에서
-docker compose -f compose.prod.yaml --env-file .env.prod run --rm -v /tmp/roster.csv:/data/roster.csv:ro migrate pnpm db:import-roster /data/roster.csv
-shred -u /tmp/roster.csv
+cloud-sql-proxy duty-511008:asia-northeast3:duty-db --port 5434 &      # gcloud 로그인 계정으로 IAM 인증
+# DATABASE_URL: Secret Manager duty-database-url의 사용자·비밀번호로 postgres://duty:<비밀번호>@127.0.0.1:5434/duty
+NODE_ENV=production DATABASE_URL=... pnpm --filter web db:bootstrap                    # 첫 관리자(임시 비밀번호가 한 번만 나온다)
+NODE_ENV=production DATABASE_URL=... pnpm --filter web db:import-roster ../../.local/roster.csv
 ```
 
-명단 가져오기가 출력한 간호사별 임시 비밀번호는 각자에게 직접 전달하고 어디에도 저장하지 않는다(첫 로그인 때 변경이 강제된다).
+- 명단·의사 파일(실명)은 PC의 `.local/`에만 둔다. 형식은 `apps/web/src/server/seed/roster.example.csv`, 의사 근무표는 `fixtures/doctor-2026-10.json`.
+- 출력된 임시 비밀번호는 각자에게 직접 전달하고 어디에도 저장하지 않는다(첫 로그인 때 변경이 강제된다).
+- `NODE_ENV=production`이면 개발 시드(`db:seed`)는 막힌다.
 
-의사 명단·확정 근무표(3-7) — 실명·생년월일 파일은 PC의 duty `.local/`에만 둔다. CSV 형식은 `login_id,name,role`(role = `admin` | `doctor`, 줄 순서 = 표 순서), 근무표 JSON은 `{ "month": "YYYY-MM", "shifts": [{ "date", "day", "night" }] }`(day·night = 성명 또는 로그인 ID, 형식 예: `fixtures/doctor-2026-10.json`). 명단을 먼저 가져온다.
+## 4. 백업 · 복구
 
-```bash
-# PC에서
-gcloud compute scp .local/doctors.csv .local/doctor-schedule-2026-10.json duty-vm:/tmp/ --tunnel-through-iap --zone asia-northeast3-a --project <PROJECT_ID>
-# 서버에서
-docker compose -f compose.prod.yaml --env-file .env.prod run --rm -v /tmp/doctors.csv:/data/doctors.csv:ro migrate pnpm db:import-doctors /data/doctors.csv
-docker compose -f compose.prod.yaml --env-file .env.prod run --rm -v /tmp/doctor-schedule-2026-10.json:/data/doctor-schedule.json:ro migrate pnpm db:import-doctor-schedule /data/doctor-schedule.json
-shred -u /tmp/doctors.csv /tmp/doctor-schedule-2026-10.json
-```
+- **자동 백업:** 매일 03:00(서울) 30개, 트랜잭션 로그 7일(그 안의 아무 시각으로 복구). 목록: `gcloud sql backups list --instance duty-db --project duty-511008`
+- **지금 한 번:** `gcloud sql backups create --instance duty-db --project duty-511008`
+- **복구는 아직 리허설하지 않았다.** 처음에는 새 인스턴스로 복제해 확인한다(운영 인스턴스는 건드리지 않음, 확인 뒤 지운다).
 
-의사 임시 비밀번호도 각자에게 직접 전달한다. 의사 관리자는 로그인 뒤 「의사 관리」에서 사번으로 변경·추가하고, 「듀티 생성」에서 다음 달(신청 마감 전월 20일, 조정 ~25일)을 만든다. 이미 있는 달을 다시 가져오려면 `--replace`.
+  ```bash
+  gcloud sql instances clone duty-db duty-db-restore --point-in-time '2026-12-01T03:00:00+09:00' --project duty-511008
+  ```
 
-**운영 확인:** 관리자 로그인 → 비밀번호 변경 → 간호사 관리에 명단 → 간호사 한 명 로그인 → 백업 1회(아래 4) → 버킷에 파일 → 복구 리허설(아래 6).
+- 운영 인스턴스를 백업으로 되돌리기: `gcloud sql backups restore <백업 ID> --restore-instance duty-db --project duty-511008` — **그 시점 뒤의 데이터가 사라진다.** 앱은 그대로 둬도 되지만 복구 중에는 오류가 난다.
+- **VM 시절 백업:** 버킷 `gs://duty-511008-backups/duty/`의 age 암호화 덤프(마지막 2026-11-24 03:00, 90일 뒤 자동 삭제). 개인키는 사용자 PC에 있다. 복원 스크립트는 git 이력에 있다: `git show 136b022:deploy/backup/restore.sh`.
 
-## 4. 백업 확인
+## 5. 감시 · 알림
 
-- 자동: 매일 03:00(서울). 로그: `docker compose -f compose.prod.yaml --env-file .env.prod logs backup | tail` → `backup_ok`·`backup_uploaded` (실패는 `backup_failed`)
-- 지금 한 번: `docker compose -f compose.prod.yaml --env-file .env.prod exec backup backup.sh`
-- 서버 사본: `/opt/duty/backups/duty-YYYYMMDD-HHMM.dump.age` (14일), 버킷 사본: `gs://<BUCKET>/duty/` (90일 뒤 자동 삭제). 서버 서비스 계정은 버킷에서 지울 수 없다.
+이상이 생기면 알림 채널(`duty-email`)로 온다. 설정은 `deploy/gcp/monitoring.sh`.
 
-## 4-1. 감시 · 알림 (3-2)
+| 알림                | 조건                                                    | 먼저 볼 곳                        |
+| ------------------- | ------------------------------------------------------- | --------------------------------- |
+| `duty-down`         | `/api/health` 업타임 체크가 지역 2곳 이상에서 10분 실패 | 아래 6 「접속 안 됨」             |
+| `duty-run-5xx`      | Cloud Run 5xx가 5분에 5건 이상                          | 아래 6 「5xx」                    |
+| `duty-sql-cpu`      | Cloud SQL CPU 80% 초과 15분                             | 콘솔 Cloud SQL → 쿼리 인사이트    |
+| `duty-sql-disk`     | Cloud SQL 디스크 80% 초과                               | 자동 증가가 켜져 있다 — 비용 확인 |
+| 예산 `duty-monthly` | 월 예산 3만 원의 50·90·100%                             | 콘솔 결제 → 보고서                |
 
-이상이 생기면 알림 채널(이메일)로 온다. 알림 메일에 이 문서의 해당 절이 적혀 있다.
-
-| 알림                  | 조건                                                      | 먼저 볼 곳                            |
-| --------------------- | --------------------------------------------------------- | ------------------------------------- |
-| `duty-down`           | `/api/health` 업타임 체크가 지역 2곳 이상에서 10분 실패   | 7. 장애 대응 「접속 안 됨」·「502」   |
-| `duty-backup-missing` | `/api/health/backup`이 503 — 26시간 안에 성공한 백업 없음 | `logs backup`, 아래 4 「지금 한 번」  |
-| `duty-disk`           | 루트 디스크 80% 초과 10분                                 | 7. 장애 대응 「디스크 부족」          |
-| `duty-memory`         | 메모리 90% 초과 10분                                      | `docker stats`, 솔버 `SOLVER_WORKERS` |
-| 예산 `duty-monthly`   | 월 예산의 50·90·100%                                      | 콘솔 결제 → 보고서                    |
-
-설정(한 번, PC에서, 비용 없음):
-
-```bash
-PROJECT_ID=<PROJECT_ID> ALERT_EMAIL=<주소> BUDGET_KRW=50000 ./deploy/gcp/monitoring.sh   # DRY_RUN=1로 먼저 확인
-PROJECT_ID=<PROJECT_ID> ./deploy/gcp/ops-agent.sh   # ⚠️ VM 접근 범위 변경 때 1분 안팎 재시작
-```
-
-- 서버를 새로 올리거나 `backup-status`가 비었으면 백업 알림이 오므로, 배포 직후 백업을 한 번 돌린다(아래 4 「지금 한 번」).
+- Cloud SQL 백업 실패 알림은 아직 없다(실패 로그 형식을 확인한 뒤 더한다).
 - 알림이 실제로 오는지는 콘솔 Monitoring → 알림 → 채널 `duty-email` → 「테스트 알림 보내기」로 확인한다.
 
-## 5. 업데이트 · 되돌리기
+## 6. 장애 대응
 
-**자동 배포(3-3):** `main`에 push(머지)되고 CI 검사가 통과하면 GitHub Actions의 `deploy` 작업이 배포한다. 진행·결과는 GitHub Actions 탭에서 본다.
+로그: `gcloud logging read 'resource.type="cloud_run_revision" AND severity>=ERROR' --project duty-511008 --freshness 1h`
 
-- 서버에서 `deploy/deploy.sh <커밋>`이 돈다: 잠금 → 그 커밋이 `origin/main`에 있는지 확인 → 앱·설정 파일이 바뀌었을 때만 백업 → `up -d --build`(마이그레이션 먼저) → `https://<DOMAIN>/api/health` 확인 → 실패하면 이전 커밋으로 되돌려 다시 올린다.
-- 문서만 바뀐 커밋(waypoint·docs 등)은 git만 따라가고 다시 빌드하지 않는다.
-- **DB 마이그레이션은 자동으로 되돌리지 않는다.** 되돌린 뒤에도 문제가 있으면 아래 6으로 DB를 업데이트 전 백업으로 복구한다.
-- 처음 설정(한 번, PC에서): `PROJECT_ID=<PROJECT_ID> REPO=bingoring/duty ./deploy/gcp/cd.sh` — 키 파일 없이(OIDC) 이 저장소의 main push만 배포 계정을 쓸 수 있다.
-- 직접 배포(자동 배포가 막혔을 때): 서버에서 `sudo bash /opt/duty/deploy/deploy.sh <커밋>`
-
-**직접 업데이트(예전 방식):**
-
-```bash
-cd /opt/duty
-docker compose -f compose.prod.yaml --env-file .env.prod exec backup backup.sh   # 업데이트 전 백업
-git pull
-docker compose -f compose.prod.yaml --env-file .env.prod up -d --build           # migrate가 먼저 돈다
-curl -fsS https://<DOMAIN>/api/health && echo OK
-```
-
-되돌리기: `git log --oneline`에서 이전 커밋을 골라 `git checkout <커밋>` 후 같은 `up -d --build`. 그 사이 **마이그레이션이 바뀌었으면** DB도 업데이트 전 백업으로 복구한다(아래 6).
-
-## 6. 복구
-
-개인키가 있는 곳(사용자 PC)에서 한다. **먼저 별도 DB에 리허설**하고, 운영 DB 복구는 앱을 멈춘 뒤에 한다.
-
-```bash
-# 1) 백업 파일 가져오기 (버킷 또는 서버)
-gcloud storage cp gs://<BUCKET>/duty/duty-YYYYMMDD-HHMM.dump.age . --project <PROJECT_ID>
-# 2) 서버로 개인키와 함께 잠시 올리지 말고, PC에서 복호화한 덤프만 올린다
-age -d -i duty-backup.key duty-YYYYMMDD-HHMM.dump.age > restore.dump
-gcloud compute scp restore.dump duty-vm:/tmp/restore.dump --tunnel-through-iap --zone asia-northeast3-a --project <PROJECT_ID>
-# 3) 서버에서 (리허설: 별도 DB)
-docker compose -f compose.prod.yaml --env-file .env.prod exec -T db createdb -U duty duty_restore
-docker compose -f compose.prod.yaml --env-file .env.prod exec -T db pg_restore -U duty --no-owner -d duty_restore < /tmp/restore.dump
-#    운영 복구: web을 멈추고(stop web) -d duty --clean --if-exists 로 같은 명령 → start web
-shred -u /tmp/restore.dump
-```
-
-## 7. 장애 대응
-
-| 증상                                  | 확인                        | 조치                                                             |
-| ------------------------------------- | --------------------------- | ---------------------------------------------------------------- |
-| 접속 안 됨                            | `ps`, `logs caddy`          | 인증서 실패면 DNS A 레코드·방화벽 80/443 확인                    |
-| 502                                   | `logs web`, `/api/health`   | 503이면 DB(`logs db`), `restart web`                             |
-| 생성이 "연결할 수 없음"               | `logs web                   | grep solver_unreachable`, `logs solver`                          | `restart solver`. 메모리 부족이면 `SOLVER_WORKERS`·VM 크기 |
-| 디스크 부족                           | `df -h`, `docker system df` | `docker image prune -f`(사용 중 이미지는 남는다), 백업 보관 일수 |
-| 로그인 "이 네트워크에서 … 막았습니다" | IP 제한(10분 20회 실패)     | 10분 기다리거나 `restart web`(제한 초기화)                       |
-
-모든 명령은 `/opt/duty`에서 `docker compose -f compose.prod.yaml --env-file .env.prod <명령>` 형태다.
+| 증상                                  | 확인                                                           | 조치                                                                  |
+| ------------------------------------- | -------------------------------------------------------------- | --------------------------------------------------------------------- |
+| 접속 안 됨                            | `curl -I https://offplz.com/api/health`, Firebase 콘솔 Hosting | 인증서·도메인 상태, 가비아 DNS 레코드(위 1)                           |
+| 5xx                                   | 위 로그, `gcloud run services describe duty-web`               | 503이면 DB(Cloud SQL 상태·연결 수), 최근 배포면 이전 리비전으로(위 2) |
+| 첫 화면이 느림                        | 콜드스타트(인스턴스 0대에서 약 4초)                            | 정상. 계속 느리면 리비전의 시작 프로브·로그                           |
+| 생성이 "연결할 수 없음"               | 로그에서 `solver_unreachable`, `duty-solver` 로그              | 솔버 리비전 상태, `duty-web` 계정의 솔버 호출 권한                    |
+| 간호사 생성이 끝나지 않음             | `/api/generate/run` 요청 로그, Cloud Tasks 큐 `duty-generate`  | 큐가 멈췄는지, 작업 키 비밀값, 6분 넘으면 화면이 멈춤을 알린다        |
+| 로그인 "이 네트워크에서 … 막았습니다" | IP 제한(10분 20회 실패, 인스턴스 메모리)                       | 10분 기다리거나 새 리비전 배포(제한 초기화)                           |
