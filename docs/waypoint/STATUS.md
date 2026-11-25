@@ -8,7 +8,7 @@
 
 > 🔒 **개인정보:** 공개 저장소다. 간호사 이름·사번은 모두 가명이며, 실명 자료는 커밋하지 않는다([DECISIONS](DECISIONS.md) 2026-09-26).
 
-> 🚀 **3-13 서버 비용 절감 전환 완료·VM 삭제 (2026-11-24~25).** offplz.com = Firebase Hosting → Cloud Run(요청 없으면 0) + Cloud SQL 서울(백업 30개·PITR 7일). VM DB를 덤프해 가져오고 표 32개 행 수(12,235행)가 모두 같음을 확인, CI는 `DEPLOY_TARGET=cloudrun`(첫 배포 잡 성공). 사용자 결정으로 되돌리기 기간 없이 VM·디스크·고정 IP를 삭제했다 — 복구는 Cloud SQL 백업·PITR로. 감시를 Cloud SQL·Cloud Run으로 바꾸고 예산 3만 원. 남은 확인: offplz.com에서 신청 저장·근무표 생성(의사 포함), 첫 앱 변경 때 CI 이미지 빌드·Firebase 배포. 다음: 6단계 정리(VM 전용 코드·권한·알림). [13-serverless.md](03-operations/13-serverless.md)
+> 🚀 **3-13 서버 비용 절감 전환 완료·VM 삭제 (2026-11-24~25).** offplz.com = Firebase Hosting → Cloud Run(요청 없으면 0) + Cloud SQL 서울(백업 30개·PITR 7일). VM DB를 덤프해 가져오고 표 32개 행 수(12,235행)가 모두 같음을 확인, CI는 `DEPLOY_TARGET=cloudrun`(첫 배포 잡 성공). 사용자 결정으로 되돌리기 기간 없이 VM·디스크·고정 IP를 삭제했다 — 복구는 Cloud SQL 백업·PITR로. 감시를 Cloud SQL·Cloud Run으로 바꾸고 예산 3만 원. 남은 확인: offplz.com에서 신청 저장·근무표 생성(의사 포함), 첫 앱 변경 때 CI 이미지 빌드·Firebase 배포. 6단계 정리(2026-11-25): VM 알림·방화벽·서비스 계정 삭제, VM 배포 파일·CI VM 잡·옛 쿠키·`duty_vp`·`/api/health/backup`을 없애는 PR 대기 — 머지가 Cloud Run 전체 배포의 첫 실행. [13-serverless.md](03-operations/13-serverless.md)
 
 > 🚀 **3-12 모바일 대응 운영 반영 (2026-10-30, PR #14·#15·#16·#17 → 배포 `25eb31e`).** 768px 미만에서 아래 탭(근무표·신청·교환/관리·더보기), 홈 화면 추가(PWA), 근무표 오늘 카드·내 달력·날짜별 명단, 신청·교환 시트, 관리 탭 휴가 승인·급한 변경, 바텀 시트(애니메이션·손잡이 끌어 닫기). 실기기(iPhone·Android) 확인 대기 — 홈 화면 추가·로그인 유지·시트 끄는 느낌. 설계 [12-mobile.md](03-operations/12-mobile.md).
 
@@ -246,7 +246,7 @@
 | 3-10 운영 피드백 6 (신청 권한·휴가 합계·조정 사유·누적 OFF 휴가 제외·리롤 수동 변경 유지·저장 전 비공개·권고 패턴·나이트 상하한·불가능 원인) | [10-feedback-6.md](03-operations/10-feedback-6.md) | IMPLEMENTED |
 | 3-11 운영 피드백 7 (의사 색·강조·격주 고정·신청 표시·원래 사람·규칙 심각도·재직 기간·금지 패턴·철회, 간호사 신청 필수) | [11-feedback-7.md](03-operations/11-feedback-7.md) | IMPLEMENTED |
 | 3-12 모바일 대응 (아래 탭·내 근무 달력·날짜별 명단·신청/교환 시트·관리자 승인과 급한 변경·홈 화면 추가) | [12-mobile.md](03-operations/12-mobile.md) | IMPLEMENTED |
-| 3-13 서버 비용 절감 (Cloud Run·Cloud SQL·Firebase Hosting) | [13-serverless.md](03-operations/13-serverless.md) | READY |
+| 3-13 서버 비용 절감 (Cloud Run·Cloud SQL·Firebase Hosting) | [13-serverless.md](03-operations/13-serverless.md) | IMPLEMENTED |
 
 ---
 

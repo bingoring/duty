@@ -1,7 +1,7 @@
 ---
 phase: 03-operations
 stage: 13-serverless
-status: READY
+status: IMPLEMENTED
 updated: 2026-11-25
 ---
 
@@ -206,6 +206,21 @@ VM 배포에서도 그대로 동작한다. GCP 자원은 아직 하나도 만들
 - 새 마이그레이션 머지 금지는 풀린다(되돌아갈 VM이 없다).
 - **6단계 정리에서 남은 일:** VM 디스크·메모리 알림(`duty-disk`·`duty-memory`, 지표가 없어 울리지 않음)·Ops Agent 정책·`duty-vm` 서비스 계정·방화벽 규칙·`duty-deployer`의 IAP SSH 권한 제거, 저장소의 VM 배포 파일·CI `deploy` 잡·`/api/health/backup`·옛 쿠키 이름 읽기·`duty_vp` 정리, 개인정보 안내에 「Firebase Hosting(접속 전달)」을 더할지 사용자 확인, 백업 버킷은 기존 파일 보관이 끝나면 삭제.
 - 운영 스모크: 조회는 확인(사용자, 로그도 정상). 신청 저장·근무표 생성(특히 60초 제한 안의 의사 생성)은 아직 offplz.com 로그에 없다.
+
+## 6단계 정리 (2026-11-25)
+
+**GCP:** VM 알림 정책 `duty-disk`·`duty-memory`, 방화벽 규칙 `duty-ssh-iap`·`duty-web`(기본 `default-*`는 남김), VM 서비스 계정 `duty-vm`(프로젝트·버킷 권한을 뗀 뒤)을 지웠다. 전환용으로 준 Cloud SQL 서비스 계정의 백업 버킷 읽기도 뗐다. Ops Agent는 VM에 직접 설치한 것이라 VM과 함께 없어졌다.
+
+**저장소(PR):**
+- VM 배포 파일 삭제: `compose.prod.yaml`·`.env.prod.example`·`deploy/deploy.sh`·`deploy/Caddyfile`·`deploy/backup/`·`deploy/server-setup.sh`·`deploy/gcp/provision.sh`·`deploy/gcp/ops-agent.sh`. VM 시절 백업 복원 도구는 `git show 136b022:deploy/backup/restore.sh`.
+- CI: VM `deploy` 잡과 백업 이미지·운영 compose 검사를 없애고, `deploy-cloudrun`은 `DEPLOY_TARGET` 없이 main push에서 돈다. 검사 잡의 「문서만」 기준을 `deploy-cloudrun`과 맞췄다.
+- `cd.sh`에서 IAP SSH 권한·`GCP_ZONE`을 뺐다(WIF 부분은 유지). `monitoring.sh`를 Cloud Run·Cloud SQL용으로 고쳐 `monitoring-serverless.sh`를 합쳤다(실제로 돌려 모든 항목이 「있음 — 건너뜀」, 토큰 출력 없음).
+- 앱: 옛 세션 쿠키 이름(`duty_session`) 읽기·옮기기, `duty_vp` 쿠키(판정은 세션 보정값 → user-agent), `/api/health/backup`·백업 상태 읽기, `legacy-cookie` E2E를 없앴다. Firebase가 `__session`만 넘기므로 운영 동작은 바뀌지 않는다. 마이그레이션 추가·열 삭제 없음(`sessions.viewport` 유지).
+- `docs/operations.md`를 Cloud Run 기준으로 새로 썼다. Cloud SQL 복구와 PC에서 명단 가져오기(Cloud SQL Auth Proxy)는 **미검증**으로 적었다.
+
+**머지 뒤:** 이 PR이 `deploy-cloudrun`의 이미지 빌드·마이그레이션 Job·트래픽 전환·Firebase 배포(WIF)를 처음으로 모두 돈다. 통과하면 `duty-deployer`의 VM 역할(`dutyDeployer`·`iap.tunnelResourceAccessor`)과 사용자 정의 역할, 저장소 변수 `DEPLOY_TARGET`·`GCP_ZONE`을 지운다.
+
+**남은 일:** 백업 버킷은 기존 파일 보관(90일)이 끝나는 2027-02-22 뒤 삭제, Cloud SQL 백업 실패 알림, 개인정보 안내에 「Firebase Hosting(접속 전달)」을 더할지 사용자 확인, offplz.com에서 신청 저장·근무표 생성(의사 포함) 확인.
 
 ## 검토 게이트 (Human Gate)
 
