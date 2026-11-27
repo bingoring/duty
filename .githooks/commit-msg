@@ -1,0 +1,7 @@
+#!/bin/sh
+# 공동작업 트레일러 금지 — waypoint 플러그인 `waypoint:git` (DECISIONS 2026-10-17)
+# 이 저장소를 새로 받으면 한 번: git config core.hooksPath .githooks
+if grep -qiE '^[[:space:]]*Co-Authored-By:' "$1" || grep -qiE 'Generated with \[?Claude Code' "$1"; then
+  echo "commit-msg: Co-Authored-By·Generated with 같은 공동작업 트레일러는 넣지 않습니다 (waypoint:git)." >&2
+  exit 1
+fi
