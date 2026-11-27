@@ -1,6 +1,6 @@
 # 운영 문서 — 배포·백업·복구·장애 대응
 
-> 3-13(waypoint `projects/duty/03-operations/13-serverless.md`)부터 Firebase Hosting + Cloud Run + Cloud SQL(서울)로 운영한다.
+> 3-13(`docs/waypoint/03-operations/13-serverless.md`)부터 Firebase Hosting + Cloud Run + Cloud SQL(서울)로 운영한다.
 > 2026-11-24에 VM 한 대(Docker Compose)에서 옮겼고, VM은 2026-11-25에 지웠다. VM 시절 문서는 git 이력(커밋 `136b022`)에 있다.
 > 비밀값(DB 비밀번호·작업 키·임시 비밀번호·명단 CSV)은 저장소·채팅·이미지·로그에 남기지 않는다.
 

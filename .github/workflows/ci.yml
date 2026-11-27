@@ -26,7 +26,7 @@ jobs:
     steps:
       - uses: actions/checkout@v7
         with: { fetch-depth: 0 }
-      # 문서·waypoint 포인터만 바뀐 커밋은 E2E를 건너뛴다(배포도 deploy_docs_only라 앱이 바뀌지 않는다).
+      # 문서(docs/waypoint 포함)만 바뀐 커밋은 E2E를 건너뛴다(배포도 deploy_docs_only라 앱이 바뀌지 않는다).
       # 판단 기준은 아래 deploy-cloudrun의 RUNTIME과 같고, CI 설정(.github/)이 바뀌면 모두 돈다
       - id: changes
         run: |

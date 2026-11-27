@@ -1,6 +1,6 @@
 # Cloud Run + Firebase Hosting 운영 (3-13)
 
-요청이 없으면 0대로 줄어드는 구성이다. 설계: `waypoint/projects/duty/03-operations/13-serverless.md`.
+요청이 없으면 0대로 줄어드는 구성이다. 설계: `docs/waypoint/03-operations/13-serverless.md`.
 
 ```
 offplz.com ─ Firebase Hosting(인증서·CDN, 모든 경로를 rewrite)

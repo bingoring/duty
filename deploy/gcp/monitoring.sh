@@ -5,7 +5,7 @@
 #   ALERT_EMAIL은 알림 채널이 없을 때(처음 한 번)만 필요하다
 # 3-2(R-MON-1~8)에서 VM용으로 만들고, 3-13에서 Cloud Run·Cloud SQL용으로 바꿨다:
 #   VM 백업 상태 파일 체크(duty-backup)·디스크·메모리(Ops Agent) 정책은 없앴고, Cloud SQL·Cloud Run 정책을 더했다.
-#   Cloud SQL 백업 실패 알림은 아직 없다(실패 로그 형식을 확인한 뒤 더한다 — waypoint 13-serverless.md)
+#   Cloud SQL 백업 실패 알림은 아직 없다(실패 로그 형식을 확인한 뒤 더한다 — docs/waypoint/03-operations/13-serverless.md)
 set -euo pipefail
 : "${PROJECT_ID:?PROJECT_ID가 필요합니다}" "${BUDGET_KRW:?BUDGET_KRW가 필요합니다}"
 DOMAIN=${DOMAIN:-offplz.com}

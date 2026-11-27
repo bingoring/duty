@@ -2,8 +2,8 @@
 
 응급실 간호사 3교대(D/E/N) 근무표 웹. **운영 주소: https://offplz.com**
 
-개발은 [Waypoint](waypoint/FRAMEWORK.md) 워크플로를 따르며, 설계 문서와 진행 상태는
-[`waypoint/projects/duty/STATUS.md`](waypoint/projects/duty/STATUS.md)에 있다.
+개발은 [Waypoint](https://github.com/bingoring/waypoint) 워크플로를 따르며, 설계 문서와 진행 상태는
+[`docs/waypoint/STATUS.md`](docs/waypoint/STATUS.md)에 있다.
 
 > **공개 저장소다.** 간호사 실명·사번·실제 근무표는 커밋하지 않는다. 실제 자료는 `.local/`(gitignore)에만 둔다.
 

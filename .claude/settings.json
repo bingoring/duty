@@ -1,0 +1,13 @@
+{
+  "extraKnownMarketplaces": {
+    "waypoint": {
+      "source": {
+        "source": "github",
+        "repo": "bingoring/waypoint"
+      }
+    }
+  },
+  "enabledPlugins": {
+    "waypoint@waypoint": true
+  }
+}
