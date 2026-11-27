@@ -24,8 +24,8 @@
 | `packages/domain`    | 프레임워크 없는 도메인 코드(규칙 검사기·정산·allowed-set·규칙 기본값)      |
 | `packages/contract`  | 솔버 입출력 계약(zod → JSON schema → Python 모델)                          |
 | `services/solver`    | Python 3.12 · FastAPI · OR-Tools CP-SAT 듀티 생성                          |
-| `deploy/`            | 운영 배포 스크립트, Caddy, 백업 컨테이너, GCP 설정 스크립트                |
-| `compose.prod.yaml`  | 운영 구성(Caddy 자동 TLS · web · solver · db · backup)                     |
+| `deploy/`            | GCP 설정 스크립트(Cloud Run·Cloud SQL·감시·배포 계정), Firebase 정적 폴더  |
+| `firebase.json`      | Firebase Hosting → Cloud Run `duty-web` 연결                               |
 | `docs/operations.md` | 운영 문서(설치·배포·백업·복구·감시·장애 대응)                              |
 
 ## 로컬 실행
@@ -54,16 +54,16 @@ pnpm test:e2e      # Playwright (duty_e2e DB를 자동 생성·초기화)
 
 ## 배포 · 운영
 
-- **자동 배포:** `main`에 머지되고 CI(검사·테스트·이미지 빌드·E2E)가 통과하면 GitHub Actions가 운영 서버에 배포한다.
-  서버의 [`deploy/deploy.sh`](deploy/deploy.sh)가 업데이트 전 백업 → 다시 빌드·기동(마이그레이션 먼저) → 헬스 체크 → 실패 시 이전 커밋으로 되돌림을 한다.
+- **자리:** `offplz.com`(www는 기본 도메인으로 이동) = Firebase Hosting → Cloud Run 서울(웹·솔버, 요청이 없으면 0대) + Cloud SQL 서울(Postgres 16). 2026-11-24에 VM 한 대에서 옮겼다(3-13).
+- **자동 배포:** `main`에 머지되고 CI(검사·테스트·이미지 빌드·E2E)가 통과하면 GitHub Actions의 `deploy-cloudrun`이
+  이미지 빌드 → 마이그레이션 Job → 새 리비전 헬스 확인 뒤 트래픽 전환 → Firebase Hosting 배포를 한다.
   문서만 바뀐 커밋은 다시 빌드하지 않는다. DB 마이그레이션은 자동으로 되돌리지 않는다.
-- **자리:** GCP 서울 VM 한 대(`compose.prod.yaml`), 도메인 `offplz.com`(www는 기본 도메인으로 이동), HTTPS는 Caddy가 Let's Encrypt로 자동 발급.
-- **백업:** 매일 03:00(서울) age 암호화 덤프 → 서버 14일 + Cloud Storage 90일. 복호화 키는 서버에 두지 않는다.
-- **감시:** 접속 불가·백업 누락·디스크·메모리·월 예산 이메일 알림.
-- 자세한 절차(최초 설치·직접 배포·되돌리기·복구·장애 대응)는 [docs/operations.md](docs/operations.md), 운영 변수는 [.env.prod.example](.env.prod.example).
+- **백업:** Cloud SQL 자동 백업 30개(매일 03:00 서울) + 원하는 시점 복구 7일.
+- **감시:** 접속 불가·Cloud Run 5xx·Cloud SQL CPU·디스크·월 예산 이메일 알림.
+- 자세한 절차(자원 만들기·되돌리기·복구·장애 대응)는 [docs/operations.md](docs/operations.md).
 
 ## 공휴일 가져오기 (선택)
 
 [공공데이터포털 「한국천문연구원_특일 정보」](https://www.data.go.kr/data/15012690/openapi.do)에서 활용 신청(자동 승인) 후 받은
-**Decoding** 인증키를 `apps/web/.env`(운영은 `.env.prod`)의 `HOLIDAY_API_KEY`에 넣으면, 관리자 → 규칙 설정 → 「공공데이터에서 가져오기」가 켜진다.
+**Decoding** 인증키를 `apps/web/.env`(운영은 Secret Manager `duty-holiday-api-key`)의 `HOLIDAY_API_KEY`에 넣으면, 관리자 → 규칙 설정 → 「공공데이터에서 가져오기」가 켜진다.
 키는 커밋하지 않는다.

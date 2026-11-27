@@ -32,8 +32,8 @@ export class IpLimiter {
   }
 }
 
-// Caddy는 들어온 X-Forwarded-For를 믿지 않고 실제 연결 IP를 붙인다 → 마지막 값만 믿는다(hops 1).
-// 3-13: Firebase Hosting·Google 프런트 뒤에서는 프록시가 더 붙으므로 믿을 프록시 수를 TRUSTED_PROXY_HOPS로 받는다
+// 뒤에서부터 믿을 프록시 수만큼 건너뛴 값을 클라이언트 IP로 본다. 운영(Firebase Hosting → Cloud Run)은
+// 「클라이언트, Google 프런트」라 TRUSTED_PROXY_HOPS=2(deploy/gcp/serverless.sh). 기본 1은 프록시 하나 뒤(VM 시절 Caddy)
 export function clientIp(
   headers: Headers,
   hops = Number(process.env.TRUSTED_PROXY_HOPS ?? 1),

@@ -1,10 +1,5 @@
-// 3-13: Firebase Hosting은 Cloud Run으로 `__session` 쿠키만 넘긴다. 새 이름으로 쓰고, 옛 이름도 읽는다(정리는 전환 2주 뒤)
+// 3-13: Firebase Hosting은 Cloud Run으로 `__session` 쿠키만 넘긴다(옛 이름 duty_session 읽기는 6단계에서 없앴다)
 export const SESSION_COOKIE = '__session'
-export const LEGACY_SESSION_COOKIE = 'duty_session'
-
-export function pickSessionToken(get: (name: string) => string | undefined): string | undefined {
-  return get(SESSION_COOKIE) ?? get(LEGACY_SESSION_COOKIE)
-}
 
 export type SessionCookie = {
   name: string

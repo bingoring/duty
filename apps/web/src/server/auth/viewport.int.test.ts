@@ -4,7 +4,7 @@ import { createUserWithPassword, createWard } from '../../test/fixtures'
 import { createSession, validateSession } from './service'
 import { setSessionViewport } from './viewport'
 
-// 3-13: Firebase Hosting은 duty_vp 쿠키를 넘기지 않으므로 화면 폭 보정값을 세션 행에 둔다
+// 3-13: Firebase Hosting은 쿠키를 __session 하나만 넘기므로 화면 폭 보정값을 세션 행에 둔다
 const db = setupTestDb()
 const T0 = new Date('2026-10-01T09:00:00+09:00')
 
