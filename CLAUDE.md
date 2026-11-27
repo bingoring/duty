@@ -8,3 +8,4 @@
 - 커밋 메시지에 `Co-Authored-By`, `Generated with Claude Code` 같은 공동작업 트레일러를 넣지 않는다. 새로 클론했다면 `git config core.hooksPath .githooks`를 한 번 실행한다.
 - 보드를 쓰는 레포에는 `board-setup.sh`가 이 블록 끝에 Project 주소를 적은 보드 줄을 더한다. 그 줄이 있으면 STATUS를 기본 브랜치에 push할 때 GitHub Project 보드와 스테이지 이슈가 STATUS에 맞춰진다.
 - 검토 대기 상한: 3 (데스크톱 앱의 중재자 세션 `waypoint:mediator`는 검토를 기다리는 스테이지가 이 수 이상이면 새 작업을 시작하지 않는다)
+- 보드: https://github.com/users/bingoring/projects/7

@@ -1,0 +1,61 @@
+#!/bin/sh
+# waypoint-hook-version: 1
+# waypoint pre-push 훅. waypoint 플러그인의 githooks/pre-push 사본이다.
+# 이 파일을 직접 고치지 말고 플러그인의 것으로 바꾼다(둘째 줄의 버전이 낮으면 세션 시작 때 경고가 나온다).
+#
+# - 직전 보드 동기화가 실패했으면 stderr에 한 줄 알린다.
+# - 기본 브랜치로 가는 push에서 docs/waypoint/STATUS.md가 바뀌었으면 .githooks/board-sync.sh를
+#   push와 분리된 백그라운드로 띄운다. push는 동기화를 기다리지 않는다.
+# - 늘 0으로 끝난다. push를 막지 않는다.
+# 자세히: waypoint:git 「보드 동기화」, 설계 docs/superpowers/specs/2026-11-25-board-sync-design.md 5.6절(waypoint 레포).
+
+wp_zero() {
+  case $1 in
+    *[!0]*) return 1 ;;
+    *) return 0 ;;
+  esac
+}
+
+wp_top=$(git rev-parse --show-toplevel 2>/dev/null) || exit 0
+wp_dir="$(git rev-parse --path-format=absolute --git-common-dir 2>/dev/null)/waypoint"
+
+if [ -r "$wp_dir/board-sync.status" ]; then
+  wp_st=
+  IFS= read -r wp_st < "$wp_dir/board-sync.status" || true
+  case $wp_st in
+    "fail "*)
+      wp_rest=${wp_st#fail }
+      echo "waypoint: 직전 보드 동기화 실패(${wp_rest%% *}): ${wp_rest#* }" >&2
+      ;;
+  esac
+fi
+
+wp_bs="$wp_top/.githooks/board-sync.sh"
+[ -f "$wp_bs" ] || exit 0
+
+# 기본 브랜치: 원격의 HEAD가 가리키는 브랜치, 없으면 main·master
+wp_remote=${1:-origin}
+wp_def=$(git symbolic-ref -q --short "refs/remotes/$wp_remote/HEAD" 2>/dev/null) && wp_def=${wp_def#"$wp_remote"/}
+wp_is_default() {
+  if [ -n "$wp_def" ]; then
+    [ "$1" = "refs/heads/$wp_def" ]
+  else
+    [ "$1" = refs/heads/main ] || [ "$1" = refs/heads/master ]
+  fi
+}
+
+wp_target=
+while read -r wp_lref wp_lsha wp_rref wp_rsha; do
+  [ -n "$wp_rref" ] || continue
+  wp_zero "$wp_lsha" && continue
+  wp_is_default "$wp_rref" || continue
+  if wp_zero "$wp_rsha" || ! git cat-file -e "$wp_rsha^{commit}" 2>/dev/null; then
+    wp_target=$wp_lsha
+  elif ! git diff --quiet "$wp_rsha" "$wp_lsha" -- docs/waypoint/STATUS.md; then
+    wp_target=$wp_lsha
+  fi
+done
+
+[ -n "$wp_target" ] || exit 0
+nohup sh "$wp_bs" --commit "$wp_target" < /dev/null > /dev/null 2>&1 &
+exit 0
