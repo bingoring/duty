@@ -1,5 +1,5 @@
 {
-  "_comment": "종이 근무표 2026-10 (가명·가상 사번). O=OFF, -=칸 없음. 슬리핑오프는 종이에서 구분되지 않아 로더가 floor((이월N+그달N)/6)개를 앞쪽 OFF부터 sleeping으로 표시한다. 출처: waypoint/projects/duty/01-inception/evidence/paper-2026-10-settlement-check.py. 수간호사 행은 평일 D·빨간 날 빈칸으로 구성했다.",
+  "_comment": "종이 근무표 2026-10 (가명·가상 사번). O=OFF, -=칸 없음. 슬리핑오프는 종이에서 구분되지 않아 로더가 floor((이월N+그달N)/6)개를 앞쪽 OFF부터 sleeping으로 표시한다. 출처: docs/waypoint/01-inception/evidence/paper-2026-10-settlement-check.py. 수간호사 행은 평일 D·빨간 날 빈칸으로 구성했다.",
   "year": 2026,
   "month": 10,
   "holidays": [

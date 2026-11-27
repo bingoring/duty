@@ -5,7 +5,7 @@
 #   ./deploy/gcp/serverless.sh --apply infra            # 실제로 만든다
 #   ./deploy/gcp/serverless.sh --apply services <SHA>   # 그 커밋 이미지로 솔버·마이그레이션 Job·웹 첫 배포(이미지는 CI가 올린다)
 #   ./deploy/gcp/serverless.sh --apply hosting          # Firebase 추가·Hosting 배포
-# 설계: waypoint/projects/duty/03-operations/13-serverless.md
+# 설계: docs/waypoint/03-operations/13-serverless.md
 set -euo pipefail
 DRY_RUN=1
 case "${1:-}" in

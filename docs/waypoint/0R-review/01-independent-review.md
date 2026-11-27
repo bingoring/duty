@@ -16,7 +16,7 @@ updated: 2026-10-08
 
 - Construction 전 스테이지(2-1~2-10) 산출물: 메인 저장소 `apps/web/src`, `packages/domain/src`, `packages/contract/src`, `services/solver/solver`, 마이그레이션, `compose*.yaml`, CI
 - 요구사항: `../inputs/requirements_v3.md`, 결정 로그: `../DECISIONS.md`
-- 리뷰어 지시: `../../../_templates/reviewer-brief-template.md` (관점별로 채워 사용)
+- 리뷰어 지시: `waypoint:review-gate` 스킬이 안내하는 reviewer-brief 템플릿을 관점별로 채워 사용
 
 ## 체크리스트
 
