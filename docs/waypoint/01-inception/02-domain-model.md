@@ -1,8 +1,7 @@
 ---
+id: 1-2
 phase: 01-inception
 stage: 02-domain-model
-status: HUMAN_APPROVED
-updated: 2026-09-26
 ---
 
 # [Stage 1-2] Domain Model
@@ -271,3 +270,7 @@ CLOSED ──(관리자 "마감 취소")──▶ CONFIRMED  ── 정산 원�
 ## 다음 단계
 
 승인 후 → `STATUS.md`의 1-2를 `HUMAN_APPROVED`로 업데이트 → `03-architecture-decision.md`로 이동
+
+## 진행 기록
+
+- 이전 기록은 [HISTORY.md](../HISTORY.md)에 있다.

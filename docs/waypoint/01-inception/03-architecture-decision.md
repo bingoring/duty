@@ -1,8 +1,7 @@
 ---
+id: 1-3
 phase: 01-inception
 stage: 03-architecture-decision
-status: HUMAN_APPROVED
-updated: 2026-09-26
 ---
 
 # [Stage 1-3] Architecture Decision ⚠️
@@ -225,3 +224,7 @@ TLS·백업 준비 방식이 달라서 미리 알면 좋다.
 ## 다음 단계
 
 승인 후 → `STATUS.md`의 1-3을 `HUMAN_APPROVED`로 업데이트 → `02-construction/01-foundation.md`로 이동
+
+## 진행 기록
+
+- 이전 기록은 [HISTORY.md](../HISTORY.md)에 있다.

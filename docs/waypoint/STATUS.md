@@ -1,256 +1,41 @@
-# duty (벌써 근무표짤 때가 됐어?) — Waypoint Status
+# duty (벌써 근무표짤 때가 됐어?) — waypoint 현황
 
-**Framework:** [Waypoint](https://github.com/bingoring/waypoint)
-**Requirements:** [inputs/requirements_v3.md](inputs/requirements_v3.md) (근무 지침 원문 + 근무자 명단)
-**Design handoff:** [inputs/design_handoff_nurse_duty_scheduler/](inputs/design_handoff_nurse_duty_scheduler/README.md) (최신, 의사 근무표 turn-6 포함, 가명본) · [v5](inputs/design-handoff_v5/README.md) (2026-09-30) · [v4](inputs/design-handoff_v4/README.md) · [v3](inputs/design-handoff_v3/README.md) · [v2](inputs/design-handoff_v2/README.md) · [v1](inputs/design-handoff_v1/README.md)
-**Decisions (audit):** [DECISIONS.md](DECISIONS.md)
-**Last updated:** 2026-11-25
+[요구사항](inputs/requirements_v3.md) · [최신 디자인 핸드오프](inputs/design_handoff_nurse_duty_scheduler/README.md) · [결정 로그](DECISIONS.md) · [지난 기록](HISTORY.md) · [운영 문서](../operations.md)
 
-> 🔒 **개인정보:** 공개 저장소다. 간호사 이름·사번은 모두 가명이며, 실명 자료는 커밋하지 않는다([DECISIONS](DECISIONS.md) 2026-09-26).
+## 스테이지
 
-> 🚀 **3-13 서버 비용 절감 전환 완료·VM 삭제 (2026-11-24~25).** offplz.com = Firebase Hosting → Cloud Run(요청 없으면 0) + Cloud SQL 서울(백업 30개·PITR 7일). VM DB를 덤프해 가져오고 표 32개 행 수(12,235행)가 모두 같음을 확인, CI는 `DEPLOY_TARGET=cloudrun`(첫 배포 잡 성공). 사용자 결정으로 되돌리기 기간 없이 VM·디스크·고정 IP를 삭제했다 — 복구는 Cloud SQL 백업·PITR로. 감시를 Cloud SQL·Cloud Run으로 바꾸고 예산 3만 원. 남은 확인: offplz.com에서 신청 저장·근무표 생성(의사 포함), 첫 앱 변경 때 CI 이미지 빌드·Firebase 배포. 6단계 정리(2026-11-25): VM 알림·방화벽·서비스 계정 삭제, VM 배포 파일·CI VM 잡·옛 쿠키·`duty_vp`·`/api/health/backup`을 없애는 PR 대기 — 머지가 Cloud Run 전체 배포의 첫 실행. [13-serverless.md](03-operations/13-serverless.md)
+| ID | 스테이지 | 상태 | 줄기 | 지금 | 기다림 | 링크 |
+|---|---|---|---|---|---|---|
+| 1-1 | Context Synthesis | MERGED | | | | [문서](01-inception/01-context-synthesis.md) |
+| 1-2 | Domain Model | MERGED | | | | [문서](01-inception/02-domain-model.md) |
+| 1-3 | Architecture Decision ⚠️ | MERGED | | | | [문서](01-inception/03-architecture-decision.md) |
+| 2-1 | Foundation | MERGED | | | | [문서](02-construction/01-foundation.md) |
+| 2-2 | Domain Core | MERGED | | | | [문서](02-construction/02-domain-core.md) |
+| 2-3 | 근무표 조회 | MERGED | | | | [문서](02-construction/03-schedule-view.md) |
+| 2-4 | 관리자 설정 | MERGED | | | | [문서](02-construction/04-admin-settings.md) |
+| 2-5 | 근무 신청·휴가 | MERGED | | | | [문서](02-construction/05-shift-requests.md) |
+| 2-6 | 솔버·듀티 생성 | MERGED | | | | [문서](02-construction/06-solver-generation.md) |
+| 2-7 | 근무 조정·월 마감 | MERGED | | | | [문서](02-construction/07-adjust-close.md) |
+| 2-8 | 근무 교환 요청 | MERGED | | | | [문서](02-construction/08-swap-requests.md) |
+| 2-9 | 통합·E2E | MERGED | | | | [문서](02-construction/09-integration-e2e.md) |
+| 2-10 | 동료 현황·규칙 안내 | MERGED | | | | [문서](02-construction/10-peers-rules.md) |
+| 2-11 | 수간호사 S·칸 출처 표시·최초 로그인 | MERGED | | | | [문서](02-construction/11-head-firstlogin.md) |
+| R-1 | Independent Code Review 🔍 | MERGED | | | | [문서](0R-review/01-independent-review.md) |
+| 3-1 | Deployment ⚠️ | MERGED | | | | [문서](03-operations/01-deployment.md) |
+| 3-2 | Monitoring | MERGED | | | | [문서](03-operations/02-monitoring.md) |
+| 3-3 | 자동 배포 | MERGED | | | | [문서](03-operations/03-continuous-deployment.md) |
+| 3-4 | 운영 피드백 1 | MERGED | | | | [문서](03-operations/04-feedback-1.md) |
+| 3-5 | 운영 피드백 2 | MERGED | | | | [문서](03-operations/05-feedback-2.md) |
+| 3-6 | 운영 피드백 3 | MERGED | | | | [문서](03-operations/06-feedback-3.md) |
+| 3-7 | 의사 근무표 | MERGED | | | | [문서](03-operations/07-doctor-schedule.md) |
+| 3-8 | 운영 피드백 4 | MERGED | | | | [문서](03-operations/08-feedback-4.md) |
+| 3-9 | 운영 피드백 5 | MERGED | | | | [문서](03-operations/09-feedback-5.md) |
+| 3-10 | 운영 피드백 6 | AI_PROPOSED | | 결과 검토: 운영 반영(3c10661). 누적 OFF에서 휴가를 어떻게 셀지(6번 확인 과제) 결정 | | [문서](03-operations/10-feedback-6.md) |
+| 3-11 | 운영 피드백 7 | MERGED | | | | [문서](03-operations/11-feedback-7.md) |
+| 3-12 | 모바일 대응 | AI_PROPOSED | | 결과 검토: 운영 반영(25eb31e). 실기기에서 홈 화면 추가·로그인 유지·시트 확인 뒤 승인 | | [문서](03-operations/12-mobile.md) |
+| 3-13 | 서버 비용 절감 | IN_PROGRESS | | 구현: 첫 전체 배포 성공(2684d1a). 배포 계정의 VM 역할과 저장소 변수 DEPLOY_TARGET·GCP_ZONE 삭제 | 오너 할 일 | [문서](03-operations/13-serverless.md) |
 
-> 🚀 **3-12 모바일 대응 운영 반영 (2026-10-30, PR #14·#15·#16·#17 → 배포 `25eb31e`).** 768px 미만에서 아래 탭(근무표·신청·교환/관리·더보기), 홈 화면 추가(PWA), 근무표 오늘 카드·내 달력·날짜별 명단, 신청·교환 시트, 관리 탭 휴가 승인·급한 변경, 바텀 시트(애니메이션·손잡이 끌어 닫기). 실기기(iPhone·Android) 확인 대기 — 홈 화면 추가·로그인 유지·시트 끄는 느낌. 설계 [12-mobile.md](03-operations/12-mobile.md).
+## 오너 할 일
 
-> 🚀 **3-10·3-11 운영 반영 (2026-10-21, PR #9·#10 → 배포 `3c10661`, 마이그레이션 0015·0016 확인).** 3-10만 머지됐을 때 main E2E(한 달 주기)가 신청 OFF 미반영으로 실패해 배포가 건너뛰어졌다 — 금지 권고 패턴 벌점(1500)이 신청 불충족(300)보다 커서. 3-11의 신청 반영 기본 필수로 해소. **3-11:** 의사 12건·간호사 1건(근무 신청 반영 기본 필수). 마이그레이션 0016(의사 퇴사 예정일).
-
-> 🛠️ **3-10 운영 피드백 6 운영 반영 (2026-10-21, PR #9 → main 758be1c).** 간호사 쪽 13건. 운영 11월 생성 불가능 원인은 「D·E·N 고르게」 필수(하나만 권고로 풀면 생성됨). Q1~Q4 답변대로 구현(6번 누적 OFF는 그대로, 확인 과제). 마이그레이션 0015(금지 권고 패턴).
-
-> 🩺 **3-7 의사 데이터 운영 반영 (2026-10-19).** 백업(`duty-20261019-2335`) 뒤 의사 5명(관리자 1) 명단과 10월 확정본(31일)을 가져오고, 11월 시험 생성 1회(의사별 D 6·N 6, 후보만 있고 확정 전 DRAFTING). 12월 전까지 시험 기간이고, 실제 11월 근무표는 받으면 `--replace`로 덮는다. 의사 초기 비밀번호는 간호사와 같이 이름 두벌식 영타로 다시 설정했다(DECISIONS ④, 첫 로그인 때 변경 강제). 1~9월 사진은 `.local/doctor-schedule-2026-01-09.json`에 옮겨 적었다. 퇴사·대진 의사와 빈 칸이 있어 지금 가져오기 도구로는 넣지 않았고, 생성에는 직전 달만 쓰인다. 의사 관리자 첫 로그인과 사용자 확인 대기.
-
-> 🛠️ **3-9 운영 피드백 5 운영 반영 (2026-10-19, PR #8 → 배포 8c53dfb). 11월 간호사 근무표 다시 생성 확인 대기.** 최대 인원은 기본 권고로 결정(둘 다 필수면 11월 생성이 막힘). 간호사 쪽 14건 — 검진 날 S 고정(3-6 D검 뒤집음), 연차만 승인 생략, 확정 달 휴가 → 시작일부터 월말 부분 리롤, 관리자가 OFF를 바로 휴가로(3-5 변경 요청 대체), 생성 결과 규칙별 묶음, 듀티당 최대 인원, 누적 OFF 범위, 칸 색·글자·주황 점 정리.
->
-> ✅ **3-3 ~ 3-6 · 3-8 승인 (2026-10-19).** 운영 `3bdbf7d`에 반영된 자동 배포·운영 피드백 1~4를 사용자가 승인. 3-7 의사 근무표는 코드만 배포되고 의사 명단·10월 확정본 가져오기 전이라 IMPLEMENTED 유지. 머지된 원격 브랜치 7개 삭제.
->
-> 📍 **현황 점검 (2026-10-19).** 운영 offplz.com = main `3bdbf7d`(3-5~3-8, 3-7 의사 근무표 포함) 자동 배포 완료, 마이그레이션 14개, 서비스 정상. 의사 계정·10월 의사 확정본은 아직 운영에 없음(가져오기 전), 간호사에게 의사 근무표 공개 스위치는 기본 끔.
-> 간호사 운영 사용 중: 재직 11명 중 8명 동의·초기 설정 완료(3명 미로그인), 동의서 v1 동의 8명은 v2라 다음 로그인 때 다시 동의, 11월 신청 29건·생성안 12개(DRAFTING), 관리자 확인 대기 본인 입력 3건.
-> 핸드오프 새 버전 예시 코멘트의 실명 이름 조각 1곳을 가명으로 바꿈(실명 검사 0건).
->
-> 🏗️ **3-7 의사 근무표 구현 (2026-10-19, 브랜치 `feature/3-7-doctor-schedule`, 운영 미반영).** 3-7a~e 전부 — 직군·의사 계정(생년월일 ID·사번으로 변경), 주 단위 달력·간호사/의사 탭, 월 달력 신청·내 근무 조건, 의사 CP-SAT `/solve/doctor`·생성·조기 배포, 근무 조정·교환 요청, 명단·확정본 가져오기. 마이그레이션 0012. 단위·통합 196·E2E 56 그린. 12월 전까지 테스트 기간.
->
-> 📝 **3-7 의사 근무표 제안 (2026-10-18).** 핸드오프 새 버전(turn-6)의 의사 직군 — 직군별 메뉴·규칙·관리자, 확정 근무표 상호 공개, 생년월일 로그인 ID, 하루 D1·N1·올데이, 별도 의사 솔버 모델. 3-7a~e로 나눔. Q1~Q5 답변 대기. 3-6은 main 머지, CI 테스트 수정 PR #5 대기 중(운영은 3-5).
->
-> 🏗️ **3-6 운영 피드백 3 구현 (2026-10-18, 브랜치 `feature/3-6-feedback-3`, 운영 미반영).** 관리자 대신 신청 파란 표시(신청 화면·근무표), 휴가 칸 종류 이름, 검진 오전/오후, 휴가 승인 취소, 개인별 주말 통 OFF(본인 끔·관리자 목록), 내 설정 KTAS 취득일·갱신일. 마이그레이션 0010·0011.
->
-> 🏗️ **3-5 추가 · 월 나이트 최소 (2026-10-18, 브랜치 `feature/3-5-night-min`).** 규칙 설정에서 월 나이트 최소(기본 0, 권고), 근무 가능일 비례·전담·신규 제외. 3-5 본체는 main 머지됨, main CI가 통합 테스트 1건(4초 솔버 예산)으로 실패해 배포 대기 — 수정 PR #2.
->
-> 🏗️ **3-5 운영 피드백 2 구현 완료 → 승인 대기 (2026-10-18, 브랜치 `feature/3-5-feedback-2`, 운영 미반영).** KTAS 표기·생성 화면 문구, **모든 규칙의 필수/권고를 규칙 설정에서 전환**(최대 연속 근무 기본 필수), KTAS 수료일·유효기간(만료 6개월 전 빨간색, 만료 뒤 KTAS 인원 제외), 관리자의 OFF → 휴가 변경 요청(간호사 수락). 단위 421 · pytest 24 · 통합 172 그린, **E2E는 로컬 브라우저 없어 미실행**. 마이그레이션 3개, 동의서 버전 v2.
->
-> 📝 **3-5 운영 피드백 2 제안 (2026-10-17).** KTAS 표기 통일, 생성 화면 문구 3건, KTAS 수료일·유효기간(3년, 만료 6개월 전 빨간색), 최대 연속 근무 필수화 + 규칙 설정에서 필수/권고 전환, 관리자의 오프 신청 → 휴가 변경(간호사 수락). 슬리핑오프·잔여 N 이월은 이미 동작함을 확인. 질문 Q1~Q5 답변 대기.
->
-> 🏗️ **3-4 운영 피드백 1 구현·운영 반영 → 승인 대기 (2026-10-12).** 간호사가 내 설정에서 남은 연차를 언제든 고침(바로 반영 + 관리자 확인·이력), 간호사 관리 목록 행의 ⠿ 손잡이를 끌어 놓아 표 순서 즉시 저장(노션식, 키보드 ↑↓), 동료 현황도 표 순서, 근무 신청 격자 화면 폭 맞춤, README에 운영 주소. 자동 배포 `deploy` 성공.
-> 남은 일: 3-3·3-4 승인(3-4는 운영에서 연차 수정·순서 저장 확인), 간호사 공지 전 준비(동의서 병원 검토, 개원기념일·신청 마감일 설정, 표 순서 확인).
->
-> 🏗️ **3-3 자동 배포 구현 완료 → 승인 대기 (2026-10-10).** main 머지 + CI 통과 → 운영 자동 배포 확인(앱 변경 → 백업·재빌드·헬스 체크, 문서만 → git만). 로그인 화면 문구도 줄여 자동 배포로 반영.
->
-> 📝 **3-3 자동 배포 Build Spec READY (2026-10-10).** main 머지 + CI 통과 → GitHub Actions(OIDC, 키 파일 없음) → IAP SSH → 서버 `deploy/deploy.sh`(백업·헬스 체크·되돌리기, 문서만 바뀌면 재빌드 안 함). GCP 설정 적용 승인 대기.
->
-> ✅ **3-2 모니터링 승인 (2026-10-09).** 운영 감시·알림·예산·복구 검증 완료.
-> 간호사 공지 전 운영 준비: 동의서 병원 검토, 개원기념일·신청 마감일 설정, 표 순서(연차) 확인.
->
-> 🏗️ **3-2 모니터링 구현·운영 적용 완료 → 승인 대기 (2026-10-09).** 이메일 알림(접속·백업 누락·디스크·메모리), 월 예산 5만 원, Ops Agent(지표만). 테스트 알림 수신, 실제 데이터 백업 복구 리허설 행 수 일치.
-> 행 순서도 바꿈: 수간호사 맨 위, 나머지 연차 순(DECISIONS).
->
-> 📝 **3-2 모니터링 Build Spec 작성 (2026-10-09).** 이메일 알림 — 접속(업타임 체크), 백업 실패·누락(`/api/health/backup`), 디스크·메모리(Ops Agent), 월 예산. 실제 데이터 복구 리허설 포함. 알림 이메일·예산 금액 확인 뒤 READY.
->
-> ✅ **3-1 배포 승인 (2026-10-09).** offplz.com 운영 중(실제 데이터). 2-11도 승인. 다음: 3-2 모니터링 — 실제 데이터 백업 복구 리허설 포함.
-> 간호사 공지 전 준비: 동의서 병원 검토, 개원기념일·신청 마감일 설정.
->
-> 🚀 **3-1 운영 최초 데이터 가져오기 완료 (2026-10-09).** 서버를 2-11 코드로 갱신(마이그레이션 7개) → 이력 묶음 미리보기 = 기대값 → 가져오기(14명·마감 9달·확정 1달·칸 3,299·이월 조정 9) → 서버 파일 `shred` → 즉시 백업(서버·버킷).
-> 남은 일: 수간호사 첫 로그인 확인(동의 화면까지, 사용자), 복구 리허설(사용자 PC 개인키), 동의서 병원 검토, 개원기념일·신청 마감일 설정 → 공지.
->
-> 🏗️ **2-11 수간호사 S·칸 출처 표시·최초 로그인 구현 완료 → 승인 대기 (2026-10-09).** 수간호사 평일 S(솔버는 필수 인원을 달리 못 채울 때만 D), 교환에 수간호사(S↔D), 외곽선 3종·툴팁 카드,
-> 최초 로그인 동의(민감정보 별도) → 비밀번호 → 초기 설정(본인 확인·수정, 관리자 확인·되돌리기). 단위 409·pytest 19·통합 162·E2E 43 그린, 편차 7건. 동의서 문안은 병원 검토 필요.
->
-> 📝 **2-11 수간호사 S·칸 출처 표시·최초 로그인 Build Spec READY (2026-10-09).** 운영 이력 가져오기 전에 사용자 피드백 6건 반영 — 수간호사 평일 S(D는 신청·조정·필수 인원 보충만), 교환에 수간호사, 외곽선 3종(교환 = 빨간 점선)·툴팁,
-> 최초 로그인 개인정보 동의(민감정보 별도) → 비밀번호 → 초기 설정(미리 채움, 본인 확인·수정, 관리자 확인). **2-10 「S2 만들지 않음」을 뒤집음**(DECISIONS). 구현 착수 승인 대기. 3-1 이력 가져오기는 2-11 승인 뒤로 미룸.
->
-> 🏗️ **3-1 배포 1단계 완료 (2026-10-08).** Caddy·백업·헬스체크·IP 제한·GCP 생성 스크립트·운영 문서, 로컬 리허설(HTTPS·백업·복구) 통과. 다음: GCP 자원 생성(비용 발생, 승인 필요).
->
-> 📝 **3-1 배포 Build Spec READY (2026-10-08).** GCP 별도 프로젝트·서울 e2-medium VM 한 대 + Caddy 자동 TLS + 매일 암호화 백업(서버 14일 + Cloud Storage 90일).
-> 로컬 리허설 뒤 사람 승인 아래 GCP 자원 생성·최초 배포. 구현 착수 승인 대기.
->
-> ✅ **R-1 독립 코드 리뷰 승인 (2026-10-08).** Operations(3-1 배포) 착수.
->
-> 🔍 **R-1 독립 코드 리뷰 완료 → 승인 대기 (2026-10-08).** 독립 리뷰어 4명(보안·동시성·도메인·웹/운영) — CRITICAL 1·HIGH 11 포함 결함을 재현 테스트와 함께 수정(운영 이미지 빌드, 동시성 잠금, 연말·연초 경계, 잔여 N 음수 등).
-> 정책 4건 결정(휴가 사유 숨김·연속 근무 상한·순환 역방향 벌점·개원기념 OFF 휴가). 보류는 근거와 함께 3-1 등으로. 단위 393·pytest 17·통합 151·E2E 40 그린.
->
-> 🔍 **R-1 독립 코드 리뷰 착수 (2026-10-08).** Construction(2-1~2-10) 전체를 작성자와 컨텍스트가 분리된 리뷰어 4명(보안·동시성·도메인·웹/운영)이 적대적으로 검토한다.
->
-> ✅ **2-10 동료 현황·규칙 안내 승인 (2026-10-08).**
->
-> 🏗️ **2-10 동료 현황·규칙 안내 구현 완료 → 승인 대기 (2026-10-08).** S6 동료 현황(근무표와 같은 계산, 주말 통 OFF 날짜), S7 규칙 안내(목차 7개, 규칙 버전 값으로 렌더링, 태그 3종).
-> 단위 378·pytest 14·통합 137·E2E 40 그린, 편차 8건.
->
-> 📝 **2-10 동료 현황·규칙 안내 Build Spec READY (2026-10-08).** S6: 이번 달 + 월 이동, 교대 근무자 전원의 오프·나이트·주말 통 OFF 현황(근무표와 같은 계산).
-> S7: 목차 7개, 규칙 버전 값에서 렌더링, 태그 자동 적용·권고·안내. **S2 초기 설정은 만들지 않음**(원문 §10·11과 다름, DECISIONS). 구현 착수 승인 대기.
->
-> ✅ **2-9 통합·E2E 승인 (2026-10-07).** 2차 범위 중 S6 동료 현황·S7 규칙 안내를 배포 전 2-10으로 넣기로 했다(DECISIONS).
->
-> 🏗️ **2-9 통합·E2E 구현 완료 → 승인 대기 (2026-10-07).** 쿠키 시계로 11월 한 달 흐름(신청·휴가 → 생성·확정 → 교환·관리자 조정 → 12월 확정 → 마감 → 이월)을 E2E 하나로 확인,
-> 커버리지 표·보강 3건. **발견 결함 수정:** 다음 달이 확정된 달을 생성하면 늘 재검사 탈락 → 솔버 `nextHead`. 단위 362·pytest 14·통합 137·E2E 38 그린, 편차 7건.
->
-> 📝 **2-9 통합·E2E Build Spec READY (2026-10-07).** 11월 한 달 흐름(신청·휴가 → 생성·확정 → 교환·관리자 조정 → 마감 → 12월 이월)을 요청별 쿠키 시계로 "오늘"을 옮기며 하나의 E2E로 확인,
-> 화면 × 역할 커버리지 점검·보강. Q1~Q3 해소. 구현 착수 승인 대기.
->
-> ✅ **2-8 근무 교환 요청 승인 (2026-10-07).** 사용자 피드백 반영 — 바뀐 근무 안내 링크가 칸을 짚고(확인·강조 열 클릭으로 해제), 근무표 격자가 화면 폭에 비례해 커진다. 재검증 E2E 35·통합 136.
->
-> 🏗️ **2-8 근무 교환 요청 구현 완료 → 승인 대기 (2026-09-30).** 3a 간호사 교환 요청(체크·재배정 팝업·받은/보낸 패널 접기), 전원 수락 시 재검사 뒤 즉시 반영,
-> 겹침·관리자 편집 무효, 만료, 메뉴 배지·근무표 띠. 단위 361·통합 136·E2E 34 그린, 편차 4건.
->
-> 📝 **2-8 근무 교환 요청 Build Spec READY (2026-09-30).** 3a 간호사 교환 요청(하루 단위, 칩 두 개 맞바꾸기, 즉시 규칙 검사) → 전원 수락 시 재검사 뒤 즉시 반영(Q1·Q2),
-> 겹침·관리자 편집 무효 처리, 받은 요청 배지·근무표 띠. 구현 착수 승인 대기.
->
-> ✅ **2-7 근무 조정·월 마감 승인 (2026-09-30).** 핸드오프 예시 코멘트의 실명 이름 조각(v2~v5)을 가명으로 바꾸고 실명 검사를 보강했다.
->
-> 🎨 **핸드오프 v5 반영 (2026-09-30).** 근무 조정 관리자 셀 편집을 하단 편집 도크(5a·5b)로 교체 — 손잡이·리사이즈·최소화·최대화·닫기, 칩 클릭 즉시 적용,
-> 위반 시에만 ↔ 대체자·사유·그래도 적용. 호버·선택 행열 강조, 월 마감, 덜 일한 사람 먼저 후보 순서는 유지(DECISIONS). 입력의 실명 141곳 가명 치환·사진 제외.
->
-> 🏗️ **2-7 근무 조정·월 마감 구현 완료 → 승인 대기 (2026-09-30).** S9 관리자(1j) 칸 편집(즉시 검사·예외 적용·맞바꾸기·대체 지정)·저장 재배포,
-> 월 마감(종이 10월 마감 = 원장 누적 OFF 일치)·마감 취소, 확정된 달 휴가 대체 지정·승인 취소, 근무표 "바뀐 근무" 안내.
-> 단위 353·pytest 12·통합 129·E2E 32 그린, 편차 7건.
->
-> 📝 **2-7 근무 조정·월 마감 Build Spec READY (2026-09-30).** S9 관리자(1j): 칸 편집 팝오버·즉시 검사·맞바꾸기·대체 지정·저장·재배포,
-> 월 마감(정산 원장)·마감 취소, 확정된 달 휴가 대체 지정·승인 취소, 근무표 상단 "바뀐 근무" 안내. Q1~Q4 해소(Q3 안내 위치는 검토 뒤 근무표로). 구현 착수 승인 대기.
->
-> ✅ **2-6 솔버·듀티 생성 승인 (2026-09-29).**
->
-> 🏗️ **2-6 솔버·듀티 생성 구현 완료 → 승인 대기 (2026-09-28).** CP-SAT 솔버 서비스(`services/solver`)·계약 패키지·S8(1i + 생성안 격자·안 이동).
-> 생성 → TS 재검사 → n번째 안 보관 → 확정(입력이 바뀐 안은 차단) → 근무표 공개. 해가 없으면 원인 최대 5개. 교차 검증 5 시나리오 하드 위반 0.
-> 단위 343·pytest 12·통합 117·E2E 30 그린, 편차 8건. `pnpm dev`가 솔버도 함께 띄운다.
->
-> 📝 **2-6 솔버·듀티 생성 Build Spec READY (2026-09-28).** CP-SAT 솔버 서비스(`services/solver`, Python) + 계약 패키지 + S8(1i + 생성안 격자).
-> 질문 Q1~Q4 해소 — 마감 뒤에만 생성, 결과 아래 격자·안 이동, 신청 충돌은 한 사람에게 몰리지 않게, 우선 반영은 생성마다. 공정성(목표 OFF 부족 최댓값)이 1순위.
-> 구현 착수 승인 대기.
->
-> ✅ **2-5 근무 신청·휴가 승인 (2026-09-28).** 4a 패널을 핸드오프 치수로 다시 맞추고 확정된 달 대체 후보를 표시했다.
->
-> 🏗️ **2-5 근무 신청·휴가 구현 완료 → 승인 대기 (2026-09-27).** 다음 달 격자 위 근무 신청(복수 옵션·교육, 임시 → 제출)·휴가 팝오버(경조사 종료일 자동,
-> 잔여 초과 차단)·관리자 휴가 승인 패널(4a: 접기, 월 배지, 인원 영향, 처리 이력, 코멘트 호버). 확정된 달 휴가는 신청·승인 즉시 칸 대체.
-> 단위 331·통합 104·E2E 28 그린, 편차 5건. 대체 지정·확정된 달 승인 취소는 2-7.
->
-> 🎨 **핸드오프 v4 반영 (2026-09-27).** 4a 휴가 승인 패널(근무 신청 화면의 관리자 시점, 접기·펼치기, 확정된 달 인원 영향)과 S9 패널 접기(2-8).
-> 2-5 범위 조정(Q5): 확정된 달의 휴가도 신청·승인(칸 대체)까지 2-5, 대체 지정만 2-7. 입력의 실명 16건 가명 치환·사진 제외.
->
-> 📝 **2-5 근무 신청·휴가 Build Spec READY (2026-09-27).** 다음 달 격자 위 근무 신청(복수 옵션·교육)·휴가 신청(3b 팝오버) — 임시 저장 후 제출(Q2),
-> 관리자는 같은 화면에서 편집·휴가 승인(Q1), OFF 목표 = 기준 − 누적 + 슬리핑오프(Q3), 대기 휴가 점선 '휴'(Q4). 확정된 달의 휴가는 2-7. 구현 착수 승인 대기.
-> 2-4 후속 수정: 금지 패턴 입력 검사(D·E·N·S·OFF 외 문자·한글·중복 차단).
->
-> ✅ **2-4 관리자 설정 승인 (2026-09-27).** S10 간호사 관리(추가·임시 비밀번호·트레이닝·잔여치 조정·재발급·제거)·
-> S11 규칙 설정(수치 22 + 토글 5, 버전 이력, 동시 저장 차단)·공휴일(공공데이터 가져오기 + 병원 지정일·개원기념일, 개원오프 재계산)·
-> 연초 자동 처리(12월 마감 뒤, 시스템 첫해 제외). 단위 298·통합 77·E2E 22 그린, 편차 4건. 공휴일 API는 `HOLIDAY_API_KEY` 필요.
->
-> 📝 **2-4 관리자 설정 Build Spec READY (2026-09-27).** S10 간호사 관리(연차 구분·노조·근무 방식·권한·초기 잔여치 포함, 임시 비밀번호 1회 표시,
-> 자동 부여, 잔여치 조정 원장 기록)·S11 규칙 설정(수치 22개 + 토글 5, 버전 이력)·공휴일(공공데이터 API 가져오기 + 병원 지정일·개원기념일)·
-> 연초 자동 처리(전년 12월 마감 뒤). 구현 착수 승인 대기.
->
-> 🎨 **핸드오프 v3 반영 (2026-09-27).** 변경 1건: S3 격자의 오늘 열 강조(헤더 청록·흰 글자, 열 전체 연청록 세로 띠, 이번 달만).
-> 2-3에 구현했고 E2E는 `DUTY_FAKE_TODAY=2026-10-13`으로 날짜를 고정했다(운영에서는 무시). 입력의 실명 16건 가명 치환·사진 제외.
->
-> ✅ **2-3 근무표 조회 승인 (2026-09-27).** S3 격자(1c)·요약 카드 5개·월 이동·인쇄(A4 가로 1장) + 공통 셸 v2(메뉴 재구성,
-> 「내 휴가 잔여」). 이월 값은 마감 달 스냅샷 / 미마감 달 원장 + 앞선 확정 달 투영. 개발 시드에 종이 10월(가명) 확정본.
-> 단위 276·통합 47·E2E 15 그린, 편차 4건(Build Spec §7). 확인: `pnpm db:seed` → `/?ym=2026-10`.
->
-> 🎨 **핸드오프 v2 반영 (2026-09-27).** 근무 조정을 모든 간호사에게 열고 간호사 간 교환 요청(3a) 추가, 휴가 신청을 근무 신청 팝오버에 통합(3b, 증빙 없음),
-> 메뉴 재구성(근무 조정이 일반 메뉴로), 사이드바 「내 휴가 잔여」, 휴가 칩 `휴`(#D8E6C3). 입력의 실명 16건은 가명 치환, 종이 사진은 제외했다.
-> 단계 조정: 2-5에 휴가 포함, 2-8 교환 요청 신설, 통합은 2-9. 2-3 Build Spec에 메뉴·잔여 카드·휴가 칩 반영.
->
-> 📝 **2-3 근무표 조회 Build Spec READY (2026-09-27).** 1c 격자·요약 카드 5개·월 이동·인쇄를 서버 컴포넌트로 만든다. 이월 값은 마감된 달은
-> 정산 스냅샷, 미마감 달은 원장 + 앞선 확정 달 투영. 질문 Q1~Q4 해소 — 누적 OFF 색 없이 부호+설명, 동료 정보 모두 공개,
-> 이번달 OFF = 정산 기준, 기본 달 = 이번 달. 구현 착수 승인 대기.
->
-> ✅ **2-2 Domain Core 승인 (2026-09-27).** `@duty/domain`에 규칙 검사기(하드 12·소프트 7)·인원 집계(신규 3인 근무·
-> 수간호사 보충)·월 정산·특휴·셀 출처·근무표 상태 전이·위반 문구. 종이 10월: 누적 OFF 10명 일치, 하드 위반 0.
-> 다음 달 검사도 전월 말 15일을 이어서 본다(10/31 N → 11월 초 N 최대 2개). 달을 걸친 주말은 토요일이 속한 달로 세고,
-> 한 사람의 D·E·N 차이가 2를 넘으면 경고한다. 이월 확장: 다음 달이 있을 때 앞 달 수정의 경계 검사, 주말 미배정 연속 개월 수,
-> D·E·N 3개월 누적, 교육 연간 횟수, 잔여 초과. 요구사항 원문 절별 추적표(Build Spec §5). 단위 255·통합 35·E2E 9 그린. 편차 7건(Build Spec §7).
->
-> 📝 **2-2 Domain Core Build Spec READY (2026-09-27).** 규칙 검사기(하드 12·소프트 7)·월 정산·특휴·셀 출처·근무표 상태 전이를
-> `@duty/domain` 순수 함수로 설계했다. 종이 10월에 규칙을 대 보니 16시간 휴식은 다른 코드 사이에만 적용되고, 10/2 D는 수간호사 보충이었다.
-> 질문 Q1~Q5 해소 — 수간호사 D는 최후의 수단(소프트 경고), 최대 연속 오프 기본값 10 → 15, 신규 3인 기간 완전 신규 3주·경력자 2주 +
-> 기간 뒤 첫 N 3개도 3인. 구현 착수 승인 대기.
->
-> ✅ **2-1 Foundation 승인 (2026-09-27).** pnpm 모노레포(`apps/web` Next.js 16 + `packages/domain`),
-> 16 테이블 스키마·마이그레이션, 가명 시드·부트스트랩·실명 CSV 가져오기, argon2id·DB 세션·잠금·첫 로그인 비밀번호 변경,
-> S1 로그인·공통 셸(1d·1c 재현), Docker(운영 compose)·CI. 단위 60·통합 35·E2E 9 그린, 운영 빌드에서 로그인까지 확인.
-> 편차 11건(Build Spec §7) — 주요: 세션 연장을 Route Handler로, 강제 변경의 임시 비밀번호 재사용 차단 추가.
->
-> 📝 **2-1 Foundation Build Spec READY (2026-09-26).** Inception 1-1~1-3 승인. 공개 저장소에 실명 자료를 올린 사고를 정리했다
-> (가명 치환 + 이 프로젝트 커밋을 1개로 다시 씀, 원본은 메인 저장소 `.local/`). 2-1 스펙: pnpm 모노레포 + 15 테이블 스키마 +
-> 가명 시드·실명 로컬 CSV 가져오기 + argon2id·DB 세션·5회 잠금·첫 로그인 비밀번호 변경 + S1·공통 셸. 구현 착수 승인 대기.
->
-> 📝 **1-3 Architecture Decision ⚠️ 제안 (2026-09-26).** 1-2 승인. 인원 여유를 계산해 보니 신규 1명이 3인 배정 기간이면
-> 10월은 최소 인원만으로 6칸이 모자라고 나이트 여유는 1칸이다 → 하드 제약 보장 · 불가능 판정 · min-max 공정성이 필요해
-> **OR-Tools CP-SAT(Python 무상태 서비스)** 를 권고했다. 규칙 SoT는 TS `@duty/domain` 검사기이고, 솔버 결과는 항상 재검사한다.
-> 스택: Next.js 16 + Tailwind v4 + Postgres 16 + Drizzle, 자체 세션 인증, Docker Compose 한 벌. 질문 A1~A3 기본안으로 확정, 승인됨(CP-SAT · 클라우드 VPS · 인원 부족 달은 누적 OFF 음수 허용).
->
-> 📝 **1-2 Domain Model 제안 (2026-09-26).** 1-1 승인(질문은 기본안대로 확정, Q5 답변 반영). 요구사항 원문을 입력으로
-> 등록했다. **핸드오프 안에서 누적 OFF 부호가 충돌**해 종이 근무표 10월분 10명을 옮겨 계산했고,
-> `누적 = 이월 + (실제 OFF − 슬리핑오프 − 기준 OFF)`, 기준 OFF 11(대체공휴일 포함)에서 10명 전원이 일치했다
-> (양수 = 더 쉼 → 반납). 잔여치는 스냅샷이 아니라 append-only 원장으로 둔다. 질문 D1~D5 해소(특휴는 원문 §6-7
-> 해당 연도 재직 일수 산식으로 정정) — 승인됨.
->
-> 🚩 **프로젝트 착수 (2026-09-26).** 응급실 병동 간호사 3교대 근무표 웹. 핸드오프 v1(hi-fi HTML 프로토타입 +
-> 종이 근무표 원본 사진)을 입력으로 등록하고 1-1 Context Synthesis를 제안했다. 코드베이스는 아직 없다.
-
----
-
-## Phase 1 — Inception (What)
-
-| 스테이지 | 문서 | 상태 |
-|---------|------|------|
-| 1-1 Context Synthesis | [01-context-synthesis.md](01-inception/01-context-synthesis.md) | HUMAN_APPROVED |
-| 1-2 Domain Model | [02-domain-model.md](01-inception/02-domain-model.md) | HUMAN_APPROVED |
-| 1-3 Architecture Decision ⚠️ | [03-architecture-decision.md](01-inception/03-architecture-decision.md) | HUMAN_APPROVED |
-
-## Phase 2 — Construction (How)
-
-> 1-3 §10의 분해(승인됨)를 핸드오프 v2에 맞춰 조정(2026-09-27): 휴가 신청은 S4 팝오버로 들어와 2-5에 포함, 간호사 교환 요청은 2-8로 분리.
-> 2차 범위 중 S6·S7은 배포 전 2-10으로 당겼다(2026-10-07). S2 초기 설정은 만들지 않는다(2026-10-08) → 운영 전 2-11로 되살림(2026-10-09, 본인 확인·수정 + 관리자 확인).
-
-| 스테이지 | 문서 | 상태 |
-|---------|------|------|
-| 2-1 Foundation | [01-foundation.md](02-construction/01-foundation.md) · [Build Spec](02-construction/foundation/build-spec-index.md) (IMPLEMENTED) | HUMAN_APPROVED |
-| 2-2 Domain Core | [02-domain-core.md](02-construction/02-domain-core.md) · [Build Spec](02-construction/domain-core/build-spec-index.md) (IMPLEMENTED) | HUMAN_APPROVED |
-| 2-3 근무표 조회 (S3) | [03-schedule-view.md](02-construction/03-schedule-view.md) · [Build Spec](02-construction/schedule-view/build-spec-index.md) (IMPLEMENTED) | HUMAN_APPROVED |
-| 2-4 관리자 설정 (S10·S11) | [04-admin-settings.md](02-construction/04-admin-settings.md) · [Build Spec](02-construction/admin-settings/build-spec-index.md) (IMPLEMENTED) | HUMAN_APPROVED |
-| 2-5 근무 신청·휴가 (S4 + S5 팝오버 통합) | [05-shift-requests.md](02-construction/05-shift-requests.md) · [Build Spec](02-construction/shift-requests/build-spec-index.md) (IMPLEMENTED) | HUMAN_APPROVED |
-| 2-6 솔버·듀티 생성 (S8) | [06-solver-generation.md](02-construction/06-solver-generation.md) · [Build Spec](02-construction/solver-generation/build-spec-index.md) (IMPLEMENTED) | HUMAN_APPROVED |
-| 2-7 근무 조정·월 마감 (S9 관리자) | [07-adjust-close.md](02-construction/07-adjust-close.md) · [Build Spec](02-construction/adjust-close/build-spec-index.md) (IMPLEMENTED) | HUMAN_APPROVED |
-| 2-8 근무 교환 요청 (S9 간호사, 3a) | [08-swap-requests.md](02-construction/08-swap-requests.md) · [Build Spec](02-construction/swap-requests/build-spec-index.md) (IMPLEMENTED) | HUMAN_APPROVED |
-| 2-9 통합·E2E | [09-integration-e2e.md](02-construction/09-integration-e2e.md) · [Build Spec](02-construction/integration-e2e/build-spec-index.md) (IMPLEMENTED) | HUMAN_APPROVED |
-| 2-10 동료 현황·규칙 안내 (S6·S7) | [10-peers-rules.md](02-construction/10-peers-rules.md) · [Build Spec](02-construction/peers-rules/build-spec-index.md) (IMPLEMENTED) | HUMAN_APPROVED |
-| 2-11 수간호사 S·칸 출처 표시·최초 로그인 (S2 부활) | [11-head-firstlogin.md](02-construction/11-head-firstlogin.md) · [Build Spec](02-construction/head-firstlogin/build-spec-index.md) (IMPLEMENTED) | HUMAN_APPROVED |
-
-## Phase R — Independent Code Review 🔍 (Construction → Operations 게이트)
-
-> 작성자와 **컨텍스트가 분리된** 독립·적대적 리뷰어가 코드를 검토한다. FRAMEWORK "리뷰 게이트" 참조.
-
-| 스테이지 | 문서 | 상태 |
-|---------|------|------|
-| R-1 Independent Code Review | [01-independent-review.md](0R-review/01-independent-review.md) | HUMAN_APPROVED |
-
-## Phase 3 — Operations (Ship)
-
-| 스테이지 | 문서 | 상태 |
-|---------|------|------|
-| 3-1 Deployment ⚠️ | [01-deployment.md](03-operations/01-deployment.md) · [Build Spec](03-operations/deployment/build-spec-index.md) (IMPLEMENTED) | HUMAN_APPROVED |
-| 3-2 Monitoring | [02-monitoring.md](03-operations/02-monitoring.md) · [Build Spec](03-operations/monitoring/build-spec-index.md) (IMPLEMENTED) | HUMAN_APPROVED |
-| 3-3 자동 배포 | [03-continuous-deployment.md](03-operations/03-continuous-deployment.md) · [Build Spec](03-operations/cd/build-spec-index.md) (IMPLEMENTED) | HUMAN_APPROVED |
-| 3-4 운영 피드백 1 (연차 직접 수정·행 순서·동료 현황 정렬·README) | [04-feedback-1.md](03-operations/04-feedback-1.md) | HUMAN_APPROVED |
-| 3-5 운영 피드백 2 (KTAS·규칙 필수/권고·오프→휴가) | [05-feedback-2.md](03-operations/05-feedback-2.md) | HUMAN_APPROVED |
-| 3-6 운영 피드백 3 (대신 신청 표시·휴가 종류·검진 오전/오후·승인 취소·개인 주말 통 OFF·내 설정 KTAS) | [06-feedback-3.md](03-operations/06-feedback-3.md) | HUMAN_APPROVED |
-| 3-7 의사 근무표 (직군 추가) | [07-doctor-schedule.md](03-operations/07-doctor-schedule.md) | IMPLEMENTED |
-| 3-8 운영 피드백 4 (생성 중 신청·생성안 관리자 신청·확정 철회·조정 흐름·KTAS 팝업) | [08-feedback-4.md](03-operations/08-feedback-4.md) | HUMAN_APPROVED |
-| 3-9 운영 피드백 5 (검진 S 고정·연차 승인 생략·확정 달 휴가 부분 리롤·생성 결과 묶음·최대 인원·누적 OFF 범위·표시 정리) | [09-feedback-5.md](03-operations/09-feedback-5.md) | IMPLEMENTED |
-| 3-10 운영 피드백 6 (신청 권한·휴가 합계·조정 사유·누적 OFF 휴가 제외·리롤 수동 변경 유지·저장 전 비공개·권고 패턴·나이트 상하한·불가능 원인) | [10-feedback-6.md](03-operations/10-feedback-6.md) | IMPLEMENTED |
-| 3-11 운영 피드백 7 (의사 색·강조·격주 고정·신청 표시·원래 사람·규칙 심각도·재직 기간·금지 패턴·철회, 간호사 신청 필수) | [11-feedback-7.md](03-operations/11-feedback-7.md) | IMPLEMENTED |
-| 3-12 모바일 대응 (아래 탭·내 근무 달력·날짜별 명단·신청/교환 시트·관리자 승인과 급한 변경·홈 화면 추가) | [12-mobile.md](03-operations/12-mobile.md) | IMPLEMENTED |
-| 3-13 서버 비용 절감 (Cloud Run·Cloud SQL·Firebase Hosting) | [13-serverless.md](03-operations/13-serverless.md) | IMPLEMENTED |
-
----
-
-## AI 진입점
-
-> AI는 위 테이블에서 `PENDING` 상태인 가장 앞 스테이지부터 작업을 시작하세요.
-> 규칙: `waypoint:start` 스킬과 각 스킬 참조
+- [ ] offplz.com에서 신청 저장·근무표 생성(의사 포함) 확인 (막음: 3-13)
+- [ ] 개인정보 안내에 「Firebase Hosting(접속 전달)」을 더할지 결정 (막음: 3-13)

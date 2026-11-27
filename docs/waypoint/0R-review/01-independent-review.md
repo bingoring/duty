@@ -1,8 +1,7 @@
 ---
+id: R-1
 phase: 0R-review
 stage: 01-independent-review
-status: HUMAN_APPROVED
-updated: 2026-10-08
 ---
 
 # [Stage R-1] Independent Code Review 🔍
@@ -90,3 +89,7 @@ updated: 2026-10-08
 - 메인 저장소 커밋 21008e8~2c9b405(13개). 마이그레이션 `0005_ledger_indexes`(인덱스 2개). main CI 그린(37728636121).
 - **수정이 만든 회귀 1건(고침):** #17로 규칙 로드 오류를 올리자, CI에서 E2E DB를 만들기 전에 웹 서버의 `/login` 준비 확인이 500을 받아 시간 초과됐다(로컬은 DB가 이미 있어 통과).
   로그인·비밀번호 화면만 오류를 기록하고 기본 규칙으로 열리게 했다(`getRulesForAuthPage`). DB를 지운 상태에서 수정 전 실패(webServer 시간 초과)·수정 후 E2E 40 통과를 확인했다.
+
+## 진행 기록
+
+- 이전 기록은 [HISTORY.md](../HISTORY.md)에 있다.

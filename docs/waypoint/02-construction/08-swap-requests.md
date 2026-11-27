@@ -1,8 +1,7 @@
 ---
+id: 2-8
 phase: 02-construction
 stage: 08-swap-requests
-status: HUMAN_APPROVED
-updated: 2026-10-07
 ---
 
 # [Stage 2-8] 근무 교환 요청 (S9 간호사, 3a)
@@ -52,3 +51,7 @@ Build Spec(comprehensive, 4 아티팩트): [`swap-requests/build-spec-index.md`]
 ## 다음 단계
 
 READY 승인 → 구현 → IMPLEMENTED → `STATUS.md`의 2-8을 `HUMAN_APPROVED`로 업데이트 → `09-integration-e2e.md`로 이동
+
+## 진행 기록
+
+- 이전 기록은 [HISTORY.md](../HISTORY.md)에 있다.

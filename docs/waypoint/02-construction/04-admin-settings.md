@@ -1,8 +1,7 @@
 ---
+id: 2-4
 phase: 02-construction
 stage: 04-admin-settings
-status: HUMAN_APPROVED
-updated: 2026-09-27
 ---
 
 # [Stage 2-4] 관리자 설정 (S10·S11)
@@ -56,3 +55,7 @@ Build Spec(standard, 4 아티팩트): [`admin-settings/build-spec-index.md`](adm
 ## 다음 단계
 
 READY 승인 → 구현 → IMPLEMENTED → `STATUS.md`의 2-4를 `HUMAN_APPROVED`로 업데이트 → `05-shift-requests.md`로 이동
+
+## 진행 기록
+
+- 이전 기록은 [HISTORY.md](../HISTORY.md)에 있다.

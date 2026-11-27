@@ -1,8 +1,7 @@
 ---
+id: 3-1
 phase: 03-operations
 stage: 01-deployment
-status: HUMAN_APPROVED
-updated: 2026-10-09
 ---
 
 # [Stage 3-1] Deployment ⚠️
@@ -83,3 +82,7 @@ Build Spec: [`deployment/build-spec-index.md`](deployment/build-spec-index.md)
 ## 다음 단계
 
 승인 후 → `STATUS.md`의 3-1을 `HUMAN_APPROVED`로 → `02-monitoring.md`(3-2)
+
+## 진행 기록
+
+- 이전 기록은 [HISTORY.md](../HISTORY.md)에 있다.

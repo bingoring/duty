@@ -1,8 +1,7 @@
 ---
+id: 3-2
 phase: 03-operations
 stage: 02-monitoring
-status: HUMAN_APPROVED
-updated: 2026-10-09
 ---
 
 # [Stage 3-2] Monitoring
@@ -55,3 +54,7 @@ Build Spec(light): [`monitoring/build-spec-index.md`](monitoring/build-spec-inde
 ## 다음 단계
 
 승인 → 구현 → IMPLEMENTED → 승인 → 3-3(유지보수·피드백) 또는 운영 안정화
+
+## 진행 기록
+
+- 이전 기록은 [HISTORY.md](../HISTORY.md)에 있다.

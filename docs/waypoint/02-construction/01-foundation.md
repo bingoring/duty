@@ -1,8 +1,7 @@
 ---
+id: 2-1
 phase: 02-construction
 stage: 01-foundation
-status: HUMAN_APPROVED
-updated: 2026-09-27
 ---
 
 # [Stage 2-1] Foundation
@@ -59,3 +58,7 @@ Build Spec(standard 티어 + 로직·화면 아티팩트 포함): [`foundation/b
 ## 다음 단계
 
 READY 승인 → 구현 → IMPLEMENTED → `STATUS.md`의 2-1을 `HUMAN_APPROVED`로 업데이트 → `02-domain-core.md`로 이동
+
+## 진행 기록
+
+- 이전 기록은 [HISTORY.md](../HISTORY.md)에 있다.

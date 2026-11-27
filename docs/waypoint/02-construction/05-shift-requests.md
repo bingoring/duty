@@ -1,8 +1,7 @@
 ---
+id: 2-5
 phase: 02-construction
 stage: 05-shift-requests
-status: HUMAN_APPROVED
-updated: 2026-09-28
 ---
 
 # [Stage 2-5] 근무 신청·휴가 (S4 + S5 팝오버)
@@ -58,3 +57,7 @@ Build Spec(standard, 4 아티팩트): [`shift-requests/build-spec-index.md`](shi
 ## 다음 단계
 
 READY 승인 → 구현 → IMPLEMENTED → `STATUS.md`의 2-5를 `HUMAN_APPROVED`로 업데이트 → `06-solver-generation.md`로 이동
+
+## 진행 기록
+
+- 이전 기록은 [HISTORY.md](../HISTORY.md)에 있다.

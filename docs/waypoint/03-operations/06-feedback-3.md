@@ -1,8 +1,7 @@
 ---
+id: 3-6
 phase: 03-operations
 stage: 06-feedback-3
-status: HUMAN_APPROVED
-updated: 2026-10-19
 ---
 
 # [Stage 3-6] 운영 피드백 3 — 관리자 대신 신청 표시 · 휴가 종류 표시 · 검진 오전/오후 · 휴가 승인 취소 · 개인별 주말 통 OFF · 내 설정 KTAS
@@ -39,3 +38,7 @@ updated: 2026-10-19
 
 - [x] E2E(CI) 그린 (2026-10-19 사용자 승인 — 운영 `3bdbf7d`에 반영, main CI·E2E 그린)
 - [x] 운영 반영 후 확인: 대신 신청 파란 표시, 휴가 종류 이름, 검진 오전/오후, 승인 취소, 주말 통 OFF 끄기·목록, 내 설정 KTAS
+
+## 진행 기록
+
+- 이전 기록은 [HISTORY.md](../HISTORY.md)에 있다.

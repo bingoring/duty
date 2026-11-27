@@ -1,8 +1,7 @@
 ---
+id: 1-1
 phase: 01-inception
 stage: 01-context-synthesis
-status: HUMAN_APPROVED
-updated: 2026-09-26
 ---
 
 # [Stage 1-1] Context Synthesis
@@ -173,3 +172,7 @@ updated: 2026-09-26
 ## 다음 단계
 
 승인 후 → `STATUS.md`에서 1-1 상태를 `HUMAN_APPROVED`로 업데이트 → `02-domain-model.md`로 이동
+
+## 진행 기록
+
+- 이전 기록은 [HISTORY.md](../HISTORY.md)에 있다.

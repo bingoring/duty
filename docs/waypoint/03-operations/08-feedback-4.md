@@ -1,8 +1,7 @@
 ---
+id: 3-8
 phase: 03-operations
 stage: 08-feedback-4
-status: HUMAN_APPROVED
-updated: 2026-10-19
 ---
 
 # [Stage 3-8] 운영 피드백 4 — 생성 중 신청·생성안에서 관리자 신청·확정 철회·근무 조정 흐름·KTAS 갱신 팝업
@@ -42,3 +41,7 @@ updated: 2026-10-19
 - 다른 흐림 정리: 통합 테스트는 솔버 품질 대신 보장 성질만 검사(PR #5), 도메인 성능 테스트 기준은 요구사항 50ms(PR #5).
 
 - [x] 승인 (2026-10-19 사용자 승인 — 운영 `3bdbf7d`에 반영, main CI·E2E 그린)
+
+## 진행 기록
+
+- 이전 기록은 [HISTORY.md](../HISTORY.md)에 있다.

@@ -1,8 +1,7 @@
 ---
+id: 2-7
 phase: 02-construction
 stage: 07-adjust-close
-status: HUMAN_APPROVED
-updated: 2026-09-30
 ---
 
 # [Stage 2-7] 근무 조정·월 마감 (S9 관리자)
@@ -55,3 +54,7 @@ Build Spec(comprehensive, 4 아티팩트): [`adjust-close/build-spec-index.md`](
 ## 다음 단계
 
 READY 승인 → 구현 → IMPLEMENTED → `STATUS.md`의 2-7을 `HUMAN_APPROVED`로 업데이트 → `08-swap-requests.md`로 이동
+
+## 진행 기록
+
+- 이전 기록은 [HISTORY.md](../HISTORY.md)에 있다.

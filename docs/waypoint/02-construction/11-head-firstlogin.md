@@ -1,8 +1,7 @@
 ---
+id: 2-11
 phase: 02-construction
 stage: 11-head-firstlogin
-status: HUMAN_APPROVED
-updated: 2026-10-09
 ---
 
 # [Stage 2-11] 수간호사 S 근무·칸 출처 표시·최초 로그인(동의·초기 설정)
@@ -66,3 +65,7 @@ Build Spec(standard): [`head-firstlogin/build-spec-index.md`](head-firstlogin/bu
 ## 다음 단계
 
 READY 승인 → 구현 → IMPLEMENTED → 승인 → 3-1 운영 이력 가져오기 재개
+
+## 진행 기록
+
+- 이전 기록은 [HISTORY.md](../HISTORY.md)에 있다.

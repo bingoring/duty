@@ -1,8 +1,7 @@
 ---
+id: 2-6
 phase: 02-construction
 stage: 06-solver-generation
-status: HUMAN_APPROVED
-updated: 2026-09-29
 ---
 
 # [Stage 2-6] 솔버·듀티 생성 (S8)
@@ -56,3 +55,7 @@ Build Spec(comprehensive, 4 아티팩트): [`solver-generation/build-spec-index.
 ## 다음 단계
 
 READY 승인 → 구현 → IMPLEMENTED → `STATUS.md`의 2-6을 `HUMAN_APPROVED`로 업데이트 → `07-adjust-close.md`로 이동
+
+## 진행 기록
+
+- 이전 기록은 [HISTORY.md](../HISTORY.md)에 있다.

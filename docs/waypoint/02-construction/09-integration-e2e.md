@@ -1,8 +1,7 @@
 ---
+id: 2-9
 phase: 02-construction
 stage: 09-integration-e2e
-status: HUMAN_APPROVED
-updated: 2026-10-07
 ---
 
 # [Stage 2-9] 통합·E2E
@@ -56,3 +55,7 @@ Build Spec(minimal, 인덱스만): [`integration-e2e/build-spec-index.md`](integ
 ## 다음 단계
 
 READY 승인 → 구현 → IMPLEMENTED → `STATUS.md`의 2-9를 `HUMAN_APPROVED`로 업데이트 → 2-10 동료 현황·규칙 안내(2026-10-07 배포 전으로 추가) → R-1 독립 코드 리뷰
+
+## 진행 기록
+
+- 이전 기록은 [HISTORY.md](../HISTORY.md)에 있다.

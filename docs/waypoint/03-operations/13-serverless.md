@@ -1,8 +1,7 @@
 ---
+id: 3-13
 phase: 03-operations
 stage: 13-serverless
-status: IMPLEMENTED
-updated: 2026-11-25
 ---
 
 # [Stage 3-13] 서버 비용 절감 — VM 한 대 → Cloud Run(요청 없으면 0) + Cloud SQL + Firebase Hosting ⚠️
@@ -232,3 +231,8 @@ VM 배포에서도 그대로 동작한다. GCP 자원은 아직 하나도 만들
 - [x] 3. 스테이징 확인 (2026-11-24 승인, PR #19 머지 `3b7cc4b`)
 - [x] 4. 전환 승인·실행 (2026-11-24, 사용자 「지금 전부 진행」)
 - [ ] 6. 2주 뒤 정리 승인
+
+## 진행 기록
+
+- 이전 기록은 [HISTORY.md](../HISTORY.md)에 있다.
+- 2026-11-27 PR #21 머지(2684d1a). deploy-cloudrun 첫 전체 실행 성공(run 45938434476: 이미지 빌드, duty-migrate, 트래픽 전환, Firebase 배포, offplz.com 헬스 200) / 다음: duty-deployer의 VM 역할(dutyDeployer, iap.tunnelResourceAccessor)과 사용자 정의 역할, 저장소 변수 DEPLOY_TARGET·GCP_ZONE 삭제
