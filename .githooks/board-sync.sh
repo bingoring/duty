@@ -1,5 +1,5 @@
 #!/bin/sh
-# waypoint-hook-version: 1
+# waypoint-hook-version: 2
 # waypoint 보드 동기화. waypoint 플러그인의 scripts/board-sync.sh 사본이다(레포에는 .githooks/board-sync.sh).
 # 이 파일을 직접 고치지 말고 플러그인의 것으로 바꾼다(둘째 줄의 버전이 낮으면 세션 시작 때 경고가 나온다).
 #
@@ -311,6 +311,22 @@ wp_read_project() {
   rm -f "$WP_TMP"/page*.json
 }
 
+# wp_missing_cards: 열린 줄(MERGED 아님) 가운데 cards.json에 카드가 없는 ID를 공백으로 이어 출력한다.
+wp_missing_cards() {
+  jq -r --slurpfile c "$WP_TMP/cards.json" '[.[] | select(.open) | select(.id as $i | $c[0] | map(.v.ID) | index($i) | not) | .id] | join(" ")' "$WP_TMP/desired.json"
+}
+
+# wp_missing_why <user|organization> <읽은 Project 파일> <ID 목록>: 다시 읽은 결과에서 ID마다 카드가 아예 없는지,
+# 카드는 있는데 ID 값만 없는지 적는다. item-add가 돌려준 항목 id(added.tsv)로 찾는다(설계 10절의 읽기 지연 기록).
+wp_missing_why() {
+  jq -r --arg k "$1" --arg miss "$3" --rawfile a "$WP_TMP/added.tsv" '
+    ([$a | split("\n")[] | select(. != "") | split("\t") | {key: .[0], value: .[1]}] | from_entries) as $add
+    | [.data[$k].projectV2.items.nodes[].id] as $seen
+    | [$miss | split(" ")[] | . as $i | $add[$i] as $it
+       | $i + "(" + (if $it == null then "이번에 넣은 카드가 아님" elif ($seen | index($it)) == null then "카드 없음" else "카드는 있고 ID 값 없음" end) + ")"]
+    | join(", ")' "$2"
+}
+
 # wp_sync_project <주소>: 한 Project의 카드와 이슈를 STATUS에 맞춘다.
 wp_sync_project() {
   _url=$1
@@ -349,6 +365,7 @@ wp_sync_project() {
 
   # 가: 카드가 없는 줄(MERGED 제외) → 이슈를 찾거나 만들고 카드에 넣는다.
   jq -c --arg k "$_kind" --arg repo "$WP_REPO" "$WP_JQ_CARDS" "$_pj" > "$WP_TMP/cards.json"
+  : > "$WP_TMP/added.tsv"
   jq -r --slurpfile c "$WP_TMP/cards.json" '.[] | select(.open) | select(.id as $i | $c[0] | map(.v.ID) | index($i) | not) | .id' "$WP_TMP/desired.json" |
     while IFS= read -r _id; do
       _title=$(jq -r --arg i "$_id" '.[] | select(.id == $i) | .title' "$WP_TMP/desired.json")
@@ -364,6 +381,7 @@ wp_sync_project() {
         { wp_fail items "카드에 넣지 못함($_id, $_url)"; exit 1; }
       gh project item-edit --project-id "$_pid" --id "$_item" --field-id "$_fid_id" --text "$_id" < /dev/null > /dev/null ||
         { wp_fail field-edit "ID를 적지 못함($_id)"; exit 1; }
+      printf '%s\t%s\n' "$_id" "$_item" >> "$WP_TMP/added.tsv"
       wp_log "카드 넣음 $_id ($_url)"
     done || return 1
   # 카드 없는 MERGED 줄: 카드는 만들지 않는다. 이전 실패로 열린 이슈만 남아 있으면 닫는다.
@@ -375,10 +393,22 @@ wp_sync_project() {
       jq --argjson n "$_inum" 'map(if .number == $n then .state = "CLOSED" else . end)' "$WP_TMP/issues.json" > "$WP_TMP/i2" && mv "$WP_TMP/i2" "$WP_TMP/issues.json"
       wp_log "카드 없는 이슈를 닫음 $_id #$_inum"
     done || return 1
-  # 카드를 넣었으면 다시 읽는다
-  if [ "$(jq -r --slurpfile c "$WP_TMP/cards.json" '[.[] | select(.open) | select(.id as $i | $c[0] | map(.v.ID) | index($i) | not)] | length' "$WP_TMP/desired.json")" != 0 ]; then
-    wp_read_project "$_kind" "$_owner" "$_num" "$_pj" || { wp_fail board "Project를 다시 읽지 못함($_url)"; return 1; }
-    jq -c --arg k "$_kind" --arg repo "$WP_REPO" "$WP_JQ_CARDS" "$_pj" > "$WP_TMP/cards.json"
+  # 카드를 넣었으면 다시 읽는다. GitHub은 쓰기 직후의 읽기에 새 카드나 그 ID 값을 늦게 보여 줄 수 있으므로(설계 10절),
+  # 열린 줄의 카드가 모두 보일 때까지 잠깐씩 쉬며 몇 번 더 읽는다. 끝까지 안 보이면 보이는 카드만 마저 맞추고,
+  # 그 카드의 필드는 맞추지 못했으므로 끝에서 실패로 기록한다.
+  # WP_BOARD_SYNC_REREAD_WAITS: 다시 읽기 사이에 쉬는 초(공백으로 나눔). 테스트가 줄여 쓴다.
+  _absent=$(wp_missing_cards)
+  if [ -n "$_absent" ]; then
+    _rr=0
+    for _rw in 0 ${WP_BOARD_SYNC_REREAD_WAITS:-2 4 8}; do
+      [ "$_rw" = 0 ] || sleep "$_rw"
+      _rr=$((_rr + 1))
+      wp_read_project "$_kind" "$_owner" "$_num" "$_pj" || { wp_fail board "Project를 다시 읽지 못함($_url)"; return 1; }
+      jq -c --arg k "$_kind" --arg repo "$WP_REPO" "$WP_JQ_CARDS" "$_pj" > "$WP_TMP/cards.json"
+      _absent=$(wp_missing_cards)
+      [ -n "$_absent" ] || break
+      wp_log "다시 읽음 ${_rr}번째: 아직 안 보이는 카드 $(wp_missing_why "$_kind" "$_pj" "$_absent") ($_url)"
+    done
   fi
 
   # 나: 카드가 있는 줄 → 다른 것만 고친다. 고칠 호출을 gh 인자(@sh)로 만든다.
@@ -409,6 +439,7 @@ wp_sync_project() {
   # STATUS에 없는 ID의 카드는 지우지 않고 경고만 남긴다
   jq -r --slurpfile d "$WP_TMP/desired.json" '.[] | select(.v.ID as $i | $d[0] | map(.id) | index($i) | not) | "\(.v.ID) #\(.number)"' "$WP_TMP/cards.json" |
     while IFS= read -r _w; do wp_log "경고: STATUS에 없는 카드 $_w ($_url)"; done
+  [ -z "$_absent" ] || { wp_fail items "카드를 넣었지만 ${_rr}번 다시 읽어도 보이지 않아 필드를 맞추지 못함($_absent, $_url). 다음 push나 직접 실행 때 다시 맞춘다"; return 1; }
   return 0
 }
 
